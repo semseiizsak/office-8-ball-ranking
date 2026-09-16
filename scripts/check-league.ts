@@ -69,6 +69,20 @@ const r3 = runLeagueReplay(ids, [
 ]);
 eq('crown: same-day dethrone pays nothing', r3.matches[1].bountyCollected, 0);
 
+// --- the bounty is paid once per reign, not once per win ---
+// A dominant holder can lose and stay #1; without ending the reign on payout
+// the same maxed-out pot could be collected repeatedly.
+const dominant: MatchRecord[] = [];
+for (let i = 0; i < 25; i++) dominant.push(mkMatch('A', i % 2 ? 'B' : 'D', 'A', T0 + i * 1000));
+dominant.push(mkMatch('C', 'A', 'C', T0 + 20 * DAY_MS));
+dominant.push(mkMatch('C', 'A', 'C', T0 + 20 * DAY_MS + 3600_000));
+const rBounty = runLeagueReplay(['A', 'B', 'C', 'D'], dominant);
+eq('bounty: holder survives the loss and keeps top spot',
+   rBounty.matches[25].playerAEloAfter < rBounty.members.get('A')!.elo + 1000, true);
+eq('bounty: first win over the holder collects the pot', rBounty.matches[25].bountyCollected, 60);
+eq('bounty: an immediate rematch collects nothing', rBounty.matches[26].bountyCollected, 0);
+eq('bounty: total collected is one payout', rBounty.members.get('C')!.bountyCollected, 60);
+
 // --- determinism: replay is stable regardless of input order ---
 const shuffled = [mkMatch('C', 'A', 'C', T0 + 6 * DAY_MS), mkMatch('A', 'B', 'A', T0)];
 const r4 = runLeagueReplay(ids, shuffled);

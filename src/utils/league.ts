@@ -211,8 +211,12 @@ export function runLeagueReplay(
       member.bestRankDefence = Math.max(member.bestRankDefence, member.rankDefence);
     }
 
+    // A reign ends when the crown moves, and also whenever the bounty is paid
+    // out: the pot is claimed once, then starts accruing again. Without this a
+    // holder with a big enough lead to survive a loss keeps a maxed-out bounty
+    // that the same opponent can collect over and over.
     const leaderId = [...ranksAfter.entries()].find(([, rank]) => rank === 1)?.[0] ?? null;
-    if (leaderId !== crownHolderId) {
+    if (leaderId !== crownHolderId || bounty > 0) {
       if (openReign && openReign.endedAt === null) openReign.endedAt = match.timestamp;
       if (leaderId) reigns.push({ playerId: leaderId, startedAt: match.timestamp, endedAt: null, defences: 0 });
       crownHolderId = leaderId;

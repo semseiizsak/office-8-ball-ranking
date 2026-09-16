@@ -407,6 +407,9 @@ export async function logMatch(
       players.map((player) => ({ id: player.id, elo: player.elo, played: player.wins + player.losses }))
     );
     const crownChangedHands = newLeader !== state.crownHolderId;
+    // Paying the bounty restarts the reign even when the holder keeps top spot,
+    // so the same pot cannot be collected twice.
+    const reignRestarts = crownChangedHands || bounty > 0;
 
     const matchData = {
       playerAId,
@@ -445,7 +448,7 @@ export async function logMatch(
     writePlayer(nextLoser);
     transaction.set(matchRef, matchData);
 
-    if (crownChangedHands) {
+    if (reignRestarts) {
       transaction.set(leagueStateRef, {
         crownHolderId: newLeader,
         crownSince: now,
