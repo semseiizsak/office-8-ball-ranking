@@ -15,6 +15,7 @@ a K-factor of 32.
 - Atomic Firestore transactions for match results
 - Player creation with department, title, and ball preference
 - Production deployment through Vercel
+- Browser push notifications for challenges and logged matches
 
 ## Requirements
 
@@ -106,3 +107,29 @@ vercel --prod
 ```
 
 Pushes to the connected `main` branch can also trigger Vercel deployments.
+
+## Push Notifications
+
+Push uses Firebase Cloud Messaging and the Firebase Functions in `functions/`.
+The app registers the selected player's browser token and supports two events:
+
+- A profile challenge sends a notification to the challenged player's devices.
+- A logged match sends a league update to every registered player's devices.
+
+One-time Firebase setup:
+
+1. In Firebase Console, open **Project settings > Cloud Messaging**.
+2. Under **Web configuration**, create or copy the Web Push certificate key.
+3. Add it locally as `VITE_FIREBASE_VAPID_KEY` in `.env.local`.
+4. Add the same variable to Vercel for Production and redeploy.
+5. Upgrade the Firebase project to the Blaze plan if prompted. Cloud Functions
+	requires Blaze billing, although normal notification usage can remain within
+	the free usage quotas.
+6. Deploy the notification functions:
+
+```bash
+npx firebase-tools deploy --only functions --project office-8ball
+```
+
+The browser must grant notification permission. On iPhone, install the site to
+the Home Screen first, then open the installed app and select your player.

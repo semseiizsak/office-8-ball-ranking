@@ -12,6 +12,7 @@ import { IdentityPicker } from './components/IdentityPicker';
 import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
+import { createChallengeNotification, registerForPushNotifications, subscribeToForegroundNotifications } from './services/notifications';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
@@ -67,6 +68,15 @@ export default function App() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!currentPlayer) return;
+    void registerForPushNotifications(currentPlayer.id).catch(() => undefined);
+    if (typeof Notification === 'undefined') return;
+    return subscribeToForegroundNotifications((title, body) => {
+      if (Notification.permission === 'granted') new Notification(title, { body });
+    });
+  }, [currentPlayer]);
 
   // Handle Recording Match
   const handleRecordMatch = async (
@@ -145,6 +155,9 @@ export default function App() {
   // Quick challenge action from Dossier or Leaderboard
   const handleChallenge = (player: Player) => {
     if (!currentPlayer || currentPlayer.id === player.id) return;
+    void createChallengeNotification(player.id, currentPlayer.name, currentPlayer.id).catch((error) => {
+      console.error('Failed to send challenge notification:', error);
+    });
     setSelectedPlayerAId(currentPlayer.id);
     setSelectedPlayerBId(player.id);
     setActiveTab('log');
