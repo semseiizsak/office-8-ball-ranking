@@ -54,9 +54,13 @@ export const QuickMatchModal: React.FC<QuickMatchModalProps> = ({ player, oppone
         <h2 className="mt-1 font-['Chivo'] text-2xl font-black text-white">Quick Match</h2>
         <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <div className="rounded-xl border border-[#10b981]/40 bg-[#10b981]/10 p-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#4edea3]">
-              {player.name.charAt(0).toUpperCase()}
-            </div>
+            {player.avatarUrl ? (
+              <img src={player.avatarUrl} alt={player.name} className="mx-auto h-12 w-12 rounded-full border border-[#10b981]/50 object-cover" />
+            ) : (
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#4edea3]">
+                {player.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <p className="mt-2 truncate font-['Chivo'] text-xs font-bold text-white">{player.name}</p>
             <p className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">YOU</p>
           </div>
@@ -64,9 +68,13 @@ export const QuickMatchModal: React.FC<QuickMatchModalProps> = ({ player, oppone
           <div className={`rounded-xl border p-3 transition-all ${isSpinning ? 'border-[#ffb95f]/60 bg-[#ffb95f]/10' : 'border-[#10b981]/40 bg-[#10b981]/10'}`}>
             {displayedOpponent ? (
               <>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#ffb95f]">
-                  {displayedOpponent.name.charAt(0).toUpperCase()}
-                </div>
+                {displayedOpponent.avatarUrl ? (
+                  <img src={displayedOpponent.avatarUrl} alt={displayedOpponent.name} className="mx-auto h-12 w-12 rounded-full border border-[#ffb95f]/60 object-cover" />
+                ) : (
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#ffb95f]">
+                    {displayedOpponent.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <p className="mt-2 truncate font-['Chivo'] text-xs font-bold text-white">{displayedOpponent.name}</p>
                 <p className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">{isSpinning ? 'ROLLING...' : 'OPPONENT'}</p>
               </>

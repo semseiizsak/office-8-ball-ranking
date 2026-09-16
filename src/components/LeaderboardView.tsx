@@ -145,25 +145,20 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   </span>
                 </div>
 
-                {/* Avatar with Ball Badge */}
-                <div className="relative shrink-0">
-                  <img
-                    src={player.avatarUrl}
-                    alt={player.name}
-                    referrerPolicy="no-referrer"
-                    className="w-11 h-11 rounded-full object-cover border border-[#30363d]"
-                  />
-                  {/* Ball Type Icon Pip */}
-                  <span
-                    title={player.ballPreference === 'solids' ? 'Prefers Solids' : 'Prefers Stripes'}
-                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-[#10141a] text-[8px] font-bold ${
-                      player.ballPreference === 'solids'
-                        ? 'bg-[#d97706] text-black font-black'
-                        : 'bg-[#38bdf8] text-black font-black'
-                    }`}
-                  >
-                    {player.ballPreference === 'solids' ? '●' : '◫'}
-                  </span>
+                {/* Player avatar */}
+                <div className="shrink-0">
+                  {player.avatarUrl ? (
+                    <img
+                      src={player.avatarUrl}
+                      alt={player.name}
+                      referrerPolicy="no-referrer"
+                      className="w-11 h-11 rounded-full object-cover border border-[#30363d]"
+                    />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#30363d] bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3]">
+                      {player.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
 
                 {/* Player Name and Badges */}
