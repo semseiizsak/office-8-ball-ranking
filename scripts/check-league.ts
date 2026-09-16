@@ -1,5 +1,6 @@
 import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, DAY_MS } from '../src/utils/league';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
+import { previewStakes } from '../src/utils/stakes';
 import { MatchRecord, Player } from '../src/types';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
@@ -105,6 +106,27 @@ const stakes = calculateProjectedStakes(1000, 1100, 0, 18);
 const plain = calculateProjectedStakes(1000, 1100, 0, 0);
 eq('stakes: bounty added to challenger upside', stakes.playerAWinsDelta - plain.playerAWinsDelta, 18);
 eq('stakes: bounty not added to holder upside', stakes.playerBWinsDelta, plain.playerBWinsDelta);
+
+// --- pre-match stakes: the app reaching into the room ---
+const ladder = ['top', 'mid', 'low'].map(mkPlayer);
+ladder[0].elo = 1030; ladder[1].elo = 1010; ladder[2].elo = 1000;
+ladder.forEach((p) => { p.wins = 5; });
+const climb = previewStakes(ladder[2], ladder[1], ladder);
+eq('stakes: beating the player above you takes their rank', climb.rankIfWin, 2);
+eq('stakes: losing to them keeps you where you are', climb.rankIfLose, 3);
+eq('stakes: names who you would overtake', climb.overtakes, 'mid');
+eq('stakes: underdog flagged', climb.isUnderdog, true);
+console.log('      headline:', climb.headline);
+
+const defend = previewStakes(ladder[0], ladder[1], ladder);
+eq('stakes: leader losing drops a place', defend.rankIfLose, 2);
+eq('stakes: names who would pass you', defend.fallsBelow, 'mid');
+console.log('      headline:', defend.headline);
+
+const withBounty = previewStakes(ladder[2], ladder[0], ladder, 30);
+const withoutBounty = previewStakes(ladder[2], ladder[0], ladder, 0);
+eq('stakes: crown bounty raises the upside', withBounty.winDelta - withoutBounty.winDelta, 30);
+eq('stakes: crown bounty leaves the downside alone', withBounty.loseDelta, withoutBounty.loseDelta);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

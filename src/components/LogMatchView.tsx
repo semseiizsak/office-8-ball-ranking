@@ -13,10 +13,27 @@ import {
 } from 'lucide-react';
 import { Player, MatchRecord, MatchModifier, BallPreference } from '../types';
 import { calculateProjectedStakes } from '../utils/elo';
+import { CrownState } from '../utils/league';
+
+/**
+ * Nothing about how a match was played is recorded, so these stay at their
+ * defaults. The rating gap is the only thing that scales the exchange.
+ */
+const NO_MODIFIERS: MatchModifier = { eightOnBreak: false, scratchOnEight: false, tableRun: false };
+
+const describeElapsed = (sinceMs: number): string => {
+  const minutes = Math.max(1, Math.round(sinceMs / 60_000));
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+};
 
 interface LogMatchViewProps {
   players: Player[];
   recentMatches: MatchRecord[];
+  crown: CrownState;
   initialPlayerAId?: string;
   initialPlayerBId?: string;
   onRecordMatch: (
@@ -31,6 +48,7 @@ interface LogMatchViewProps {
 export const LogMatchView: React.FC<LogMatchViewProps> = ({
   players,
   recentMatches,
+  crown,
   initialPlayerAId,
   initialPlayerBId,
   onRecordMatch,
@@ -59,13 +77,6 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   // Modal selectors for picking player
   const [selectingFor, setSelectingFor] = useState<'A' | 'B' | null>(null);
 
-  // Modifiers
-  const [modifiers, setModifiers] = useState<MatchModifier>({
-    eightOnBreak: false,
-    scratchOnEight: false,
-    tableRun: false,
-  });
-
   // Custom ball override for the match
   const [ballTypeA, setBallTypeA] = useState<BallPreference>('solids');
   const [ballTypeB, setBallTypeB] = useState<BallPreference>('stripes');
@@ -92,9 +103,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
 
   // Recent match rematch check
   const lastMatch = recentMatches[0];
-  const lastMatchTimeAgo = lastMatch
-    ? Math.max(1, Math.round((Date.now() - lastMatch.timestamp) / 60000))
-    : 14;
+  const lastMatchTimeAgo = lastMatch ? describeElapsed(Date.now() - lastMatch.timestamp) : null;
 
   const handleRematchClick = () => {
     if (lastMatch) {
@@ -103,8 +112,16 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
     }
   };
 
-  // Calculate realtime projected stakes
-  const stakes = calculateProjectedStakes(playerA ? playerA.elo : 1000, playerB ? playerB.elo : 1000);
+  // Beating the crown holder also collects their reign bounty, so the numbers
+  // on the buttons have to include it or they are a lie.
+  const bountyOnA = playerA && crown.holderId === playerA.id ? crown.bounty : 0;
+  const bountyOnB = playerB && crown.holderId === playerB.id ? crown.bounty : 0;
+  const stakes = calculateProjectedStakes(
+    playerA ? playerA.elo : 1000,
+    playerB ? playerB.elo : 1000,
+    bountyOnA,
+    bountyOnB
+  );
 
   const isAFavorite = (playerA?.elo || 1000) >= (playerB?.elo || 1000);
 
@@ -122,7 +139,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
                 Rematch {lastMatch.playerAName.split(' ')[0]} vs {lastMatch.playerBName.split(' ')[0]}?
               </h4>
               <p className="text-[10px] text-[#86948a] font-['Space_Grotesk']">
-                Last played {lastMatchTimeAgo} mins ago
+                Last played {lastMatchTimeAgo}
               </p>
             </div>
           </div>
@@ -150,12 +167,18 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
           >
             {/* Avatar with Rank Badge */}
             <div className="relative shrink-0">
-              <img
-                src={playerA?.avatarUrl}
-                alt={playerA?.name}
-                referrerPolicy="no-referrer"
-                className="w-14 h-14 rounded-full object-cover border-2 border-[#10b981]/60 shadow-md"
-              />
+              {playerA?.avatarUrl ? (
+                <img
+                  src={playerA.avatarUrl}
+                  alt={playerA.name}
+                  referrerPolicy="no-referrer"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-[#10b981]/60 shadow-md"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#10b981]/60 bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#4edea3] shadow-md">
+                  {playerA?.name.charAt(0).toUpperCase() ?? '?'}
+                </div>
+              )}
               <span className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#10b981] text-[#002113] text-[10px] font-['JetBrains_Mono'] font-black flex items-center justify-center border border-[#10141a]">
                 {rankA}
               </span>
@@ -234,12 +257,18 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
           >
             {/* Avatar with Rank Badge */}
             <div className="relative shrink-0">
-              <img
-                src={playerB?.avatarUrl}
-                alt={playerB?.name}
-                referrerPolicy="no-referrer"
-                className="w-14 h-14 rounded-full object-cover border-2 border-[#ffb95f]/60 shadow-md"
-              />
+              {playerB?.avatarUrl ? (
+                <img
+                  src={playerB.avatarUrl}
+                  alt={playerB.name}
+                  referrerPolicy="no-referrer"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-[#ffb95f]/60 shadow-md"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#ffb95f]/60 bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#ffb95f] shadow-md">
+                  {playerB?.name.charAt(0).toUpperCase() ?? '?'}
+                </div>
+              )}
               <span className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#ffb95f] text-[#2a1700] text-[10px] font-['JetBrains_Mono'] font-black flex items-center justify-center border border-[#10141a]">
                 {rankB}
               </span>
@@ -303,10 +332,17 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
           <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase">
             PROJECTED STAKES
           </span>
-          <span className="text-xs font-['JetBrains_Mono'] text-[#4edea3] flex items-center gap-1 font-semibold">
-            <Sparkles className="w-3.5 h-3.5" />
-            Realtime Elo Model
-          </span>
+          {bountyOnA + bountyOnB > 0 ? (
+            <span className="text-xs font-['JetBrains_Mono'] text-[#f59e0b] flex items-center gap-1 font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              +{bountyOnA + bountyOnB} crown bounty
+            </span>
+          ) : (
+            <span className="text-xs font-['JetBrains_Mono'] text-[#4edea3] flex items-center gap-1 font-semibold">
+              <Sparkles className="w-3.5 h-3.5" />
+              Realtime Elo Model
+            </span>
+          )}
         </div>
 
         {/* Stake Line 1: If Player A Wins */}
@@ -374,7 +410,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
           disabled={isSubmitting || !playerA || !playerB || playerA.id === playerB.id}
           onClick={() => {
             if (playerA && playerB) {
-              onRecordMatch(playerA.id, playerB.id, playerA.id, modifiers);
+              onRecordMatch(playerA.id, playerB.id, playerA.id, NO_MODIFIERS);
             }
           }}
           className="w-full min-h-[72px] p-4 rounded-2xl bg-gradient-to-r from-[#10b981] to-[#4edea3] hover:brightness-105 active:scale-[0.98] text-[#002113] shadow-[0_4px_20px_rgba(16,185,129,0.35)] transition-all flex items-center justify-between group disabled:opacity-50 disabled:pointer-events-none"
@@ -405,7 +441,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
           disabled={isSubmitting || !playerA || !playerB || playerA.id === playerB.id}
           onClick={() => {
             if (playerA && playerB) {
-              onRecordMatch(playerA.id, playerB.id, playerB.id, modifiers);
+              onRecordMatch(playerA.id, playerB.id, playerB.id, NO_MODIFIERS);
             }
           }}
           className="w-full min-h-[72px] p-4 rounded-2xl bg-[#1c2026] hover:bg-[#262a31] border border-[#30363d] active:scale-[0.98] text-white shadow-md transition-all flex items-center justify-between group disabled:opacity-50 disabled:pointer-events-none"
@@ -475,12 +511,18 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <img
-                        src={player.avatarUrl}
-                        alt={player.name}
-                        referrerPolicy="no-referrer"
-                        className="w-10 h-10 rounded-full object-cover border border-[#30363d]"
-                      />
+                      {player.avatarUrl ? (
+                        <img
+                          src={player.avatarUrl}
+                          alt={player.name}
+                          referrerPolicy="no-referrer"
+                          className="w-10 h-10 rounded-full object-cover border border-[#30363d]"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#30363d] bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3]">
+                          {player.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <div className="font-['Chivo'] font-bold text-sm">{player.name}</div>
                         <div className="text-[11px] text-[#86948a]">

@@ -182,11 +182,6 @@ export async function getMatches(): Promise<MatchRecord[]> {
   return snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
 }
 
-/** Reads the live crown record so the client can price a challenge. */
-export async function getLeagueState(): Promise<LeagueState> {
-  const snapshot = await getDoc(leagueStateRef);
-  return toLeagueState(snapshot.data());
-}
 
 export interface MatchMutationResult {
   players: Player[];

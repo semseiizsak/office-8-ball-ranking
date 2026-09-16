@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { TabType, Player, MatchRecord, MatchModifier, BallPreference } from './types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { TabType, Player, MatchRecord, MatchModifier, BallPreference, Challenge, ChallengeStakes } from './types';
 import { poolService } from './services/poolService';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { LeaderboardView } from './components/LeaderboardView';
 import { LogMatchView } from './components/LogMatchView';
 import { PlayersView } from './components/PlayersView';
+import { ArenaView } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
 import { IdentityPicker } from './components/IdentityPicker';
 import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
-import { createChallengeNotification, registerForPushNotifications, subscribeToSparkNotifications } from './services/notifications';
+import { ChallengeModal } from './components/ChallengeModal';
+import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
+import { deriveLeagueInsights } from './utils/league';
+import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
@@ -21,53 +25,71 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('leaderboard');
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<MatchRecord[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickMatch, setShowQuickMatch] = useState(false);
+  const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string } | null>(null);
 
   // Match setup state passed to LogMatchView
   const [selectedPlayerAId, setSelectedPlayerAId] = useState<string | undefined>(undefined);
   const [selectedPlayerBId, setSelectedPlayerBId] = useState<string | undefined>(undefined);
+  /** Challenge this match is settling, so predictions get scored when it lands. */
+  const [activeChallengeId, setActiveChallengeId] = useState<string | undefined>(undefined);
 
-  // Selected player for Dossier modal
   const [dossierPlayer, setDossierPlayer] = useState<Player | null>(null);
 
-  // Match success modal state
   const [matchResult, setMatchResult] = useState<{
     match: MatchRecord;
     winnerName: string;
     loserName: string;
     eloDelta: number;
+    bountyCollected: number;
     winnerNewElo: number;
     loserNewElo: number;
     isUpset: boolean;
+    crownChangedHands: boolean;
   } | null>(null);
 
-  // Fetch initial data
+  // The crown, the titles and every rivalry fall out of match history, so they
+  // stay correct after an edit without anything extra being stored.
+  const league = useMemo(
+    () => deriveLeagueInsights(players, matches, challenges),
+    [players, matches, challenges]
+  );
+
   useEffect(() => {
     async function loadData() {
       try {
-        const [loadedPlayers, loadedMatches] = await Promise.all([
+        const [loadedPlayers, loadedMatches, loadedChallenges] = await Promise.all([
           poolService.getPlayers(),
           poolService.getMatches(),
+          poolService.getChallenges(),
         ]);
         setPlayers(loadedPlayers);
         setMatches(loadedMatches);
+        setChallenges(loadedChallenges);
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
       } finally {
         setIsLoading(false);
-        // Quick subtle splash transition for native app feel
-        const timer = setTimeout(() => {
-          setShowSplash(false);
-        }, 650);
-        return () => clearTimeout(timer);
       }
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // The arena is only fun if it updates while people are watching it.
+  useEffect(() => {
+    if (!currentPlayer) return;
+    return poolService.subscribeToChallenges(setChallenges);
+  }, [currentPlayer]);
 
   useEffect(() => {
     if (!currentPlayer) return;
@@ -78,7 +100,10 @@ export default function App() {
     });
   }, [currentPlayer]);
 
-  // Handle Recording Match
+  const refreshPlayers = async () => {
+    setPlayers(await poolService.getPlayers());
+  };
+
   const handleRecordMatch = async (
     playerAId: string,
     playerBId: string,
@@ -91,18 +116,30 @@ export default function App() {
         playerBId,
         winnerId,
         modifiers,
+        challengeId: activeChallengeId,
       });
 
-      setPlayers(result.updatedPlayers);
+      setPlayers(result.players);
       setMatches((prev) => [result.match, ...prev]);
       setMatchResult(result);
+
+      if (activeChallengeId) {
+        // Settling the challenge books every spectator's call, so the player
+        // records have to be re-read afterwards.
+        await poolService.resolveChallenge({
+          challengeId: activeChallengeId,
+          matchId: result.match.id,
+          winnerId,
+        });
+        setActiveChallengeId(undefined);
+        await refreshPlayers();
+      }
     } catch (err) {
       console.error('Failed to log match:', err);
       alert('Failed to log match. Please try again.');
     }
   };
 
-  // Handle adding a new player
   const handleAddPlayer = async (params: {
     name: string;
     department?: string;
@@ -125,7 +162,9 @@ export default function App() {
     setCurrentPlayer(null);
   };
 
-  const handleSaveProfile = async (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>) => {
+  const handleSaveProfile = async (
+    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>
+  ) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);
     const updatedPlayer = { ...currentPlayer, ...updates };
@@ -149,28 +188,87 @@ export default function App() {
     setShowQuickMatch(false);
     setSelectedPlayerAId(currentPlayer?.id);
     setSelectedPlayerBId(opponent.id);
+    setActiveChallengeId(undefined);
     setActiveTab('log');
   };
 
-  // Quick challenge action from Dossier or Leaderboard
+  /** Opens the challenge composer rather than silently jumping to the log form. */
   const handleChallenge = (player: Player) => {
     if (!currentPlayer || currentPlayer.id === player.id) return;
-    void createChallengeNotification(player.id, currentPlayer.name, currentPlayer.id).catch((error) => {
-      console.error('Failed to send challenge notification:', error);
+    setDossierPlayer(null);
+    setChallengeTarget({ opponentId: player.id });
+  };
+
+  const handleSendChallenge = async (opponent: Player, stakes: ChallengeStakes) => {
+    if (!currentPlayer) return;
+    const challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
+    setChallenges((prev) => [challenge, ...prev]);
+    setChallengeTarget(null);
+    setActiveTab('arena');
+
+    // Tell them what the match is worth to them, not just that it exists.
+    const theirStakes = previewStakes(
+      opponent,
+      currentPlayer,
+      players,
+      league.crown.holderId === currentPlayer.id ? league.crown.bounty : 0,
+      league.crown.holderId === opponent.id ? league.crown.bounty : 0
+    );
+    await sendNotification({
+      recipientPlayerId: opponent.id,
+      type: 'challenge',
+      title: `${currentPlayer.name} called you out`,
+      body: theirStakes.headline,
+      challengeId: challenge.id,
+    }).catch(() => undefined);
+  };
+
+  const handleRespondToChallenge = async (challenge: Challenge, status: 'accepted' | 'declined') => {
+    await poolService.respondToChallenge(challenge.id, status);
+    await sendNotification({
+      recipientPlayerId: challenge.challengerId,
+      type: 'challenge_answered',
+      title: status === 'accepted' ? 'Challenge accepted' : 'Challenge declined',
+      body:
+        status === 'accepted'
+          ? `${challenge.opponentName} is up for it.`
+          : `${challenge.opponentName} ducked it.`,
+      challengeId: challenge.id,
+    }).catch(() => undefined);
+  };
+
+  const handleCancelChallenge = async (challenge: Challenge) => {
+    await poolService.cancelChallenge(challenge.id);
+  };
+
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string) => {
+    if (!currentPlayer) return;
+    await poolService.addPrediction({
+      challengeId: challenge.id,
+      predictorId: currentPlayer.id,
+      predictorName: currentPlayer.name,
+      predictedWinnerId,
     });
-    setSelectedPlayerAId(currentPlayer.id);
-    setSelectedPlayerBId(player.id);
+  };
+
+  const handlePlayChallenge = (challenge: Challenge) => {
+    setSelectedPlayerAId(challenge.challengerId);
+    setSelectedPlayerBId(challenge.opponentId);
+    setActiveChallengeId(challenge.id);
     setActiveTab('log');
   };
 
-  // Find rank of selected dossier player
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
   const dossierRank = dossierPlayer
     ? sortedPlayers.findIndex((p) => p.id === dossierPlayer.id) + 1
     : 1;
+  const arenaBadge = currentPlayer
+    ? challenges.filter(
+        (challenge) => challenge.status === 'pending' && challenge.opponentId === currentPlayer.id
+      ).length
+    : 0;
 
-  // Splash Screen Display
-  if (showSplash) {
+  if (showSplash || isLoading) {
     return (
       <div className="fixed inset-0 z-50 bg-[#10141a] flex flex-col items-center justify-center p-6 text-center select-none">
         <div className="relative mb-6">
@@ -198,9 +296,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center selection:bg-[#10b981]/30 selection:text-[#4edea3]">
-      {/* Mobile Frame Container: Centered on desktop, fluid on mobile up to 480px */}
       <div className="w-full max-w-md min-h-screen bg-[#10141a] border-x border-[#30363d]/40 flex flex-col relative shadow-2xl">
-        {/* Sticky App Header */}
         <Header
           activeTab={activeTab}
           currentUser={currentPlayer}
@@ -209,19 +305,31 @@ export default function App() {
           onQuickMatch={() => setShowQuickMatch(true)}
         />
 
-        {/* Main Content Area: Instantaneous State-Driven View Switching */}
         <main className="flex-1 px-4 pt-3 overflow-x-hidden">
           {activeTab === 'leaderboard' && (
             <div className="animate-in fade-in duration-150">
               <LeaderboardView
                 players={players}
                 matches={matches}
+                league={league}
+                currentPlayer={currentPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
-                onNavigateToLog={(playerA, playerB) => {
-                  if (playerA) setSelectedPlayerAId(playerA.id);
-                  if (playerB) setSelectedPlayerBId(playerB.id);
-                  setActiveTab('log');
-                }}
+                onChallenge={handleChallenge}
+              />
+            </div>
+          )}
+
+          {activeTab === 'arena' && (
+            <div className="animate-in fade-in duration-150">
+              <ArenaView
+                players={players}
+                challenges={challenges}
+                currentPlayer={currentPlayer}
+                onIssueChallenge={() => setChallengeTarget({})}
+                onRespond={handleRespondToChallenge}
+                onCancel={handleCancelChallenge}
+                onPredict={handlePredict}
+                onPlayChallenge={handlePlayChallenge}
               />
             </div>
           )}
@@ -232,6 +340,7 @@ export default function App() {
                 key={`${selectedPlayerAId ?? 'default'}-${selectedPlayerBId ?? 'default'}`}
                 players={players}
                 recentMatches={matches}
+                crown={league.crown}
                 initialPlayerAId={selectedPlayerAId}
                 initialPlayerBId={selectedPlayerBId}
                 onRecordMatch={handleRecordMatch}
@@ -244,6 +353,7 @@ export default function App() {
               <PlayersView
                 players={players}
                 matches={matches}
+                league={league}
                 onAddPlayer={handleAddPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallengePlayer={handleChallenge}
@@ -263,20 +373,18 @@ export default function App() {
           )}
         </main>
 
-        {/* Fixed Bottom Navigation */}
-        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
+        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge} />
 
-        {/* Player Tactical Dossier Modal */}
         <PlayerDossierModal
           player={dossierPlayer}
           rank={dossierRank}
           allPlayers={players}
           matches={matches}
+          league={league}
           onClose={() => setDossierPlayer(null)}
           onChallenge={handleChallenge}
         />
 
-        {/* Match Recorded Celebration Toast / Modal */}
         <MatchSuccessModal
           result={matchResult}
           onClose={() => setMatchResult(null)}
@@ -293,12 +401,23 @@ export default function App() {
           onSave={handleSaveProfile}
         />
 
-        {showQuickMatch && currentPlayer && (
+        {showQuickMatch && (
           <QuickMatchModal
             player={currentPlayer}
             opponents={players.filter((player) => player.id !== currentPlayer.id)}
             onComplete={handleQuickMatchComplete}
             onClose={() => setShowQuickMatch(false)}
+          />
+        )}
+
+        {challengeTarget && (
+          <ChallengeModal
+            currentPlayer={currentPlayer}
+            players={players}
+            crown={league.crown}
+            preselectedOpponentId={challengeTarget.opponentId}
+            onSend={handleSendChallenge}
+            onClose={() => setChallengeTarget(null)}
           />
         )}
       </div>

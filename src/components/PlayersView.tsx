@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { UserPlus, Search, ChevronRight, Flame, Snowflake, ShieldAlert, Sparkles, Check } from 'lucide-react';
+import { UserPlus, Search, ChevronRight, Flame, Moon, Snowflake, Sparkles, Swords } from 'lucide-react';
 import { Player, BallPreference, MatchRecord } from '../types';
-import { findArchNemesis, formatStreak } from '../utils/elo';
+import { formatStreak } from '../utils/elo';
+import { LeagueInsights, findTopRival } from '../utils/league';
+import { TitleBadges } from './TitleBadges';
 
 interface PlayersViewProps {
   players: Player[];
   matches: MatchRecord[];
+  league: LeagueInsights;
   onAddPlayer: (params: {
     name: string;
     department?: string;
@@ -19,6 +22,7 @@ interface PlayersViewProps {
 export const PlayersView: React.FC<PlayersViewProps> = ({
   players,
   matches,
+  league,
   onAddPlayer,
   onSelectPlayer,
   onChallengePlayer,
@@ -195,7 +199,9 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
       <div className="space-y-3 px-1">
         {filteredPlayers.map((player) => {
           const rank = sortedPlayers.findIndex((p) => p.id === player.id) + 1;
-          const nemesis = findArchNemesis(player.id, players, matches);
+          const rival = findTopRival(player.id, players, matches);
+          const insight = league.insights.get(player.id);
+          const titles = league.titlesByPlayer.get(player.id) ?? [];
           const streakLabel = formatStreak(player.currentStreak);
 
           return (
@@ -208,21 +214,30 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <img
-                      src={player.avatarUrl}
-                      alt={player.name}
-                      referrerPolicy="no-referrer"
-                      className="w-12 h-12 rounded-xl object-cover border border-[#30363d]"
-                    />
+                    {player.avatarUrl ? (
+                      <img
+                        src={player.avatarUrl}
+                        alt={player.name}
+                        referrerPolicy="no-referrer"
+                        className="w-12 h-12 rounded-xl object-cover border border-[#30363d]"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#30363d] bg-[#262a31] font-['Chivo'] text-lg font-bold text-[#4edea3]">
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="absolute -top-1.5 -left-1.5 px-1.5 py-0.2 rounded text-[9px] font-['JetBrains_Mono'] font-extrabold bg-[#262a31] text-[#dfe2eb] border border-[#3c4a42]">
                       #{rank}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="font-['Chivo'] text-base font-bold text-white group-hover:text-[#4edea3] transition-colors">
-                      {player.name}
-                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-['Chivo'] text-base font-bold text-white group-hover:text-[#4edea3] transition-colors">
+                        {player.name}
+                      </h3>
+                      <TitleBadges titles={titles} />
+                    </div>
                     <p className="text-xs text-[#86948a] font-['Space_Grotesk']">
                       {player.department}
                     </p>
@@ -239,18 +254,17 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 </div>
               </div>
 
-              {/* Fun Stats Banner (Arch-Nemesis & Current Streak) as explicitly requested */}
+              {/* Real head-to-head ledger plus current form. */}
               <div className="mt-3 pt-3 border-t border-[#30363d]/60 grid grid-cols-2 gap-2 text-xs">
-                {/* Arch-Nemesis */}
                 <div className="p-2 rounded-lg bg-[#1c2026] border border-[#30363d]/80">
-                  <span className="block text-[9px] font-['JetBrains_Mono'] font-bold text-[#ef4444] uppercase tracking-wider flex items-center gap-1">
-                    <span>👹</span> Arch-Nemesis
+                  <span className="block text-[9px] font-['JetBrains_Mono'] font-bold text-[#ffb95f] uppercase tracking-wider flex items-center gap-1">
+                    <Swords className="w-3 h-3" /> Biggest Rivalry
                   </span>
                   <span className="font-['Space_Grotesk'] font-bold text-white text-xs truncate block mt-0.5">
-                    {nemesis ? nemesis.opponentName.split(' ')[0] : 'Dave'}
+                    {rival ? rival.opponentName.split(' ')[0] : 'None yet'}
                   </span>
                   <span className="text-[10px] text-[#86948a] block font-['JetBrains_Mono']">
-                    {nemesis ? `${nemesis.lossesAgainst} losses` : 'TBD'}
+                    {rival ? `${rival.wins}–${rival.losses} in ${rival.meetings}` : 'No matches'}
                   </span>
                 </div>
 
@@ -285,13 +299,31 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Cue to Tap for Full Dossier */}
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-[#86948a] group-hover:text-[#bbcabf] transition-colors pt-1">
-                <span className="flex items-center gap-1 font-['Space_Grotesk']">
-                  <span>View Tactical Dossier</span>
-                  <Sparkles className="w-3 h-3 text-[#4edea3]" />
+              {insight?.isDormant && (
+                <p className="mt-2.5 flex items-center gap-1.5 rounded-lg border border-[#30363d] bg-[#1c2026] px-2 py-1.5 font-['Space_Grotesk'] text-[10px] text-[#86948a]">
+                  <Moon className="h-3 w-3 shrink-0" />
+                  {insight.daysSincePlayed === null
+                    ? 'Has never played — off the active ladder.'
+                    : `Idle ${insight.daysSincePlayed} days — off the active ladder.`}
+                </p>
+              )}
+
+              <div className="mt-2.5 flex items-center justify-between gap-2 pt-1">
+                <span className="flex items-center gap-1 font-['Space_Grotesk'] text-[11px] text-[#86948a] group-hover:text-[#bbcabf] transition-colors">
+                  <span>View dossier</span>
+                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onChallengePlayer(player);
+                  }}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-[#30363d] bg-[#1c2026] px-2.5 py-1.5 font-['Chivo'] text-[11px] font-bold text-[#4edea3] transition-all hover:border-[#10b981] active:scale-95"
+                >
+                  <Swords className="h-3.5 w-3.5" />
+                  Challenge
+                </button>
               </div>
             </div>
           );

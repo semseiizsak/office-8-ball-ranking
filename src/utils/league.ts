@@ -240,6 +240,9 @@ export const daysBetween = (from: number, to: number): number =>
 export const isDormant = (lastPlayedAt: number | null, now: number): boolean =>
   lastPlayedAt === null || daysBetween(lastPlayedAt, now) >= DORMANT_AFTER_DAYS;
 
+const plural = (count: number, singular: string, pluralForm: string): string =>
+  `${count} ${count === 1 ? singular : pluralForm}`;
+
 /** Picks the highest scorer above a floor, tie-broken deterministically. */
 function awardTitle(
   key: string,
@@ -346,7 +349,7 @@ export function deriveLeagueInsights(
       'Most wins over an opponent rated higher than them at the time.',
       score((_, insight) => ({
         value: insight.winsVsHigherRated,
-        valueLabel: `${insight.winsVsHigherRated} upset wins`,
+        valueLabel: plural(insight.winsVsHigherRated, 'upset win', 'upset wins'),
       })),
       1
     ),
@@ -357,7 +360,7 @@ export function deriveLeagueInsights(
       'Most matches played in the last seven days.',
       score((_, insight) => ({
         value: insight.matchesLast7Days,
-        valueLabel: `${insight.matchesLast7Days} this week`,
+        valueLabel: plural(insight.matchesLast7Days, 'match this week', 'matches this week'),
       })),
       2
     ),
@@ -368,7 +371,7 @@ export function deriveLeagueInsights(
       'Longest run of matches played without their rank getting worse.',
       score((_, insight) => ({
         value: insight.bestRankDefence,
-        valueLabel: `${insight.bestRankDefence} held`,
+        valueLabel: plural(insight.bestRankDefence, 'match held', 'matches held'),
       })),
       3
     ),
@@ -390,7 +393,7 @@ export function deriveLeagueInsights(
       'Most losses to an opponent rated lower than them at the time.',
       score((_, insight) => ({
         value: insight.lossesVsLowerRated,
-        valueLabel: `${insight.lossesVsLowerRated} bad losses`,
+        valueLabel: plural(insight.lossesVsLowerRated, 'bad loss', 'bad losses'),
       })),
       1
     ),

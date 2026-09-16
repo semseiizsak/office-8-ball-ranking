@@ -7,7 +7,6 @@ import {
   deleteMatch,
   getChallenges,
   getLeaderboard,
-  getLeagueState,
   getMatches,
   logMatch,
   resolveChallenge,
@@ -20,7 +19,6 @@ import {
 export const poolService = {
   getPlayers: getLeaderboard,
   getMatches,
-  getLeagueState,
   addPlayer,
   updatePlayer,
   updateMatchWinner,
