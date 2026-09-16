@@ -1,4 +1,4 @@
-import { Challenge, MatchRecord, Player } from '../types';
+import { Challenge, MatchRecord, Player, Season } from '../types';
 import { calculateMatchElo } from './elo';
 
 export const DAY_MS = 86_400_000;
@@ -13,6 +13,44 @@ export const DORMANT_AFTER_DAYS = 14;
 export const CHALLENGE_EXPIRY_HOURS = 8;
 /** Predictions needed before a player is eligible for the Oracle title. */
 export const ORACLE_MIN_PREDICTIONS = 5;
+/**
+ * How much of a player's lead above the baseline carries into the next season.
+ * A full wipe throws away everything anyone learned about the field; no reset
+ * at all means season two is season one with a new label.
+ */
+export const SEASON_CARRYOVER = 0.5;
+export const BASE_ELO = 1000;
+
+/** Rating a player starts the next season on, given where they finished. */
+export function softResetElo(finalElo: number): number {
+  return Math.round(BASE_ELO + (finalElo - BASE_ELO) * SEASON_CARRYOVER);
+}
+
+/**
+ * The season in force before anybody has ever closed one: everything logged so
+ * far, counted as season one. Materialised here so no client has to race to
+ * write a bootstrap document.
+ */
+export const IMPLICIT_SEASON: Season = {
+  id: 'implicit-season-1',
+  number: 1,
+  name: 'Season 1',
+  startedAt: 0,
+  endedAt: null,
+  startingElo: {},
+  standings: [],
+  titles: [],
+};
+
+/** Matches belonging to a season's window. */
+export function matchesInSeason(matches: MatchRecord[], season: Season | null): MatchRecord[] {
+  if (!season) return matches;
+  return matches.filter(
+    (match) =>
+      match.timestamp >= season.startedAt &&
+      (season.endedAt === null || match.timestamp < season.endedAt)
+  );
+}
 
 /**
  * The bounty riding on the crown, given how long the holder has sat on it.
@@ -60,10 +98,10 @@ export interface LeagueReplay {
   matches: MatchRecord[];
 }
 
-const createMember = (id: string): MemberState => ({
+const createMember = (id: string, startingElo: number): MemberState => ({
   id,
-  elo: 1000,
-  peakElo: 1000,
+  elo: startingElo,
+  peakElo: startingElo,
   wins: 0,
   losses: 0,
   currentStreak: 0,
@@ -88,7 +126,7 @@ const rankMap = (members: Map<string, MemberState>): Map<string, number> => {
 };
 
 /**
- * Replays the full match history from a 1000 baseline.
+ * Replays a season's matches from the ratings players carried into it.
  *
  * This is the single source of truth for what a match does: live logging and
  * the post-edit rebuild both run through it, so a corrected result can never
@@ -96,8 +134,14 @@ const rankMap = (members: Map<string, MemberState>): Map<string, number> => {
  * bounty, and every title — falls out of win/loss and timestamps alone, which
  * is why none of it asks anyone to log extra detail at the table.
  */
-export function runLeagueReplay(playerIds: string[], matchRecords: MatchRecord[]): LeagueReplay {
-  const members = new Map(playerIds.map((id) => [id, createMember(id)]));
+export function runLeagueReplay(
+  playerIds: string[],
+  matchRecords: MatchRecord[],
+  startingElo: Record<string, number> = {}
+): LeagueReplay {
+  const members = new Map(
+    playerIds.map((id) => [id, createMember(id, startingElo[id] ?? BASE_ELO)])
+  );
   const reigns: CrownReign[] = [];
   let crownHolderId: string | null = null;
 
@@ -278,9 +322,10 @@ export function deriveLeagueInsights(
   players: Player[],
   matches: MatchRecord[],
   challenges: Challenge[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  startingElo: Record<string, number> = {}
 ): LeagueInsights {
-  const replay = runLeagueReplay(players.map((player) => player.id), matches);
+  const replay = runLeagueReplay(players.map((player) => player.id), matches, startingElo);
   const byId = new Map(players.map((player) => [player.id, player]));
   const weekAgo = now - 7 * DAY_MS;
 

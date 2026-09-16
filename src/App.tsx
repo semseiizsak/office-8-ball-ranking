@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TabType, Player, MatchRecord, MatchModifier, BallPreference, Challenge, ChallengeStakes } from './types';
+import {
+  TabType, Player, MatchRecord, MatchModifier, BallPreference, Challenge, ChallengeStakes,
+  Season, SeasonStanding, SeasonTitle,
+} from './types';
 import { poolService } from './services/poolService';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
@@ -15,7 +18,7 @@ import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
-import { deriveLeagueInsights } from './utils/league';
+import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
@@ -26,6 +29,7 @@ export default function App() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
@@ -53,24 +57,37 @@ export default function App() {
     crownChangedHands: boolean;
   } | null>(null);
 
+  // Everything is scoped to the running season, so closing one genuinely
+  // starts the table over instead of just relabelling it.
+  const currentSeason = useMemo(
+    () => seasons.find((season) => season.endedAt === null) ?? IMPLICIT_SEASON,
+    [seasons]
+  );
+  const seasonMatches = useMemo(
+    () => matchesInSeason(matches, currentSeason),
+    [matches, currentSeason]
+  );
+
   // The crown, the titles and every rivalry fall out of match history, so they
   // stay correct after an edit without anything extra being stored.
   const league = useMemo(
-    () => deriveLeagueInsights(players, matches, challenges),
-    [players, matches, challenges]
+    () => deriveLeagueInsights(players, seasonMatches, challenges, Date.now(), currentSeason.startingElo),
+    [players, seasonMatches, challenges, currentSeason]
   );
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [loadedPlayers, loadedMatches, loadedChallenges] = await Promise.all([
+        const [loadedPlayers, loadedMatches, loadedChallenges, loadedSeasons] = await Promise.all([
           poolService.getPlayers(),
           poolService.getMatches(),
           poolService.getChallenges(),
+          poolService.getSeasons(),
         ]);
         setPlayers(loadedPlayers);
         setMatches(loadedMatches);
         setChallenges(loadedChallenges);
+        setSeasons(loadedSeasons);
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
       } finally {
@@ -172,16 +189,50 @@ export default function App() {
     setPlayers((prev) => prev.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)));
   };
 
-  const handleEditMatch = async (matchId: string, winnerId: string) => {
-    const result = await poolService.updateMatchWinner(matchId, winnerId);
+  /** Replaying a season returns only that season's matches, so older ones are kept. */
+  const applyMutation = (result: { players: Player[]; matches: MatchRecord[] }) => {
     setPlayers(result.players);
-    setMatches(result.matches);
+    const rebuilt = new Map(result.matches.map((match) => [match.id, match]));
+    setMatches((prev) =>
+      prev
+        .filter((match) => rebuilt.has(match.id) || matchesInSeason([match], currentSeason).length === 0)
+        .map((match) => rebuilt.get(match.id) ?? match)
+    );
+  };
+
+  const handleEditMatch = async (matchId: string, winnerId: string) => {
+    applyMutation(await poolService.updateMatchWinner(matchId, currentSeason, winnerId));
   };
 
   const handleDeleteMatch = async (matchId: string) => {
-    const result = await poolService.deleteMatch(matchId);
+    applyMutation(await poolService.deleteMatch(matchId, currentSeason));
+  };
+
+  /** Archives the running season's standings and titles, then resets ratings. */
+  const handleEndSeason = async () => {
+    const ranked = [...players]
+      .filter((player) => player.wins + player.losses > 0)
+      .sort((left, right) => right.elo - left.elo);
+    const standings: SeasonStanding[] = ranked.map((player, index) => ({
+      playerId: player.id,
+      name: player.name,
+      rank: index + 1,
+      elo: player.elo,
+      wins: player.wins,
+      losses: player.losses,
+    }));
+    const titles: SeasonTitle[] = league.titles.map((title) => ({
+      key: title.key,
+      label: title.label,
+      emoji: title.emoji,
+      holderId: title.holderId,
+      holderName: title.holderName,
+      valueLabel: title.valueLabel,
+    }));
+
+    const result = await poolService.startNewSeason({ current: currentSeason, standings, titles });
     setPlayers(result.players);
-    setMatches(result.matches);
+    setSeasons(result.seasons);
   };
 
   const handleQuickMatchComplete = (opponent: Player) => {
@@ -310,8 +361,9 @@ export default function App() {
             <div className="animate-in fade-in duration-150">
               <LeaderboardView
                 players={players}
-                matches={matches}
+                matches={seasonMatches}
                 league={league}
+                season={currentSeason}
                 currentPlayer={currentPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}
@@ -339,7 +391,7 @@ export default function App() {
               <LogMatchView
                 key={`${selectedPlayerAId ?? 'default'}-${selectedPlayerBId ?? 'default'}`}
                 players={players}
-                recentMatches={matches}
+                recentMatches={seasonMatches}
                 crown={league.crown}
                 initialPlayerAId={selectedPlayerAId}
                 initialPlayerBId={selectedPlayerBId}
@@ -352,7 +404,7 @@ export default function App() {
             <div className="animate-in fade-in duration-150">
               <PlayersView
                 players={players}
-                matches={matches}
+                matches={seasonMatches}
                 league={league}
                 onAddPlayer={handleAddPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
@@ -366,8 +418,11 @@ export default function App() {
               <EventsView
                 matches={matches}
                 players={players}
+                season={currentSeason}
+                seasons={seasons}
                 onEditWinner={handleEditMatch}
                 onDelete={handleDeleteMatch}
+                onEndSeason={handleEndSeason}
               />
             </div>
           )}
@@ -379,7 +434,7 @@ export default function App() {
           player={dossierPlayer}
           rank={dossierRank}
           allPlayers={players}
-          matches={matches}
+          matches={seasonMatches}
           league={league}
           onClose={() => setDossierPlayer(null)}
           onChallenge={handleChallenge}

@@ -109,3 +109,38 @@ export interface Challenge {
 }
 
 export type TabType = 'leaderboard' | 'log' | 'arena' | 'events' | 'players';
+
+export interface SeasonStanding {
+  playerId: string;
+  name: string;
+  rank: number;
+  elo: number;
+  wins: number;
+  losses: number;
+}
+
+export interface SeasonTitle {
+  key: string;
+  label: string;
+  emoji: string;
+  holderId: string;
+  holderName: string;
+  valueLabel: string;
+}
+
+export interface Season {
+  id: string;
+  number: number;
+  name: string;
+  startedAt: number;
+  /** Null while the season is running. */
+  endedAt: number | null;
+  /**
+   * Rating each player carried into the season. Replaying a season starts from
+   * here rather than 1000, so a soft reset survives a later match correction.
+   */
+  startingElo: Record<string, number>;
+  /** Archived only once the season closes. */
+  standings: SeasonStanding[];
+  titles: SeasonTitle[];
+}

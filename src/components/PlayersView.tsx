@@ -14,7 +14,7 @@ interface PlayersViewProps {
     department?: string;
     title?: string;
     ballPreference: BallPreference;
-  }) => Promise<void>;
+  }) => Promise<Player>;
   onSelectPlayer: (player: Player) => void;
   onChallengePlayer: (player: Player) => void;
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, Moon, Search } from 'lucide-react';
-import { Player, MatchRecord } from '../types';
+import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS } from '../utils/league';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
@@ -9,6 +9,7 @@ interface LeaderboardViewProps {
   players: Player[];
   matches: MatchRecord[];
   league: LeagueInsights;
+  season: Season;
   currentPlayer: Player | null;
   onSelectPlayer: (player: Player) => void;
   onChallenge: (player: Player) => void;
@@ -18,6 +19,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   players,
   matches,
   league,
+  season,
   currentPlayer,
   onSelectPlayer,
   onChallenge,
@@ -183,7 +185,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           Office Pool Power Rankings
         </h2>
         <p className="text-xs text-[#86948a] font-['Space_Grotesk'] mt-0.5">
-          Realtime Elo ratings • Season 1 Championship
+          Realtime Elo ratings • {season.name}
         </p>
       </div>
 

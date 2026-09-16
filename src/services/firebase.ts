@@ -26,9 +26,19 @@ import {
   MatchRecord,
   Player,
   Prediction,
+  Season,
+  SeasonStanding,
+  SeasonTitle,
 } from '../types';
 import { calculateMatchElo } from '../utils/elo';
-import { bountyForReign, runLeagueReplay, CHALLENGE_EXPIRY_HOURS } from '../utils/league';
+import {
+  bountyForReign,
+  runLeagueReplay,
+  softResetElo,
+  matchesInSeason,
+  CHALLENGE_EXPIRY_HOURS,
+  IMPLICIT_SEASON,
+} from '../utils/league';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -195,7 +205,11 @@ export interface MatchMutationResult {
  * produces exactly the ratings the matches would have produced if they had been
  * logged correctly the first time — crown reigns and bounties included.
  */
-async function mutateMatch(matchId: string, winnerId?: string): Promise<MatchMutationResult> {
+async function mutateMatch(
+  matchId: string,
+  season: Season,
+  winnerId?: string
+): Promise<MatchMutationResult> {
   const [playerIndex, matchIndex] = await Promise.all([
     getDocs(playersCollection),
     getDocs(matchesCollection),
@@ -214,11 +228,20 @@ async function mutateMatch(matchId: string, winnerId?: string): Promise<MatchMut
 
     const roster = playerSnapshot.map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()));
     const existingMatches = matchSnapshot.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
-    const nextMatches = existingMatches
-      .filter((match) => match.id !== matchId)
-      .concat(winnerId ? [{ ...toMatch(existingMatch.id, existingMatch.data()), winnerId }] : []);
 
-    const replay = runLeagueReplay(roster.map((player) => player.id), nextMatches);
+    // Only the running season is replayable. An archived season's standings are
+    // a record of what happened and must not move under a later correction.
+    const target = existingMatches.find((match) => match.id === matchId)!;
+    if (matchesInSeason([target], season).length === 0) {
+      throw new Error('That match belongs to a closed season and can no longer be edited');
+    }
+
+    const seasonMatches = matchesInSeason(existingMatches, season);
+    const nextMatches = seasonMatches
+      .filter((match) => match.id !== matchId)
+      .concat(winnerId ? [{ ...target, winnerId }] : []);
+
+    const replay = runLeagueReplay(roster.map((player) => player.id), nextMatches, season.startingElo);
     const rebuiltMatches = new Map(replay.matches.map((match) => [match.id, match]));
 
     const players = roster.map((player) => {
@@ -287,8 +310,9 @@ async function mutateMatch(matchId: string, winnerId?: string): Promise<MatchMut
   });
 }
 
-export const updateMatchWinner = (matchId: string, winnerId: string) => mutateMatch(matchId, winnerId);
-export const deleteMatch = (matchId: string) => mutateMatch(matchId);
+export const updateMatchWinner = (matchId: string, season: Season, winnerId: string) =>
+  mutateMatch(matchId, season, winnerId);
+export const deleteMatch = (matchId: string, season: Season) => mutateMatch(matchId, season);
 
 export interface LogMatchResult {
   match: MatchRecord;
@@ -602,4 +626,98 @@ export async function resolveChallenge(params: {
   }
 
   await batch.commit();
+}
+
+const seasonsCollection = collection(db, 'seasons');
+
+const toSeason = (id: string, data: Record<string, unknown>): Season => ({
+  id,
+  number: Number(data.number ?? 1),
+  name: String(data.name ?? `Season ${Number(data.number ?? 1)}`),
+  startedAt: timestampToMillis(data.startedAt) ?? 0,
+  endedAt: timestampToMillis(data.endedAt),
+  startingElo: (data.startingElo as Record<string, number>) ?? {},
+  standings: Array.isArray(data.standings) ? (data.standings as SeasonStanding[]) : [],
+  titles: Array.isArray(data.titles) ? (data.titles as SeasonTitle[]) : [],
+});
+
+export async function getSeasons(): Promise<Season[]> {
+  const snapshot = await getDocs(query(seasonsCollection, orderBy('number', 'desc')));
+  return snapshot.docs.map((seasonDoc) => toSeason(seasonDoc.id, seasonDoc.data()));
+}
+
+/**
+ * Closes the running season and opens the next one.
+ *
+ * Final standings and titles are archived first, then ratings are softly reset
+ * so the next season starts closer together without throwing away everything
+ * the league learned. Wins, losses and streaks start clean; the hall of fame
+ * keeps the record of what happened.
+ */
+export async function startNewSeason(params: {
+  current: Season;
+  standings: SeasonStanding[];
+  titles: SeasonTitle[];
+}): Promise<{ players: Player[]; seasons: Season[] }> {
+  const playerIndex = await getDocs(playersCollection);
+  const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
+  // An implicit season has no document yet, so it gets one now as it closes.
+  const closingRef = params.current.id === IMPLICIT_SEASON.id
+    ? doc(seasonsCollection)
+    : doc(db, 'seasons', params.current.id);
+  const nextRef = doc(seasonsCollection);
+
+  await runTransaction(db, async (transaction) => {
+    const playerDocs = await Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef)));
+    const roster = playerDocs.map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()));
+    const endedAt = Date.now();
+
+    const startingElo: Record<string, number> = {};
+    for (const player of roster) startingElo[player.id] = softResetElo(player.elo);
+
+    transaction.set(closingRef, {
+      number: params.current.number,
+      name: params.current.name,
+      startedAt: params.current.startedAt,
+      endedAt,
+      startingElo: params.current.startingElo,
+      standings: params.standings,
+      titles: params.titles,
+    });
+
+    transaction.set(nextRef, {
+      number: params.current.number + 1,
+      name: `Season ${params.current.number + 1}`,
+      startedAt: endedAt,
+      endedAt: null,
+      startingElo,
+      standings: [],
+      titles: [],
+    });
+
+    for (const player of roster) {
+      const reset = startingElo[player.id];
+      transaction.update(doc(db, 'players', player.id), {
+        elo: reset,
+        peakElo: reset,
+        wins: 0,
+        losses: 0,
+        currentStreak: 0,
+        bestWinStreak: 0,
+        breakAndRuns: 0,
+        recentForm: [],
+        lastPlayedAt: null,
+      });
+    }
+
+    // A new season starts with the crown vacant.
+    transaction.set(leagueStateRef, {
+      crownHolderId: null,
+      crownSince: null,
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  const [players, seasons] = await Promise.all([getLeaderboard(), getSeasons()]);
+  return { players, seasons };
 }

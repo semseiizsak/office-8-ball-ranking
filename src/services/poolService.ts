@@ -1,4 +1,13 @@
-import { BallPreference, ChallengeStakes, ChallengeStatus, MatchModifier, Player } from '../types';
+import {
+  BallPreference,
+  ChallengeStakes,
+  ChallengeStatus,
+  MatchModifier,
+  Player,
+  Season,
+  SeasonStanding,
+  SeasonTitle,
+} from '../types';
 import {
   addPlayer,
   addPrediction,
@@ -8,6 +17,8 @@ import {
   getChallenges,
   getLeaderboard,
   getMatches,
+  getSeasons,
+  startNewSeason,
   logMatch,
   resolveChallenge,
   respondToChallenge,
@@ -21,8 +32,12 @@ export const poolService = {
   getMatches,
   addPlayer,
   updatePlayer,
-  updateMatchWinner,
-  deleteMatch,
+  updateMatchWinner: (matchId: string, season: Season, winnerId: string) =>
+    updateMatchWinner(matchId, season, winnerId),
+  deleteMatch: (matchId: string, season: Season) => deleteMatch(matchId, season),
+  getSeasons,
+  startNewSeason: (params: { current: Season; standings: SeasonStanding[]; titles: SeasonTitle[] }) =>
+    startNewSeason(params),
   getChallenges,
   subscribeToChallenges,
   createChallenge: (params: { challenger: Player; opponent: Player; stakes: ChallengeStakes }) =>

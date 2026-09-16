@@ -1,4 +1,5 @@
-import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, DAY_MS } from '../src/utils/league';
+import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, softResetElo, matchesInSeason, IMPLICIT_SEASON, DAY_MS } from '../src/utils/league';
+import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
 import { MatchRecord, Player } from '../src/types';
@@ -127,6 +128,33 @@ const withBounty = previewStakes(ladder[2], ladder[0], ladder, 30);
 const withoutBounty = previewStakes(ladder[2], ladder[0], ladder, 0);
 eq('stakes: crown bounty raises the upside', withBounty.winDelta - withoutBounty.winDelta, 30);
 eq('stakes: crown bounty leaves the downside alone', withBounty.loseDelta, withoutBounty.loseDelta);
+
+// --- seasons ---
+eq('season: soft reset halves the lead over 1000', softResetElo(1200), 1100);
+eq('season: soft reset lifts a trailing rating', softResetElo(900), 950);
+eq('season: baseline rating is unchanged', softResetElo(1000), 1000);
+
+const seasonTwo: Season = {
+  id: 's2', number: 2, name: 'Season 2',
+  startedAt: T0 + 3 * DAY_MS, endedAt: null,
+  startingElo: { A: 1100, B: 950, C: 1000 },
+  standings: [], titles: [],
+};
+const spanning = [
+  mkMatch('A', 'B', 'A', T0),                    // season one
+  mkMatch('B', 'C', 'B', T0 + 5 * DAY_MS),       // season two
+];
+eq('season: window excludes earlier matches', matchesInSeason(spanning, seasonTwo).length, 1);
+eq('season: implicit season covers everything', matchesInSeason(spanning, IMPLICIT_SEASON).length, 2);
+
+const s2replay = runLeagueReplay(ids, matchesInSeason(spanning, seasonTwo), seasonTwo.startingElo);
+eq('season: untouched player keeps their carried rating', s2replay.members.get('A')!.elo, 1100);
+eq('season: replay starts from the carried rating, not 1000',
+   s2replay.members.get('B')!.elo > 950, true);
+eq('season: season-two record ignores season-one results',
+   [s2replay.members.get('A')!.wins, s2replay.members.get('B')!.wins], [0, 1]);
+eq('season: carried ratings stay zero-sum within the season',
+   s2replay.members.get('B')!.elo + s2replay.members.get('C')!.elo, 1950);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
