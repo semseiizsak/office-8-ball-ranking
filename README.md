@@ -108,10 +108,11 @@ vercel --prod
 
 Pushes to the connected `main` branch can also trigger Vercel deployments.
 
-## Push Notifications
+## Notifications on Spark
 
-Push uses Firebase Cloud Messaging and the Firebase Functions in `functions/`.
-The app registers the selected player's browser token and supports two events:
+The app supports a Spark-plan notification mode using Firestore real-time
+listeners. It supports two events while the app is open in a browser tab or an
+installed PWA:
 
 - A profile challenge sends a notification to the challenged player's devices.
 - A logged match sends a league update to every registered player's devices.
@@ -120,16 +121,13 @@ One-time Firebase setup:
 
 1. In Firebase Console, open **Project settings > Cloud Messaging**.
 2. Under **Web configuration**, create or copy the Web Push certificate key.
-3. Add it locally as `VITE_FIREBASE_VAPID_KEY` in `.env.local`.
-4. Add the same variable to Vercel for Production and redeploy.
-5. Upgrade the Firebase project to the Blaze plan if prompted. Cloud Functions
-	requires Blaze billing, although normal notification usage can remain within
 	the free usage quotas.
-6. Deploy the notification functions:
+3. Grant browser notification permission when prompted.
 
-```bash
-npx firebase-tools deploy --only functions --project office-8ball
-```
+The VAPID key and Cloud Functions are only needed for true background push while
+the app is closed. That requires a trusted sender and Firebase Blaze billing;
+Firestore cannot securely send browser push messages by itself on Spark.
 
-The browser must grant notification permission. On iPhone, install the site to
-the Home Screen first, then open the installed app and select your player.
+On iPhone, install the site to the Home Screen first, then open the installed
+app and grant notification permission.
+

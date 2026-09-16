@@ -12,7 +12,7 @@ import { IdentityPicker } from './components/IdentityPicker';
 import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
-import { createChallengeNotification, registerForPushNotifications, subscribeToForegroundNotifications } from './services/notifications';
+import { createChallengeNotification, registerForPushNotifications, subscribeToSparkNotifications } from './services/notifications';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
@@ -73,7 +73,7 @@ export default function App() {
     if (!currentPlayer) return;
     void registerForPushNotifications(currentPlayer.id).catch(() => undefined);
     if (typeof Notification === 'undefined') return;
-    return subscribeToForegroundNotifications((title, body) => {
+    return subscribeToSparkNotifications(currentPlayer.id, (title, body) => {
       if (Notification.permission === 'granted') new Notification(title, { body });
     });
   }, [currentPlayer]);
