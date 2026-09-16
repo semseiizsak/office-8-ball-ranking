@@ -92,13 +92,6 @@ export default function App() {
     setPlayers((prev) => [...prev, newPlayer]);
   };
 
-  // Handle reset data to initial mock defaults
-  const handleResetData = async () => {
-    const data = await poolService.resetData();
-    setPlayers(data.players);
-    setMatches(data.matches);
-  };
-
   // Quick challenge action from Dossier or Leaderboard
   const handleChallenge = (player: Player) => {
     const sorted = [...players].sort((a, b) => b.elo - a.elo);
@@ -151,7 +144,6 @@ export default function App() {
         <Header
           activeTab={activeTab}
           currentUser={sortedPlayers[0] || null}
-          onResetData={handleResetData}
           matchesCount={matches.length}
         />
 

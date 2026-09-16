@@ -1,20 +1,96 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Office 8-Ball Rankings
 
-# Run and deploy your AI Studio app
+A small office pool leaderboard built with React, Vite, TypeScript, and Firebase
+Firestore. Players are ranked with an Elo system using a base rating of 1000 and
+a K-factor of 32.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/73eb88be-5a3b-475e-8154-d15586bb5834
+- Elo leaderboard ordered by rating
+- Player profiles, streaks, recent form, and head-to-head nemesis stats
+- Match logging with projected Elo changes
+- Atomic Firestore transactions for match results
+- Player creation with department, title, and ball preference
+- Production deployment through Vercel
 
-## Run Locally
+## Requirements
 
-**Prerequisites:**  Node.js
+- Node.js 20 or newer
+- A Firebase project with Firestore enabled
+- A Firebase Web App registered in that project
 
+## Local Development
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a local environment file from the template:
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in the `VITE_FIREBASE_*` values in `.env.local` using the Firebase Console
+Project Settings page. Firebase Web API keys are intended to be present in client
+applications; Firestore Security Rules protect the database.
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:3000>.
+
+## Firestore Setup
+
+The app uses two collections:
+
+### `players`
+
+Each document stores the player identity and rating state:
+
+- `name`, `department`, `title`, `avatarUrl`, `ballPreference`
+- `elo`, `peakElo`, `wins`, `losses`
+- `currentStreak`, `bestWinStreak`, `breakAndRuns`, `recentForm`
+- `createdAt`
+
+### `matches`
+
+Each document stores an immutable match snapshot:
+
+- `playerAId`, `playerBId`, `winnerId`, `loserId`
+- `playerAName`, `playerBName`
+- `playerAEloBefore`, `playerAEloAfter`, `playerBEloBefore`, `playerBEloAfter`
+- `eloDelta`, `eloExchanged`, `isUpset`, `modifiers`, `timestamp`
+
+`logMatch` reads both players and writes both updated player documents plus the
+match document in one Firestore transaction. This prevents concurrent match
+submissions from overwriting rating changes.
+
+The repository includes [firestore.rules](firestore.rules). Those rules are open
+for development and allow unauthenticated reads and writes. Lock them down with
+Firebase Authentication before sharing the app outside the office.
+
+## Commands
+
+```bash
+npm run dev      # Start Vite locally
+npm run lint     # Type-check without emitting files
+npm run build    # Create the production bundle
+npm run preview  # Preview the production bundle locally
+```
+
+## Deploying
+
+The project is configured for Vercel's Vite detection. Set all `VITE_FIREBASE_*`
+variables in the Vercel project, then deploy:
+
+```bash
+vercel --prod
+```
+
+Pushes to the connected `main` branch can also trigger Vercel deployments.

@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Development-only rules. Replace with authenticated rules before sharing
+    // the app outside the office.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

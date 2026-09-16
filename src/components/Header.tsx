@@ -1,19 +1,17 @@
 import React from 'react';
-import { Bell, RotateCcw, Sparkles } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { EightBallIcon } from './EightBallIcon';
 import { TabType, Player } from '../types';
 
 interface HeaderProps {
   activeTab: TabType;
   currentUser: Player | null;
-  onResetData: () => void;
   matchesCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   currentUser,
-  onResetData,
   matchesCount,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
@@ -55,19 +53,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Actions & User Avatar */}
         <div className="flex items-center gap-2">
-          {/* Quick reset button for easy demo reset */}
-          <button
-            onClick={() => {
-              if (window.confirm('Reset all ratings and match history back to default sample state?')) {
-                onResetData();
-              }
-            }}
-            title="Reset to default league data"
-            className="w-9 h-9 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center text-[#86948a] hover:text-[#4edea3] hover:border-[#10b981]/40 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-
           {/* Activity / Notification Bell */}
           <div className="relative">
             <button
