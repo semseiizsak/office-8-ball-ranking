@@ -217,6 +217,7 @@ export default function App() {
           {activeTab === 'log' && (
             <div className="animate-in fade-in duration-150">
               <LogMatchView
+                key={`${selectedPlayerAId ?? 'default'}-${selectedPlayerBId ?? 'default'}`}
                 players={players}
                 recentMatches={matches}
                 initialPlayerAId={selectedPlayerAId}

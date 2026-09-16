@@ -64,15 +64,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             Realtime Elo ratings • Season 4 Championship
           </p>
         </div>
-
-        <button
-          onClick={() => onNavigateToLog()}
-          className="px-3 py-1.5 rounded-lg bg-[#10b981]/15 text-[#4edea3] hover:bg-[#10b981]/25 border border-[#10b981]/30 text-xs font-['Chivo'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
-        >
-          <span>Quick Match</span>
-          <span className="text-sm">⚡</span>
-        </button>
-      </div>
+        </div>
 
       {/* Roster Quick Stats Banner */}
       <div className="grid grid-cols-3 gap-2 px-1">

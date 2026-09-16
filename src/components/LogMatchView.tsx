@@ -362,51 +362,6 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
         </div>
       </div>
 
-      {/* GAME MODIFIERS (Toggles) */}
-      <div className="space-y-1.5">
-        <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase px-1">
-          GAME MODIFIERS
-        </span>
-
-        <div className="grid grid-cols-2 gap-2">
-          {/* 8 on Break */}
-          <button
-            type="button"
-            onClick={() =>
-              setModifiers((prev) => ({ ...prev, eightOnBreak: !prev.eightOnBreak }))
-            }
-            className={`py-3 px-3 rounded-xl border font-['Chivo'] text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
-              modifiers.eightOnBreak
-                ? 'bg-[#10b981]/20 border-[#10b981] text-[#4edea3] shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                : 'bg-[#161b22] border-[#30363d] text-[#86948a] hover:text-white'
-            }`}
-          >
-            <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-extrabold border border-[#30363d]">
-              8
-            </span>
-            <span>8 on Break</span>
-          </button>
-
-          {/* Scratch on 8 */}
-          <button
-            type="button"
-            onClick={() =>
-              setModifiers((prev) => ({ ...prev, scratchOnEight: !prev.scratchOnEight }))
-            }
-            className={`py-3 px-3 rounded-xl border font-['Chivo'] text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
-              modifiers.scratchOnEight
-                ? 'bg-[#ef4444]/20 border-[#ef4444] text-[#ffb4ab] shadow-[0_0_12px_rgba(239,68,68,0.2)]'
-                : 'bg-[#161b22] border-[#30363d] text-[#86948a] hover:text-white'
-            }`}
-          >
-            <span className="w-5 h-5 rounded-full bg-[#ef4444]/20 text-[#ef4444] flex items-center justify-center text-xs font-black">
-              ✕
-            </span>
-            <span>Scratch on 8</span>
-          </button>
-        </div>
-      </div>
-
       {/* DECLARE WINNER (1-TAP) Massive Satisfying Action Buttons */}
       <div className="space-y-2 pt-2">
         <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase px-1">

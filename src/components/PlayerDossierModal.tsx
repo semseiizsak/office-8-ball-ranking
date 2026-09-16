@@ -149,20 +149,20 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
                     </span>
                   </div>
                   <h3 className="font-['Chivo'] text-base font-bold text-white tracking-tight mt-0.5">
-                    {nemesis ? nemesis.opponentName : 'Dave Miller (Marketing)'}
+                    {nemesis ? nemesis.opponentName : 'No rival data yet'}
                   </h3>
                 </div>
               </div>
 
               <span className="px-2 py-0.5 rounded text-[11px] font-['JetBrains_Mono'] font-bold bg-[#ef4444]/15 text-[#ffb4ab] border border-[#ef4444]/30">
-                {nemesis ? `${nemesis.lossesAgainst}-${nemesis.winsAgainst} Against` : '4-2 Against'}
+                {nemesis ? `${nemesis.lossesAgainst}-${nemesis.winsAgainst} Against` : 'No record'}
               </span>
             </div>
 
             <p className="text-xs text-[#bbcabf] font-['Space_Grotesk'] leading-relaxed mt-2.5">
               {nemesis
                 ? nemesis.quirkDescription
-                : `Lost 4 of last 6 head-to-head clashes. Known to get uncharacteristically rattled by opponents' sharp rail cuts and safety leaves.`}
+                : 'No head-to-head losses have been recorded yet.'}
             </p>
           </div>
 
@@ -173,14 +173,12 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-sm">🗡️</span>
                 <span className="font-['JetBrains_Mono'] text-xs font-bold text-[#4edea3]">
-                  +{player.biggestUpset ? player.biggestUpset.eloDelta : 28} ELO
+                  {player.biggestUpset ? `+${player.biggestUpset.eloDelta} ELO` : 'No data'}
                 </span>
               </div>
               <h4 className="font-['Chivo'] text-sm font-bold text-white">Biggest Upset</h4>
               <p className="text-[11px] text-[#86948a] font-['Space_Grotesk'] leading-tight mt-1">
-                {player.biggestUpset
-                  ? player.biggestUpset.description
-                  : 'Epic bank-shot recovery in finals decider when 8-ball was hooked.'}
+                {player.biggestUpset ? player.biggestUpset.description : 'No wins have been recorded yet.'}
               </p>
             </div>
 
@@ -196,31 +194,11 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
                 {player.bestWinStreak} Consecutive Wins
               </h4>
               <p className="text-[11px] text-[#86948a] font-['Space_Grotesk'] leading-tight mt-1">
-                Personal all-time best: {player.bestWinStreak + 2} straight matches without a table scratch.
+                {player.bestWinStreak > 0
+                  ? `Personal best: ${player.bestWinStreak} consecutive wins.`
+                  : 'No win streak has been recorded yet.'}
               </p>
             </div>
-          </div>
-
-          {/* Break & Runs Card */}
-          <div className="rounded-xl bg-[#161b22] border border-[#30363d] p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-black border border-[#30363d] flex items-center justify-center shrink-0">
-                <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
-                  <span className="text-[9px] font-black text-black">8</span>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-['Chivo'] text-sm font-bold text-white">
-                  {player.breakAndRuns} Break & Runs
-                </h4>
-                <p className="text-[11px] text-[#86948a] font-['Space_Grotesk']">
-                  Cleared the table directly from the break
-                </p>
-              </div>
-            </div>
-            <span className="px-2 py-1 rounded text-[10px] font-['JetBrains_Mono'] font-bold bg-[#10b981]/15 text-[#4edea3] border border-[#10b981]/30">
-              TOP 5%
-            </span>
           </div>
 
           {/* Lifetime Record Summary */}
