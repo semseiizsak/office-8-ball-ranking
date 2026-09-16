@@ -11,6 +11,7 @@ import { MatchSuccessModal } from './components/MatchSuccessModal';
 import { IdentityPicker } from './components/IdentityPicker';
 import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
+import { QuickMatchModal } from './components/QuickMatchModal';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
@@ -23,6 +24,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showQuickMatch, setShowQuickMatch] = useState(false);
 
   // Match setup state passed to LogMatchView
   const [selectedPlayerAId, setSelectedPlayerAId] = useState<string | undefined>(undefined);
@@ -127,6 +129,13 @@ export default function App() {
     setMatches(result.matches);
   };
 
+  const handleQuickMatchComplete = (opponent: Player) => {
+    setShowQuickMatch(false);
+    setSelectedPlayerAId(currentPlayer?.id);
+    setSelectedPlayerBId(opponent.id);
+    setActiveTab('log');
+  };
+
   // Quick challenge action from Dossier or Leaderboard
   const handleChallenge = (player: Player) => {
     const sorted = [...players].sort((a, b) => b.elo - a.elo);
@@ -185,6 +194,7 @@ export default function App() {
           currentUser={currentPlayer}
           matchesCount={matches.length}
           onOpenProfile={() => setShowProfile(true)}
+          onQuickMatch={() => setShowQuickMatch(true)}
         />
 
         {/* Main Content Area: Instantaneous State-Driven View Switching */}
@@ -268,6 +278,15 @@ export default function App() {
           onClose={() => setShowProfile(false)}
           onSave={handleSaveProfile}
         />
+
+        {showQuickMatch && currentPlayer && (
+          <QuickMatchModal
+            player={currentPlayer}
+            opponents={players.filter((player) => player.id !== currentPlayer.id)}
+            onComplete={handleQuickMatchComplete}
+            onClose={() => setShowQuickMatch(false)}
+          />
+        )}
       </div>
     </div>
   );

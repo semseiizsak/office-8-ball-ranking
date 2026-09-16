@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Dices } from 'lucide-react';
 import { EightBallIcon } from './EightBallIcon';
 import { TabType, Player } from '../types';
 
@@ -8,6 +8,7 @@ interface HeaderProps {
   currentUser: Player | null;
   matchesCount: number;
   onOpenProfile: () => void;
+  onQuickMatch: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   matchesCount,
   onOpenProfile,
+  onQuickMatch,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
 
@@ -55,6 +57,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Actions & User Avatar */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onQuickMatch}
+            title="Quick Match"
+            className="flex h-9 items-center gap-1.5 rounded-full border border-[#10b981]/40 bg-[#10b981]/10 px-3 text-[#4edea3] transition-colors hover:bg-[#10b981]/20"
+          >
+            <Dices className="h-4 w-4" />
+            <span className="hidden font-['Chivo'] text-[10px] font-bold uppercase tracking-wide sm:inline">Quick Match</span>
+          </button>
           {/* Activity / Notification Bell */}
           <div className="relative">
             <button
