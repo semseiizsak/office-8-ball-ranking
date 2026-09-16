@@ -61,7 +61,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
             Office Pool Power Rankings
           </h2>
           <p className="text-xs text-[#86948a] font-['Space_Grotesk'] mt-0.5">
-            Realtime Elo ratings • Season 4 Championship
+            Realtime Elo ratings • Season 1 Championship
           </p>
         </div>
         </div>

@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
                 Office 8-Ball
               </h1>
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-bold bg-[#10b981]/15 text-[#4edea3] border border-[#10b981]/30">
-                S4
+                S1
               </span>
             </div>
             <p className="font-['JetBrains_Mono'] text-[10px] font-bold tracking-widest text-[#4edea3] uppercase mt-0.5 flex items-center gap-1">

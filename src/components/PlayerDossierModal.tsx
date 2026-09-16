@@ -131,7 +131,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
               TACTICAL INTELLIGENCE & QUIRKS
             </span>
             <span className="font-['JetBrains_Mono'] text-[11px] font-semibold text-[#4edea3]">
-              Season 4
+              Season 1
             </span>
           </div>
 
