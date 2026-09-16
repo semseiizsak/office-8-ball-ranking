@@ -1,6 +1,14 @@
-import { EloStakes, MatchRecord, Player, ArchNemesisInfo } from '../types';
+import { EloStakes } from '../types';
 
 export const K_FACTOR = 32;
+
+/**
+ * An upset is a win by a player the model gave less than this chance.
+ * Expressed as expectancy rather than a rating gap so it means the same thing
+ * at every point on the ladder — and so the badge stays rare enough to mean
+ * something when it does appear.
+ */
+export const UPSET_EXPECTANCY = 0.4;
 
 /**
  * Calculates the expected score for Player A given ratings R_A and R_B
@@ -12,7 +20,10 @@ export function calculateExpectedScore(ratingA: number, ratingB: number): number
 
 /**
  * Calculates new Elo ratings after a match between Player A and Player B.
- * winner: 'A' | 'B'
+ *
+ * The rating gap is the only thing that scales the exchange: beat someone well
+ * above you and you take a lot, beat someone below you and you take very
+ * little. Nothing about how the match was played is recorded or rewarded.
  */
 export function calculateMatchElo(
   ratingA: number,
@@ -47,10 +58,7 @@ export function calculateMatchElo(
   const newRatingA = Math.max(100, ratingA + deltaA);
   const newRatingB = Math.max(100, ratingB + deltaB);
 
-  // An upset is defined when the lower rated player (by at least 25 elo) wins
-  const isUpset =
-    (winner === 'A' && ratingA < ratingB - 25) ||
-    (winner === 'B' && ratingB < ratingA - 25);
+  const isUpset = (winner === 'A' ? expectedA : expectedB) < UPSET_EXPECTANCY;
 
   return {
     newRatingA,
@@ -62,85 +70,34 @@ export function calculateMatchElo(
 }
 
 /**
- * Computes the prospective stakes for both scenarios in the Log Match view.
+ * Prospective stakes for both outcomes, used everywhere the app needs to show
+ * what a match is worth before it is played.
+ *
+ * `bountyOnA` / `bountyOnB` carry the crown bounty: rating the holder forfeits
+ * on top of the normal exchange when somebody finally takes them down.
  */
-export function calculateProjectedStakes(ratingA: number, ratingB: number): EloStakes {
+export function calculateProjectedStakes(
+  ratingA: number,
+  ratingB: number,
+  bountyOnA: number = 0,
+  bountyOnB: number = 0
+): EloStakes {
   const outcomeA = calculateMatchElo(ratingA, ratingB, 'A');
   const outcomeB = calculateMatchElo(ratingA, ratingB, 'B');
 
+  // Beating the crown holder also collects whatever their reign has accrued.
+  const aWins = Math.abs(outcomeA.deltaA) + bountyOnB;
+  const bWins = Math.abs(outcomeB.deltaB) + bountyOnA;
+
   return {
-    playerAWinsDelta: Math.abs(outcomeA.deltaA),
-    playerBWinsDelta: Math.abs(outcomeB.deltaB),
-    playerAWinNewA: outcomeA.newRatingA,
-    playerAWinNewB: outcomeA.newRatingB,
-    playerBWinNewB: outcomeB.newRatingB,
-    playerBWinNewA: outcomeB.newRatingA,
+    playerAWinsDelta: aWins,
+    playerBWinsDelta: bWins,
+    playerAWinNewA: ratingA + aWins,
+    playerAWinNewB: Math.max(100, ratingB - aWins),
+    playerBWinNewB: ratingB + bWins,
+    playerBWinNewA: Math.max(100, ratingA - bWins),
     isAUpset: outcomeA.isUpset,
     isBUpset: outcomeB.isUpset,
-  };
-}
-
-/**
- * Finds the arch-nemesis for a specific player based on head-to-head match history.
- */
-export function findArchNemesis(
-  playerId: string,
-  allPlayers: Player[],
-  matchHistory: MatchRecord[]
-): ArchNemesisInfo | null {
-  const opponentLosses: Record<string, { losses: number; wins: number }> = {};
-
-  matchHistory.forEach((match) => {
-    if (match.playerAId === playerId || match.playerBId === playerId) {
-      const opponentId = match.playerAId === playerId ? match.playerBId : match.playerAId;
-      if (!opponentLosses[opponentId]) {
-        opponentLosses[opponentId] = { losses: 0, wins: 0 };
-      }
-
-      if (match.loserId === playerId) {
-        opponentLosses[opponentId].losses += 1;
-      } else if (match.winnerId === playerId) {
-        opponentLosses[opponentId].wins += 1;
-      }
-    }
-  });
-
-  let maxLosses = 0;
-  let topOpponentId: string | null = null;
-
-  for (const [opponentId, stats] of Object.entries(opponentLosses)) {
-    if (stats.losses > maxLosses) {
-      maxLosses = stats.losses;
-      topOpponentId = opponentId;
-    }
-  }
-
-  if (!topOpponentId || maxLosses === 0) {
-    // Return null or default if no losses recorded yet
-    return null;
-  }
-
-  const opponent = allPlayers.find((p) => p.id === topOpponentId);
-  if (!opponent) return null;
-
-  const stats = opponentLosses[topOpponentId];
-  const quirkDescriptions = [
-    `Lost ${stats.losses} of last ${stats.losses + stats.wins} clashes. Known to get uncharacteristically rattled by their precision bank shots.`,
-    `Has struggled to counter their aggressive break-and-run tempo in recent high-stakes encounters.`,
-    `A classic clash of styles. Often gives away tactical position when pressured on cut shots along the rail.`,
-    `Historic rival on Table 1. High-stress matchups regularly boil down to the final 8-ball battle.`,
-  ];
-
-  const hash = (playerId.charCodeAt(0) + opponent.id.charCodeAt(0)) % quirkDescriptions.length;
-
-  return {
-    opponentId: opponent.id,
-    opponentName: opponent.name,
-    opponentDepartment: opponent.department,
-    lossesAgainst: stats.losses,
-    winsAgainst: stats.wins,
-    totalGames: stats.losses + stats.wins,
-    quirkDescription: quirkDescriptions[hash],
   };
 }
 

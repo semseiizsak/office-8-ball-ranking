@@ -26,6 +26,10 @@ export const Header: React.FC<HeaderProps> = ({
         return 'POWER RANKINGS';
       case 'log':
         return 'LOG MATCH';
+      case 'arena':
+        return 'CHALLENGES & CALLS';
+      case 'events':
+        return 'MATCH HISTORY';
       case 'players':
         return 'ROSTER & DOSSIERS';
     }

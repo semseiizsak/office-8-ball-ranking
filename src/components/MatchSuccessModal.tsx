@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, ArrowUpRight, ArrowDownRight, Flame, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Trophy, ArrowUpRight, ArrowDownRight, Crown, Flame } from 'lucide-react';
 import { MatchRecord } from '../types';
 
 interface MatchSuccessModalProps {
@@ -8,9 +8,11 @@ interface MatchSuccessModalProps {
     winnerName: string;
     loserName: string;
     eloDelta: number;
+    bountyCollected: number;
     winnerNewElo: number;
     loserNewElo: number;
     isUpset: boolean;
+    crownChangedHands: boolean;
   } | null;
   onClose: () => void;
   onViewLeaderboard: () => void;
@@ -31,12 +33,25 @@ export const MatchSuccessModal: React.FC<MatchSuccessModalProps> = ({
           <Trophy className="w-8 h-8" />
         </div>
 
-        {result.isUpset && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-['JetBrains_Mono'] font-bold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/40 mb-2">
-            <Flame className="w-3.5 h-3.5 fill-[#ffb95f]" />
-            MASSIVE UPSET RECORDED!
-          </span>
-        )}
+        <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5">
+          {result.isUpset && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-['JetBrains_Mono'] font-bold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/40">
+              <Flame className="w-3.5 h-3.5 fill-[#ffb95f]" />
+              UPSET
+            </span>
+          )}
+          {result.bountyCollected > 0 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-['JetBrains_Mono'] font-bold bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40">
+              <Crown className="w-3.5 h-3.5 fill-[#f59e0b]" />
+              +{result.bountyCollected} BOUNTY
+            </span>
+          )}
+          {result.crownChangedHands && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-['JetBrains_Mono'] font-bold bg-[#10b981]/20 text-[#4edea3] border border-[#10b981]/40">
+              NEW #1
+            </span>
+          )}
+        </div>
 
         <h2 className="font-['Chivo'] text-2xl font-black text-white tracking-tight">
           Match Recorded!
