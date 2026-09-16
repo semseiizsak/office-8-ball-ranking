@@ -4,6 +4,13 @@ import { db, messaging } from './firebase';
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
+export type LeagueNotificationType =
+  | 'challenge'
+  | 'challenge_answered'
+  | 'crown_taken'
+  | 'rank_change'
+  | 'prediction_result';
+
 export async function registerForPushNotifications(playerId: string): Promise<boolean> {
   if (!vapidKey || !(await isSupported())) return false;
   if (Notification.permission === 'denied') return false;
@@ -35,62 +42,63 @@ export function subscribeToForegroundNotifications(onNotification: (title: strin
   });
 }
 
+/**
+ * Listens only for notifications addressed to this player.
+ *
+ * Deliberately does not watch the matches collection: every logged match firing
+ * a notification at everybody is how an office mutes an app in week two. What
+ * reaches a phone now is only what someone decided was worth sending.
+ */
 export function subscribeToSparkNotifications(
   playerId: string,
   onNotification: (title: string, body: string) => void
 ) {
-  let notificationsReady = false;
-  let matchesReady = false;
+  let ready = false;
 
-  const notificationsUnsubscribe = onSnapshot(
+  return onSnapshot(
     query(collection(db, 'notifications'), where('recipientPlayerId', '==', playerId)),
     (snapshot) => {
-      if (!notificationsReady) {
-        notificationsReady = true;
+      if (!ready) {
+        ready = true;
         return;
       }
       snapshot.docChanges()
         .filter((change) => change.type === 'added')
         .forEach((change) => {
           const data = change.doc.data();
-          onNotification(String(data.title ?? 'Office 8-Ball'), String(data.body ?? 'You have a new league update.'));
+          onNotification(
+            String(data.title ?? 'Office 8-Ball'),
+            String(data.body ?? 'You have a new league update.')
+          );
         });
     }
   );
-
-  const matchesUnsubscribe = onSnapshot(collection(db, 'matches'), (snapshot) => {
-    if (!matchesReady) {
-      matchesReady = true;
-      return;
-    }
-    snapshot.docChanges()
-      .filter((change) => change.type === 'added')
-      .forEach((change) => {
-        const data = change.doc.data();
-        const winnerName = data.winnerId === data.playerAId ? data.playerAName : data.playerBName;
-        const loserName = data.winnerId === data.playerAId ? data.playerBName : data.playerAName;
-        onNotification('Match logged', `${winnerName} defeated ${loserName}.`);
-      });
-  });
-
-  return () => {
-    notificationsUnsubscribe();
-    matchesUnsubscribe();
-  };
 }
 
-export async function createChallengeNotification(
-  recipientPlayerId: string,
-  challengerName: string,
-  challengerId: string
-): Promise<void> {
+/** Writes one addressed notification. Cloud Functions relays it to devices. */
+export async function sendNotification(params: {
+  recipientPlayerId: string;
+  type: LeagueNotificationType;
+  title: string;
+  body: string;
+  challengeId?: string;
+}): Promise<void> {
   await setDoc(doc(collection(db, 'notifications')), {
-    type: 'challenge',
-    recipientPlayerId,
-    challengerId,
-    title: 'New pool challenge',
-    body: `${challengerName} challenged you to a match.`,
+    type: params.type,
+    recipientPlayerId: params.recipientPlayerId,
+    title: params.title,
+    body: params.body,
+    ...(params.challengeId ? { challengeId: params.challengeId } : {}),
     createdAt: serverTimestamp(),
     read: false,
   });
 }
+
+export const notifyMany = async (
+  recipientIds: string[],
+  payload: { type: LeagueNotificationType; title: string; body: string; challengeId?: string }
+): Promise<void> => {
+  await Promise.all(
+    recipientIds.map((recipientPlayerId) => sendNotification({ recipientPlayerId, ...payload }))
+  );
+};
