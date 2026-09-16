@@ -250,7 +250,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
             className="w-full py-3.5 px-4 rounded-xl bg-[#10b981] hover:bg-[#4edea3] text-[#002113] font-['Chivo'] text-base font-bold flex items-center justify-center gap-2 shadow-[0_0_16px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]"
           >
             <Swords className="w-5 h-5" />
-            Set Up Match with {player.name.split(' ')[0]}
+            Challenge {player.name.split(' ')[0]}
           </button>
         </div>
       </div>
