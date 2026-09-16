@@ -5,6 +5,7 @@ import { BallPreference, Player } from '../types';
 interface ProfileModalProps {
   player: Player | null;
   onClose: () => void;
+  onSwitchPlayer: () => void;
   onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>) => Promise<void>;
 }
 
@@ -29,7 +30,7 @@ const readImage = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onSave }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onSwitchPlayer, onSave }) => {
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [title, setTitle] = useState('');
@@ -114,8 +115,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
           ))}
         </div>
         {error && <p className="text-xs text-[#ffb4ab]">{error}</p>}
-        <button disabled={isSaving || !name.trim()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] disabled:opacity-50">
+        <button type="submit" disabled={isSaving || !name.trim()} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] disabled:opacity-50">
           <Save className="h-4 w-4" /> {isSaving ? 'Saving...' : 'Save profile'}
+        </button>
+        <button type="button" onClick={onSwitchPlayer} disabled={isSaving} className="w-full py-2 text-xs font-medium text-[#86948a] hover:text-white disabled:opacity-50">
+          Switch player / Log out
         </button>
       </form>
     </div>

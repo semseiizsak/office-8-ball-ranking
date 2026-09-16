@@ -109,6 +109,12 @@ export default function App() {
     setCurrentPlayer(player);
   };
 
+  const handleSwitchPlayer = () => {
+    localStorage.removeItem(LOCAL_PLAYER_KEY);
+    setShowProfile(false);
+    setCurrentPlayer(null);
+  };
+
   const handleSaveProfile = async (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);
@@ -277,6 +283,7 @@ export default function App() {
         <ProfileModal
           player={showProfile ? currentPlayer : null}
           onClose={() => setShowProfile(false)}
+          onSwitchPlayer={handleSwitchPlayer}
           onSave={handleSaveProfile}
         />
 
