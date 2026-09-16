@@ -23,6 +23,8 @@ import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
+/** How long to wait for the first load before telling the user it is not coming. */
+const LOAD_TIMEOUT_MS = 15_000;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('leaderboard');
@@ -31,6 +33,7 @@ export default function App() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -76,25 +79,54 @@ export default function App() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Firestore retries a bad project or an unreachable network indefinitely
+    // rather than rejecting, which would otherwise leave the splash spinning
+    // forever with nothing to explain it.
+    const withTimeout = <T,>(work: Promise<T>): Promise<T> =>
+      Promise.race([
+        work,
+        new Promise<never>((_, reject) =>
+          window.setTimeout(
+            () => reject(new Error('Timed out reaching the league database.')),
+            LOAD_TIMEOUT_MS
+          )
+        ),
+      ]);
+
     async function loadData() {
       try {
-        const [loadedPlayers, loadedMatches, loadedChallenges, loadedSeasons] = await Promise.all([
-          poolService.getPlayers(),
-          poolService.getMatches(),
-          poolService.getChallenges(),
-          poolService.getSeasons(),
-        ]);
+        const [loadedPlayers, loadedMatches, loadedChallenges, loadedSeasons] = await withTimeout(
+          Promise.all([
+            poolService.getPlayers(),
+            poolService.getMatches(),
+            poolService.getChallenges(),
+            poolService.getSeasons(),
+          ])
+        );
+        if (cancelled) return;
         setPlayers(loadedPlayers);
         setMatches(loadedMatches);
         setChallenges(loadedChallenges);
         setSeasons(loadedSeasons);
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Failed to load league data:', error);
+        setLoadError(
+          error instanceof Error ? error.message : 'Could not reach the league database.'
+        );
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
+
     loadData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -336,6 +368,33 @@ export default function App() {
         <div className="mt-8 flex items-center gap-2 text-[11px] font-['Space_Grotesk'] text-[#86948a]">
           <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
           <span>CALIBRATING LEAGUE MATRIX...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0d1117] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-[#ef4444]/40 bg-[#161b22] p-6 text-center shadow-2xl">
+          <EightBallIcon size={48} className="mx-auto" />
+          <h1 className="mt-4 font-['Chivo'] text-xl font-black tracking-tight text-white">
+            Can't reach the league
+          </h1>
+          <p className="mt-2 font-['Space_Grotesk'] text-sm leading-relaxed text-[#bbcabf]">
+            The app loaded, but the database did not answer. Check the Firebase project settings and
+            that Firestore is enabled.
+          </p>
+          <pre className="mt-3 overflow-x-auto rounded-xl border border-[#30363d] bg-[#10141a] p-3 text-left font-['JetBrains_Mono'] text-[11px] text-[#ffb4ab]">
+            {loadError}
+          </pre>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 w-full rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113]"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 import { getToken, isSupported, onMessage } from 'firebase/messaging';
 import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
-import { db, messaging } from './firebase';
+import { db, getMessagingOrNull } from './firebase';
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
@@ -13,7 +13,10 @@ export type LeagueNotificationType =
 
 export async function registerForPushNotifications(playerId: string): Promise<boolean> {
   if (!vapidKey || !(await isSupported())) return false;
-  if (Notification.permission === 'denied') return false;
+  if (typeof Notification === 'undefined' || Notification.permission === 'denied') return false;
+
+  const messaging = getMessagingOrNull();
+  if (!messaging) return false;
 
   const permission = Notification.permission === 'granted'
     ? 'granted'
@@ -35,6 +38,8 @@ export async function registerForPushNotifications(playerId: string): Promise<bo
 }
 
 export function subscribeToForegroundNotifications(onNotification: (title: string, body: string) => void) {
+  const messaging = getMessagingOrNull();
+  if (!messaging) return () => undefined;
   return onMessage(messaging, (payload) => {
     const title = payload.notification?.title ?? 'Office 8-Ball';
     const body = payload.notification?.body ?? 'You have a new league update.';

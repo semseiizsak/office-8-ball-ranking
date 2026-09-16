@@ -173,6 +173,24 @@ vercel --prod
 
 Pushes to the connected `main` branch can also trigger Vercel deployments.
 
+### Environment variables are per-environment and baked in at build time
+
+Vite inlines `VITE_*` values into the bundle when it builds, so they cannot be
+supplied or corrected at runtime. On Vercel these are scoped separately to
+Production, Preview and Development: setting them for Production alone leaves
+every pull request preview built with `undefined`, which is a different
+deployment even though it is the same project.
+
+If any are missing the app renders a notice listing exactly which ones, rather
+than failing inside the Firebase SDK. After adding them you have to **redeploy**;
+reloading the page is not enough, because the old bundle already has the missing
+values compiled in.
+
+Preview deployments also inherit Vercel's Deployment Protection by default, so
+their URLs show a Vercel login page to anyone not signed in to the account that
+owns the project. Turn it off under Project Settings → Deployment Protection, or
+share a protection bypass link, if colleagues need to open a preview.
+
 ## Notifications on Spark
 
 The app supports a Spark-plan notification mode using Firestore real-time
