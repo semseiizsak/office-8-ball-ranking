@@ -1,0 +1,6 @@
+{
+  "name": "Office 8-Ball Rankings",
+  "description": "Tactile Neo-Billiard Noir Elo ranking and instant match logging application for office 8-ball pool leagues.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
