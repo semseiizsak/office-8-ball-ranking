@@ -144,16 +144,9 @@ export default function App() {
 
   // Quick challenge action from Dossier or Leaderboard
   const handleChallenge = (player: Player) => {
-    const sorted = [...players].sort((a, b) => b.elo - a.elo);
-    const topPlayer = sorted[0];
-
-    if (topPlayer.id !== player.id) {
-      setSelectedPlayerAId(topPlayer.id);
-      setSelectedPlayerBId(player.id);
-    } else {
-      setSelectedPlayerAId(player.id);
-      setSelectedPlayerBId(sorted[1]?.id);
-    }
+    if (!currentPlayer || currentPlayer.id === player.id) return;
+    setSelectedPlayerAId(currentPlayer.id);
+    setSelectedPlayerBId(player.id);
     setActiveTab('log');
   };
 
