@@ -7,12 +7,14 @@ interface HeaderProps {
   activeTab: TabType;
   currentUser: Player | null;
   matchesCount: number;
+  onOpenProfile: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   currentUser,
   matchesCount,
+  onOpenProfile,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
 
@@ -91,17 +93,23 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Current User Avatar */}
           {currentUser && (
-            <div className="relative">
-              <img
-                src={currentUser.avatarUrl}
-                alt={currentUser.name}
-                referrerPolicy="no-referrer"
-                className="w-9 h-9 rounded-full object-cover border-2 border-[#10b981]/50 ring-2 ring-[#10141a]"
-              />
+            <button type="button" onClick={onOpenProfile} className="relative rounded-full" title="Edit your profile">
+              {currentUser.avatarUrl ? (
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.name}
+                  referrerPolicy="no-referrer"
+                  className="w-9 h-9 rounded-full object-cover border-2 border-[#10b981]/50 ring-2 ring-[#10141a]"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#10b981]/50 bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3] ring-2 ring-[#10141a]">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </span>
+              )}
               <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#10b981] text-[#002113] rounded-full text-[9px] font-['JetBrains_Mono'] font-extrabold flex items-center justify-center border border-[#10141a]">
                 1
               </span>
-            </div>
+            </button>
           )}
         </div>
       </div>

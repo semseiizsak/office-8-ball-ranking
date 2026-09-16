@@ -10,6 +10,7 @@ import {
   setDoc,
   serverTimestamp,
   Timestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { MatchModifier, MatchRecord, Player } from '../types';
 import { calculateMatchElo } from '../utils/elo';
@@ -104,6 +105,19 @@ export async function addPlayer(params: {
   return toPlayer(playerRef.id, { ...playerData, createdAt: new Date().toISOString() });
 }
 
+export async function updatePlayer(
+  playerId: string,
+  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>
+): Promise<void> {
+  await updateDoc(doc(db, 'players', playerId), {
+    name: updates.name.trim(),
+    department: updates.department?.trim() || 'General Pool Contender',
+    title: updates.title?.trim() || 'Pool Contender',
+    avatarUrl: updates.avatarUrl,
+    ballPreference: updates.ballPreference,
+  });
+}
+
 export async function getLeaderboard(): Promise<Player[]> {
   const snapshot = await getDocs(query(playersCollection, orderBy('elo', 'desc')));
   return snapshot.docs.map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()));
@@ -113,6 +127,110 @@ export async function getMatches(): Promise<MatchRecord[]> {
   const snapshot = await getDocs(query(matchesCollection, orderBy('timestamp', 'desc')));
   return snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
 }
+
+type MatchMutationResult = { players: Player[]; matches: MatchRecord[] };
+
+const replayMatchHistory = (
+  playerDocs: Array<{ id: string; data: () => Record<string, unknown> }>,
+  matchRecords: MatchRecord[]
+) => {
+  const state = new Map(playerDocs.map((playerDoc) => {
+    const player = toPlayer(playerDoc.id, playerDoc.data());
+    return [player.id, { ...player, elo: 1000, peakElo: 1000, wins: 0, losses: 0, currentStreak: 0, bestWinStreak: 0, breakAndRuns: 0, recentForm: [] as ('W' | 'L')[] }];
+  }));
+  const rewritten = [...matchRecords].sort((left, right) => left.timestamp - right.timestamp).map((match) => {
+    const playerA = state.get(match.playerAId);
+    const playerB = state.get(match.playerBId);
+    if (!playerA || !playerB) return match;
+    const winnerIsA = match.winnerId === playerA.id;
+    const elo = calculateMatchElo(playerA.elo, playerB.elo, winnerIsA ? 'A' : 'B');
+    const winnerDelta = Math.abs(winnerIsA ? elo.deltaA : elo.deltaB);
+    const updatePlayer = (player: typeof playerA, won: boolean, newElo: number) => {
+      player.elo = newElo;
+      player.peakElo = Math.max(player.peakElo, newElo);
+      player.wins += won ? 1 : 0;
+      player.losses += won ? 0 : 1;
+      player.currentStreak = won ? (player.currentStreak > 0 ? player.currentStreak + 1 : 1) : (player.currentStreak < 0 ? player.currentStreak - 1 : -1);
+      player.bestWinStreak = won ? Math.max(player.bestWinStreak, player.currentStreak) : player.bestWinStreak;
+      player.breakAndRuns += won && Boolean(match.modifiers.eightOnBreak) ? 1 : 0;
+      player.recentForm = [won ? 'W' : 'L', ...player.recentForm.slice(0, 4)];
+    };
+    updatePlayer(playerA, winnerIsA, elo.newRatingA);
+    updatePlayer(playerB, !winnerIsA, elo.newRatingB);
+    return {
+      ...match,
+      playerAName: playerA.name,
+      playerBName: playerB.name,
+      loserId: winnerIsA ? playerB.id : playerA.id,
+      playerAEloBefore: winnerIsA ? elo.newRatingA - elo.deltaA : elo.newRatingA - elo.deltaA,
+      playerAEloAfter: elo.newRatingA,
+      playerBEloBefore: winnerIsA ? elo.newRatingB - elo.deltaB : elo.newRatingB - elo.deltaB,
+      playerBEloAfter: elo.newRatingB,
+      eloDelta: winnerDelta,
+      isUpset: elo.isUpset,
+    };
+  });
+  return { players: [...state.values()], matches: rewritten.sort((left, right) => right.timestamp - left.timestamp) };
+};
+
+async function mutateMatch(matchId: string, winnerId?: string): Promise<MatchMutationResult> {
+  const matchRef = doc(db, 'matches', matchId);
+  const [playerIndex, matchIndex] = await Promise.all([
+    getDocs(playersCollection),
+    getDocs(matchesCollection),
+  ]);
+  const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
+  const matchRefs = matchIndex.docs.map((matchDoc) => doc(db, 'matches', matchDoc.id));
+  return runTransaction(db, async (transaction) => {
+    const [playerSnapshot, matchSnapshot] = await Promise.all([
+      Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef))),
+      Promise.all(matchRefs.map((matchRef) => transaction.get(matchRef))),
+    ]);
+    const existingMatch = matchSnapshot.find((matchDoc) => matchDoc.id === matchId);
+    if (!existingMatch) throw new Error('Match not found');
+    const existingMatches = matchSnapshot.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
+    const nextMatches = existingMatches
+      .filter((match) => match.id !== matchId)
+      .concat(winnerId ? [{ ...toMatch(existingMatch.id, existingMatch.data()), winnerId }] : []);
+    const rebuilt = replayMatchHistory(playerSnapshot, nextMatches);
+    for (const playerDoc of playerSnapshot) {
+      const player = rebuilt.players.find((entry) => entry.id === playerDoc.id);
+      if (player) transaction.update(doc(db, 'players', player.id), {
+        elo: player.elo,
+        peakElo: player.peakElo,
+        wins: player.wins,
+        losses: player.losses,
+        currentStreak: player.currentStreak,
+        bestWinStreak: player.bestWinStreak,
+        breakAndRuns: player.breakAndRuns,
+        recentForm: player.recentForm,
+      });
+    }
+    if (winnerId) {
+      for (const match of rebuilt.matches) {
+        transaction.update(doc(db, 'matches', match.id), {
+          winnerId: match.winnerId,
+          loserId: match.loserId,
+          playerAName: match.playerAName,
+          playerBName: match.playerBName,
+          playerAEloBefore: match.playerAEloBefore,
+          playerAEloAfter: match.playerAEloAfter,
+          playerBEloBefore: match.playerBEloBefore,
+          playerBEloAfter: match.playerBEloAfter,
+          eloDelta: match.eloDelta,
+          eloExchanged: match.eloDelta,
+          isUpset: match.isUpset,
+        });
+      }
+    } else {
+      transaction.delete(matchRef);
+    }
+    return rebuilt;
+  });
+}
+
+export const updateMatchWinner = (matchId: string, winnerId: string) => mutateMatch(matchId, winnerId);
+export const deleteMatch = (matchId: string) => mutateMatch(matchId);
 
 export async function logMatch(
   playerAId: string,

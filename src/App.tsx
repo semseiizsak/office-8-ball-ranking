@@ -8,7 +8,12 @@ import { LogMatchView } from './components/LogMatchView';
 import { PlayersView } from './components/PlayersView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
+import { IdentityPicker } from './components/IdentityPicker';
+import { ProfileModal } from './components/ProfileModal';
+import { EventsView } from './components/EventsView';
 import { EightBallIcon } from './components/EightBallIcon';
+
+const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('leaderboard');
@@ -16,6 +21,8 @@ export default function App() {
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showSplash, setShowSplash] = useState<boolean>(true);
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Match setup state passed to LogMatchView
   const [selectedPlayerAId, setSelectedPlayerAId] = useState<string | undefined>(undefined);
@@ -45,6 +52,8 @@ export default function App() {
         ]);
         setPlayers(loadedPlayers);
         setMatches(loadedMatches);
+        const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
+        setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
       } finally {
         setIsLoading(false);
         // Quick subtle splash transition for native app feel
@@ -87,9 +96,35 @@ export default function App() {
     department?: string;
     title?: string;
     ballPreference: BallPreference;
-  }) => {
+  }): Promise<Player> => {
     const newPlayer = await poolService.addPlayer(params);
     setPlayers((prev) => [...prev, newPlayer]);
+    return newPlayer;
+  };
+
+  const handleSelectPlayer = (player: Player) => {
+    localStorage.setItem(LOCAL_PLAYER_KEY, player.id);
+    setCurrentPlayer(player);
+  };
+
+  const handleSaveProfile = async (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>) => {
+    if (!currentPlayer) return;
+    await poolService.updatePlayer(currentPlayer.id, updates);
+    const updatedPlayer = { ...currentPlayer, ...updates };
+    setCurrentPlayer(updatedPlayer);
+    setPlayers((prev) => prev.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)));
+  };
+
+  const handleEditMatch = async (matchId: string, winnerId: string) => {
+    const result = await poolService.updateMatchWinner(matchId, winnerId);
+    setPlayers(result.players);
+    setMatches(result.matches);
+  };
+
+  const handleDeleteMatch = async (matchId: string) => {
+    const result = await poolService.deleteMatch(matchId);
+    setPlayers(result.players);
+    setMatches(result.matches);
   };
 
   // Quick challenge action from Dossier or Leaderboard
@@ -136,6 +171,10 @@ export default function App() {
     );
   }
 
+  if (!currentPlayer) {
+    return <IdentityPicker players={players} onSelect={handleSelectPlayer} onAdd={handleAddPlayer} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center selection:bg-[#10b981]/30 selection:text-[#4edea3]">
       {/* Mobile Frame Container: Centered on desktop, fluid on mobile up to 480px */}
@@ -143,8 +182,9 @@ export default function App() {
         {/* Sticky App Header */}
         <Header
           activeTab={activeTab}
-          currentUser={sortedPlayers[0] || null}
+          currentUser={currentPlayer}
           matchesCount={matches.length}
+          onOpenProfile={() => setShowProfile(true)}
         />
 
         {/* Main Content Area: Instantaneous State-Driven View Switching */}
@@ -187,6 +227,17 @@ export default function App() {
               />
             </div>
           )}
+
+          {activeTab === 'events' && (
+            <div className="animate-in fade-in duration-150">
+              <EventsView
+                matches={matches}
+                players={players}
+                onEditWinner={handleEditMatch}
+                onDelete={handleDeleteMatch}
+              />
+            </div>
+          )}
         </main>
 
         {/* Fixed Bottom Navigation */}
@@ -210,6 +261,12 @@ export default function App() {
             setMatchResult(null);
             setActiveTab('leaderboard');
           }}
+        />
+
+        <ProfileModal
+          player={showProfile ? currentPlayer : null}
+          onClose={() => setShowProfile(false)}
+          onSave={handleSaveProfile}
         />
       </div>
     </div>

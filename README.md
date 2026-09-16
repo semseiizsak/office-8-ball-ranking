@@ -9,6 +9,9 @@ a K-factor of 32.
 - Elo leaderboard ordered by rating
 - Player profiles, streaks, recent form, and head-to-head nemesis stats
 - Match logging with projected Elo changes
+- First-launch player selection stored locally on the device
+- Profile editing with compressed gallery avatar uploads
+- Logged event history with transactional edit and delete controls
 - Atomic Firestore transactions for match results
 - Player creation with department, title, and ball preference
 - Production deployment through Vercel
@@ -70,6 +73,15 @@ Each document stores an immutable match snapshot:
 `logMatch` reads both players and writes both updated player documents plus the
 match document in one Firestore transaction. This prevents concurrent match
 submissions from overwriting rating changes.
+
+Editing or deleting an event replays the match history in chronological order
+inside a Firestore transaction. Player Elo, streaks, wins, losses, and later match
+snapshots are recalculated so corrections do not leave derived statistics stale.
+
+There is intentionally no sign-in flow. On launch, each device chooses a player
+or creates one, and the selected player ID is stored in browser local storage.
+The profile button in the top-right opens the selected player's shared profile,
+including name, role, ball preference, and profile picture.
 
 The repository includes [firestore.rules](firestore.rules). Those rules are open
 for development and allow unauthenticated reads and writes. Lock them down with

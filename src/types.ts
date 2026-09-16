@@ -68,4 +68,4 @@ export interface ArchNemesisInfo {
   quirkDescription: string;
 }
 
-export type TabType = 'leaderboard' | 'log' | 'players';
+export type TabType = 'leaderboard' | 'log' | 'events' | 'players';

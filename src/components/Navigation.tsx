@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Users } from 'lucide-react';
+import { History, Trophy, Users } from 'lucide-react';
 import { TabType } from '../types';
 
 interface NavigationProps {
@@ -13,12 +13,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab }
       id="bottom-navigation-bar"
       className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-lg border-t border-[#30363d]/80 pb-[env(safe-area-inset-bottom,12px)] pt-2"
     >
-      <div className="max-w-md mx-auto px-6 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-2 flex items-center justify-around">
         {/* Tab 1: Leaderboard */}
         <button
           id="nav-tab-leaderboard"
           onClick={() => onSelectTab('leaderboard')}
-          className={`flex flex-col items-center justify-center py-1 px-4 rounded-xl transition-all duration-200 group relative ${
+            className={`flex flex-col items-center justify-center py-1 px-2 sm:px-3 rounded-xl transition-all duration-200 group relative ${
             activeTab === 'leaderboard' ? 'text-[#4edea3]' : 'text-[#86948a] hover:text-[#dfe2eb]'
           }`}
         >
@@ -45,7 +45,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab }
         <button
           id="nav-tab-log"
           onClick={() => onSelectTab('log')}
-          className={`flex flex-col items-center justify-center py-1 px-4 rounded-xl transition-all duration-200 group relative ${
+            className={`flex flex-col items-center justify-center py-1 px-2 sm:px-3 rounded-xl transition-all duration-200 group relative ${
             activeTab === 'log' ? 'text-[#4edea3]' : 'text-[#86948a] hover:text-[#dfe2eb]'
           }`}
         >
@@ -78,7 +78,20 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab }
           </span>
         </button>
 
-        {/* Tab 3: Players */}
+        {/* Tab 3: Events */}
+        <button
+          id="nav-tab-events"
+          onClick={() => onSelectTab('events')}
+          className={`flex flex-col items-center justify-center py-1 px-2 sm:px-3 rounded-xl transition-all duration-200 group relative ${
+            activeTab === 'events' ? 'text-[#4edea3]' : 'text-[#86948a] hover:text-[#dfe2eb]'
+          }`}
+        >
+          {activeTab === 'events' && <span className="absolute -top-2 w-8 h-1 rounded-full bg-[#4edea3] shadow-[0_0_8px_#10b981]"></span>}
+          <div className="relative p-1"><History className={`w-6 h-6 transition-transform duration-200 ${activeTab === 'events' ? 'scale-110 stroke-[2.5]' : 'group-hover:scale-105'}`} /></div>
+          <span className={`text-xs font-['Space_Grotesk'] font-medium tracking-tight mt-0.5 whitespace-nowrap ${activeTab === 'events' ? 'font-bold text-[#4edea3]' : ''}`}>Events</span>
+        </button>
+
+        {/* Tab 4: Players */}
         <button
           id="nav-tab-players"
           onClick={() => onSelectTab('players')}
