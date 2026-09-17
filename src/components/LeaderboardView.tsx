@@ -11,6 +11,7 @@ interface LeaderboardViewProps {
   league: LeagueInsights;
   season: Season;
   currentPlayer: Player | null;
+  leaderboardChanges: Record<string, 'reordered' | 'woke'>;
   onSelectPlayer: (player: Player) => void;
   onChallenge: (player: Player) => void;
 }
@@ -21,6 +22,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   league,
   season,
   currentPlayer,
+  leaderboardChanges,
   onSelectPlayer,
   onChallenge,
 }) => {
@@ -67,6 +69,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     const isColdStreak = player.id === worstStreakPlayerId && worstStreak < 0;
     const totalGames = player.wins + player.losses;
     const winRate = totalGames > 0 ? Math.round((player.wins / totalGames) * 100) : 0;
+    const change = leaderboardChanges[player.id];
 
     return (
       <div
@@ -75,7 +78,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
         onClick={() => onSelectPlayer(player)}
         className={`group relative flex items-center justify-between p-3.5 rounded-xl bg-[#161b22] hover:bg-[#1c2026] border border-[#30363d] transition-all duration-150 cursor-pointer active:scale-[0.99] ${
           isDormantRow ? 'opacity-55' : getRankBorder(rank - 1)
-        }`}
+        } ${change === 'woke' ? 'leaderboard-woke' : change === 'reordered' ? 'leaderboard-reordered' : ''}`}
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-6 text-center shrink-0">

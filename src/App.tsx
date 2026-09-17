@@ -20,11 +20,12 @@ import { ChallengeModal } from './components/ChallengeModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
-import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
+import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
+const LEADERBOARD_SNAPSHOT_KEY = 'office_8ball_leaderboard_snapshot_v1';
 /** How long to wait for the first load before telling the user it is not coming. */
 const LOAD_TIMEOUT_MS = 15_000;
 
@@ -50,6 +51,7 @@ export default function App() {
   const loggingRef = useRef(false);
   /** Challenge currently playing its accept animation before opening the match. */
   const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
+  const [leaderboardChanges, setLeaderboardChanges] = useState<Record<string, 'reordered' | 'woke'>>({});
   /** Incoming challenges the user chose to answer later, this session. */
   const [snoozedChallengeIds, setSnoozedChallengeIds] = useState<string[]>([]);
   const sendingChallengeRef = useRef(false);
@@ -127,6 +129,47 @@ export default function App() {
         setSeasons(loadedSeasons);
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
+
+        const previousSnapshot = JSON.parse(
+          localStorage.getItem(LEADERBOARD_SNAPSHOT_KEY) ?? '{}'
+        ) as Record<string, { rank: number; lastPlayedAt: number | null }>;
+        const isDormantAt = (lastPlayedAt: number | null) =>
+          lastPlayedAt === null || Date.now() - lastPlayedAt >= DORMANT_AFTER_DAYS * 86_400_000;
+        const nextRanks = new Map(
+          [...loadedPlayers]
+            .filter((player) => !isDormantAt(player.lastPlayedAt))
+            .sort((left, right) => right.elo - left.elo)
+            .map((player, index) => [player.id, index + 1])
+        );
+        const changes: Record<string, 'reordered' | 'woke'> = {};
+        for (const player of loadedPlayers) {
+          const previous = previousSnapshot[player.id];
+          if (!previous) continue;
+          const wasDormant =
+            previous.lastPlayedAt === null ||
+            Date.now() - previous.lastPlayedAt >= DORMANT_AFTER_DAYS * 86_400_000;
+          const isActiveAgain =
+            player.lastPlayedAt !== null &&
+            Date.now() - player.lastPlayedAt < DORMANT_AFTER_DAYS * 86_400_000;
+          if (wasDormant && isActiveAgain) changes[player.id] = 'woke';
+          else if (previous.rank !== nextRanks.get(player.id)) changes[player.id] = 'reordered';
+        }
+        setLeaderboardChanges(changes);
+        localStorage.setItem(
+          LEADERBOARD_SNAPSHOT_KEY,
+          JSON.stringify(
+            loadedPlayers.reduce<Record<string, { rank: number; lastPlayedAt: number | null }>>(
+              (snapshot, player) => {
+                snapshot[player.id] = {
+                  rank: nextRanks.get(player.id) ?? 0,
+                  lastPlayedAt: player.lastPlayedAt,
+                };
+                return snapshot;
+              },
+              {}
+            )
+          )
+        );
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to load league data:', error);
@@ -485,6 +528,7 @@ export default function App() {
                 league={league}
                 season={currentSeason}
                 currentPlayer={currentPlayer}
+                leaderboardChanges={leaderboardChanges}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}
               />

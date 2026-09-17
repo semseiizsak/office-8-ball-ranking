@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+@keyframes leaderboard-reordered {
+  0% { transform: translateX(-10px); box-shadow: 0 0 0 rgba(78, 222, 163, 0); }
+  45% { transform: translateX(4px); box-shadow: 0 0 22px rgba(78, 222, 163, 0.28); }
+  100% { transform: translateX(0); box-shadow: 0 0 0 rgba(78, 222, 163, 0); }
+}
+
+@keyframes leaderboard-woke {
+  0% { opacity: 0.55; transform: scale(0.98); box-shadow: 0 0 0 rgba(245, 185, 95, 0); }
+  45% { opacity: 1; transform: scale(1.015); box-shadow: 0 0 26px rgba(245, 185, 95, 0.42); }
+  100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 rgba(245, 185, 95, 0); }
+}
+
+.leaderboard-reordered { animation: leaderboard-reordered 850ms ease-out both; }
+.leaderboard-woke { animation: leaderboard-woke 1100ms ease-out both; border-color: rgba(245, 185, 95, 0.75); }
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-reordered,
+  .leaderboard-woke { animation: none; }
+}
+
 /*
  * Safe-area insets as variables.
  *
