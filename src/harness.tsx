@@ -89,7 +89,11 @@ const challenges: Challenge[] = [
     stakes: { challengerElo: players[0].elo, opponentElo: players[3].elo, challengerRank: 2,
       opponentRank: 4, challengerWinDelta: 11, opponentWinDelta: 21,
       challengerIsUnderdog: false, crownBounty: 0 },
-    matchId: null, resolvedWinnerId: null, predictions: [],
+    matchId: null, resolvedWinnerId: null,
+    predictions: [
+      { id: 'pr1', predictorId: 'p1', predictorName: NAMES[1], predictedWinnerId: 'p0', createdAt: now - 1800_000 },
+      { id: 'pr4', predictorId: 'p4', predictorName: NAMES[4], predictedWinnerId: 'p3', createdAt: now - 600_000 },
+    ],
   },
 ];
 
@@ -138,8 +142,31 @@ const Harness: React.FC = () => {
   };
   const [dossier, setDossier] = useState<Player | null>(null);
   const [challenging, setChallenging] = useState(false);
-  const league = deriveLeagueInsights(players, seasonMatches, challenges, now);
+  const [challengesList, setChallengesList] = useState<Challenge[]>(challenges);
+  const league = deriveLeagueInsights(players, seasonMatches, challengesList, now);
   const me = players[2];
+
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string) => {
+    setChallengesList((prev) =>
+      prev.map((c) => {
+        if (c.id !== challenge.id) return c;
+        if (c.predictions.some((p) => p.predictorId === me.id)) return c;
+        return {
+          ...c,
+          predictions: [
+            ...c.predictions,
+            {
+              id: `pred-${me.id}`,
+              predictorId: me.id,
+              predictorName: me.name,
+              predictedWinnerId,
+              createdAt: Date.now(),
+            },
+          ],
+        };
+      })
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center">
@@ -178,10 +205,11 @@ const Harness: React.FC = () => {
             <LeaderboardView players={players} matches={seasonMatches} league={league}
               season={currentSeason} currentPlayer={me} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} />
           ) : (
-            <ArenaView players={players} challenges={challenges} currentPlayer={me}
+            <ArenaView players={players} challenges={challengesList} currentPlayer={me}
+              onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
-              onPredict={async () => {}} onPlayChallenge={() => {}} />
+              onPredict={handlePredict} onPlayChallenge={() => {}} />
           )}
         </main>
         <Navigation activeTab={tab}

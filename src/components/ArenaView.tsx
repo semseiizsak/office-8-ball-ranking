@@ -1,6 +1,6 @@
-import React from 'react';
-import { Check, Clock, Crown, Swords, Target, Trophy, X } from 'lucide-react';
-import { Challenge, Player } from '../types';
+import React, { useState } from 'react';
+import { Check, Clock, Crown, Lock, Swords, Target, Trophy, X } from 'lucide-react';
+import { Challenge, Player, Prediction } from '../types';
 import { ORACLE_MIN_PREDICTIONS } from '../utils/league';
 
 interface ArenaViewProps {
@@ -12,7 +12,144 @@ interface ArenaViewProps {
   onCancel: (challenge: Challenge) => Promise<void>;
   onPredict: (challenge: Challenge, predictedWinnerId: string) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
+  onSelectPlayer?: (player: Player) => void;
 }
+
+interface VoterInfo {
+  prediction: Prediction;
+  player?: Player;
+  name: string;
+  isCurrentUser: boolean;
+}
+
+const VoterAvatar: React.FC<{
+  player?: Player;
+  name: string;
+  isCurrentUser: boolean;
+  side: 'challenger' | 'opponent';
+  onSelect?: () => void;
+}> = ({ player, name, isCurrentUser, side, onSelect }) => {
+  const accentBorder = side === 'challenger' ? 'hover:border-[#10b981]' : 'hover:border-[#ffb95f]';
+  const textColor = side === 'challenger' ? 'text-[#4edea3]' : 'text-[#ffb95f]';
+  const currentRing = isCurrentUser
+    ? side === 'challenger'
+      ? 'ring-2 ring-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+      : 'ring-2 ring-[#ffb95f] shadow-[0_0_8px_rgba(255,185,95,0.5)]'
+    : '';
+
+  return (
+    <div
+      className="group relative shrink-0 cursor-pointer"
+      onClick={onSelect}
+      title={`${name}${isCurrentUser ? ' (You)' : ''}`}
+    >
+      {player?.avatarUrl ? (
+        <img
+          src={player.avatarUrl}
+          alt={name}
+          referrerPolicy="no-referrer"
+          className={`h-6 w-6 rounded-full border-2 border-[#161b22] object-cover transition-all duration-150 group-hover:scale-125 group-hover:z-30 ${accentBorder} ${currentRing}`}
+        />
+      ) : (
+        <div
+          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#161b22] bg-[#262a31] font-['Chivo'] text-[10px] font-bold ${textColor} transition-all duration-150 group-hover:scale-125 group-hover:z-30 ${accentBorder} ${currentRing}`}
+        >
+          {name.charAt(0).toUpperCase()}
+        </div>
+      )}
+
+      {/* Floating tooltip */}
+      <div
+        className={`pointer-events-none absolute bottom-full mb-1.5 hidden items-center rounded-md border border-[#30363d] bg-[#10141a] px-2 py-0.5 font-['Space_Grotesk'] text-[10px] font-medium text-white shadow-xl whitespace-nowrap z-40 group-hover:flex ${
+          side === 'challenger' ? 'left-0' : 'right-0'
+        }`}
+      >
+        <span className="truncate max-w-[120px]">{name}</span>
+        {isCurrentUser && (
+          <span
+            className="ml-1 font-bold"
+            style={{ color: side === 'challenger' ? '#4edea3' : '#ffb95f' }}
+          >
+            (You)
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const VoterAvatarStack: React.FC<{
+  voters: VoterInfo[];
+  side: 'challenger' | 'opponent';
+  onSelectPlayer?: (player: Player) => void;
+}> = ({ voters, side, onSelectPlayer }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (voters.length === 0) {
+    return null;
+  }
+
+  // Put current user first so their avatar is always prominently visible
+  const sorted = [...voters].sort((a, b) => {
+    if (a.isCurrentUser) return -1;
+    if (b.isCurrentUser) return 1;
+    return 0;
+  });
+
+  const shouldCollapse = sorted.length > 5 && !expanded;
+  const visible = shouldCollapse ? sorted.slice(0, 4) : sorted;
+  const hiddenCount = sorted.length - 4;
+
+  return (
+    <div
+      className={
+        expanded
+          ? `flex flex-wrap items-center gap-1 ${side === 'challenger' ? 'justify-start' : 'justify-end'}`
+          : `flex items-center -space-x-1.5 ${side === 'challenger' ? 'justify-start' : 'justify-end'}`
+      }
+    >
+      {visible.map((voter) => (
+        <VoterAvatar
+          key={voter.prediction.id}
+          player={voter.player}
+          name={voter.name}
+          isCurrentUser={voter.isCurrentUser}
+          side={side}
+          onSelect={() => voter.player && onSelectPlayer?.(voter.player)}
+        />
+      ))}
+
+      {shouldCollapse && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          title={`${hiddenCount} more: ${sorted.slice(4).map((v) => v.name).join(', ')}`}
+          className="group relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#161b22] bg-[#262a31] font-['JetBrains_Mono'] text-[9px] font-bold text-[#86948a] transition-all hover:bg-[#30363d] hover:text-white cursor-pointer z-10"
+        >
+          +{hiddenCount}
+          <div
+            className={`pointer-events-none absolute bottom-full mb-1.5 hidden items-center rounded-md border border-[#30363d] bg-[#10141a] px-2 py-0.5 font-['Space_Grotesk'] text-[10px] font-medium text-white shadow-xl whitespace-nowrap z-40 group-hover:flex ${
+              side === 'challenger' ? 'left-0' : 'right-0'
+            }`}
+          >
+            +{hiddenCount} more
+          </div>
+        </button>
+      )}
+
+      {expanded && sorted.length > 5 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          title="Show less"
+          className="flex h-6 px-1.5 shrink-0 items-center justify-center rounded-full border border-[#30363d] bg-[#1c2026] font-['Space_Grotesk'] text-[9px] font-bold text-[#86948a] hover:text-white transition-colors cursor-pointer"
+        >
+          less
+        </button>
+      )}
+    </div>
+  );
+};
 
 const Avatar: React.FC<{ player?: Player; name: string; size?: string; ring?: string }> = ({
   player,
@@ -51,9 +188,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onCancel,
   onPredict,
   onPlayChallenge,
+  onSelectPlayer,
 }) => {
   const now = Date.now();
-  const byId = new Map(players.map((player) => [player.id, player]));
+  const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   const open = challenges.filter((challenge) => challenge.status === 'accepted');
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
@@ -88,6 +226,30 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     const total = challenge.predictions.length;
     const challengerShare = total > 0 ? Math.round((forChallenger / total) * 100) : 50;
 
+    const challengerVoters: VoterInfo[] = challenge.predictions
+      .filter((prediction) => prediction.predictedWinnerId === challenge.challengerId)
+      .map((prediction) => {
+        const player = byId.get(prediction.predictorId);
+        return {
+          prediction,
+          player,
+          name: player?.name || prediction.predictorName,
+          isCurrentUser: prediction.predictorId === currentPlayer.id,
+        };
+      });
+
+    const opponentVoters: VoterInfo[] = challenge.predictions
+      .filter((prediction) => prediction.predictedWinnerId === challenge.opponentId)
+      .map((prediction) => {
+        const player = byId.get(prediction.predictorId);
+        return {
+          prediction,
+          player,
+          name: player?.name || prediction.predictorName,
+          isCurrentUser: prediction.predictorId === currentPlayer.id,
+        };
+      });
+
     return (
       <div key={challenge.id} className="rounded-2xl border border-[#30363d] bg-[#161b22] p-4">
         <div className="flex items-center justify-between gap-2">
@@ -104,7 +266,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </div>
 
         <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+          <button
+            type="button"
+            onClick={() => challenger && onSelectPlayer?.(challenger)}
+            className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
+          >
             <Avatar player={challenger} name={challenge.challengerName} ring="border-[#10b981]/60" />
             <span className="w-full truncate font-['Chivo'] text-xs font-bold text-white">
               {challenge.challengerName}
@@ -112,9 +278,13 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             <span className="font-['JetBrains_Mono'] text-[10px] text-[#4edea3]">
               +{challenge.stakes.challengerWinDelta}
             </span>
-          </div>
+          </button>
           <span className="font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">VS</span>
-          <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+          <button
+            type="button"
+            onClick={() => opponent && onSelectPlayer?.(opponent)}
+            className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
+          >
             <Avatar player={opponent} name={challenge.opponentName} ring="border-[#ffb95f]/60" />
             <span className="w-full truncate font-['Chivo'] text-xs font-bold text-white">
               {challenge.opponentName}
@@ -122,7 +292,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             <span className="font-['JetBrains_Mono'] text-[10px] text-[#ffb95f]">
               +{challenge.stakes.opponentWinDelta}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Where the room is leaning */}
@@ -143,6 +313,26 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
               </>
             )}
           </div>
+
+          {/* Little avatars of voters under the voting bar */}
+          {total > 0 && (
+            <div className="mt-2 flex items-center justify-between gap-2 min-h-[24px]">
+              <div className="flex min-w-0 items-center">
+                <VoterAvatarStack
+                  voters={challengerVoters}
+                  side="challenger"
+                  onSelectPlayer={onSelectPlayer}
+                />
+              </div>
+              <div className="flex min-w-0 items-center justify-end">
+                <VoterAvatarStack
+                  voters={opponentVoters}
+                  side="opponent"
+                  onSelectPlayer={onSelectPlayer}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {isPlayer ? (
@@ -151,9 +341,23 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </p>
         ) : (
           <div className="mt-3">
-            <span className="font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
-              Call it
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
+                {myCall ? (
+                  <>
+                    <Lock className="h-3 w-3 text-[#4edea3]" />
+                    <span className="text-[#4edea3]">Call locked in</span>
+                  </>
+                ) : (
+                  'Call it'
+                )}
+              </span>
+              {myCall && (
+                <span className="font-['Space_Grotesk'] text-[10px] text-[#86948a]">
+                  Predictions can't be switched
+                </span>
+              )}
+            </div>
             <div className="mt-1.5 grid grid-cols-2 gap-2">
               {[
                 { id: challenge.challengerId, name: challenge.challengerName, tone: '#10b981' },
@@ -164,10 +368,15 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                   <button
                     key={side.id}
                     type="button"
-                    onClick={() => onPredict(challenge, side.id)}
+                    disabled={Boolean(myCall)}
+                    onClick={() => !myCall && onPredict(challenge, side.id)}
                     style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
-                    className={`truncate rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold transition-all active:scale-[0.98] ${
-                      picked ? 'bg-[#1c2026]' : 'border-[#30363d] bg-[#1c2026] text-[#bbcabf] hover:border-[#4edea3]'
+                    className={`truncate rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold transition-all ${
+                      picked
+                        ? 'bg-[#1c2026] opacity-100 cursor-default shadow-[0_0_12px_rgba(0,0,0,0.4)]'
+                        : myCall
+                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 cursor-not-allowed opacity-40'
+                        : 'border-[#30363d] bg-[#1c2026] text-[#bbcabf] hover:border-[#4edea3] active:scale-[0.98] cursor-pointer'
                     }`}
                   >
                     {picked && '✓ '}
@@ -274,7 +483,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             {oracles.map((entry, index) => (
               <div
                 key={entry.player.id}
-                className="flex items-center gap-3 border-b border-[#30363d]/60 px-4 py-2.5 last:border-b-0"
+                onClick={() => onSelectPlayer?.(entry.player)}
+                className="flex items-center gap-3 border-b border-[#30363d]/60 px-4 py-2.5 last:border-b-0 cursor-pointer hover:bg-[#1c2026]/60 transition-colors"
               >
                 <span className="w-4 shrink-0 font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">
                   {index + 1}

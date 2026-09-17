@@ -674,8 +674,8 @@ export async function cancelChallenge(challengeId: string): Promise<void> {
 }
 
 /**
- * Records a spectator's call. Keyed by predictor, so changing your mind
- * overwrites rather than stuffing the ballot.
+ * Records a spectator's call. Once cast, predictions are locked in and
+ * cannot be changed or switched.
  */
 export async function addPrediction(params: {
   challengeId: string;
@@ -683,7 +683,15 @@ export async function addPrediction(params: {
   predictorName: string;
   predictedWinnerId: string;
 }): Promise<void> {
-  await updateDoc(doc(db, 'challenges', params.challengeId), {
+  const challengeRef = doc(db, 'challenges', params.challengeId);
+  const snap = await getDoc(challengeRef);
+  if (snap.exists()) {
+    const existing = snap.data()?.predictions?.[params.predictorId];
+    if (existing) {
+      return;
+    }
+  }
+  await updateDoc(challengeRef, {
     [`predictions.${params.predictorId}`]: {
       predictorName: params.predictorName,
       predictedWinnerId: params.predictedWinnerId,

@@ -426,6 +426,8 @@ export default function App() {
 
   const handlePredict = async (challenge: Challenge, predictedWinnerId: string) => {
     if (!currentPlayer) return;
+    const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
+    if (alreadyVoted) return;
     await poolService.addPrediction({
       challengeId: challenge.id,
       predictorId: currentPlayer.id,
@@ -557,8 +559,11 @@ export default function App() {
             <div className="anim-fade">
               <ArenaView
                 players={players}
-                challenges={challenges.filter((challenge) => challenge.status === 'accepted')}
+                challenges={challenges.filter(
+                  (challenge) => challenge.status === 'accepted' || challenge.status === 'played'
+                )}
                 currentPlayer={currentPlayer}
+                onSelectPlayer={(player) => setDossierPlayer(player)}
                 onIssueChallenge={() => setChallengeTarget({})}
                 onRespond={handleRespondToChallenge}
                 onCancel={handleCancelChallenge}
