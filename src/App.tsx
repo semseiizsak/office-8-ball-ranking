@@ -454,9 +454,20 @@ export default function App() {
           !snoozedChallengeIds.includes(challenge.id)
       ) ?? null
     : null;
+  const outgoingChallenge = currentPlayer
+    ? challenges.find(
+        (challenge) =>
+          challenge.status === 'pending' &&
+          challenge.challengerId === currentPlayer.id &&
+          !snoozedChallengeIds.includes(challenge.id)
+      ) ?? null
+    : null;
+  const challengeInbox = incomingChallenge ?? outgoingChallenge;
   const arenaBadge = currentPlayer
     ? challenges.filter(
-        (challenge) => challenge.status === 'pending' && challenge.opponentId === currentPlayer.id
+        (challenge) =>
+          challenge.status === 'pending' &&
+          (challenge.opponentId === currentPlayer.id || challenge.challengerId === currentPlayer.id)
       ).length
     : 0;
 
@@ -651,15 +662,18 @@ export default function App() {
           />
         )}
 
-        {showChallengeInbox && incomingChallenge && !acceptedDuel && !declinedDuel && (
+        {showChallengeInbox && challengeInbox && !acceptedDuel && !declinedDuel && (
           <IncomingChallengeModal
-            challenge={incomingChallenge}
+            challenge={challengeInbox}
             players={players}
-            onAccept={(challenge) => handleRespondToChallenge(challenge, 'accepted')}
-            onDecline={(challenge) => handleRespondToChallenge(challenge, 'declined')}
-            onDismiss={(challenge) =>
-              (setSnoozedChallengeIds((prev) => [...prev, challenge.id]), setShowChallengeInbox(false))
-            }
+            variant={incomingChallenge ? 'incoming' : 'outgoing'}
+            onAccept={incomingChallenge ? (challenge) => handleRespondToChallenge(challenge, 'accepted') : undefined}
+            onDecline={incomingChallenge ? (challenge) => handleRespondToChallenge(challenge, 'declined') : undefined}
+            onCancel={outgoingChallenge ? (challenge) => handleCancelChallenge(challenge) : undefined}
+            onDismiss={(challenge) => {
+              setSnoozedChallengeIds((prev) => [...prev, challenge.id]);
+              setShowChallengeInbox(false);
+            }}
           />
         )}
 

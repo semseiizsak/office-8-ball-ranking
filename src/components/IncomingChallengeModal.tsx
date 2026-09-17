@@ -5,8 +5,10 @@ import { Challenge, Player } from '../types';
 interface IncomingChallengeModalProps {
   challenge: Challenge;
   players: Player[];
-  onAccept: (challenge: Challenge) => Promise<void>;
-  onDecline: (challenge: Challenge) => Promise<void>;
+  variant?: 'incoming' | 'outgoing';
+  onAccept?: (challenge: Challenge) => Promise<void>;
+  onDecline?: (challenge: Challenge) => Promise<void>;
+  onCancel?: (challenge: Challenge) => Promise<void>;
   onDismiss: (challenge: Challenge) => void;
 }
 
@@ -21,13 +23,17 @@ interface IncomingChallengeModalProps {
 export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
   challenge,
   players,
+  variant = 'incoming',
   onAccept,
   onDecline,
+  onCancel,
   onDismiss,
 }) => {
   const [busy, setBusy] = useState(false);
   const challenger = players.find((player) => player.id === challenge.challengerId);
   const hoursLeft = Math.max(0, Math.round((challenge.expiresAt - Date.now()) / 3_600_000));
+
+  const isOutgoing = variant === 'outgoing';
 
   const run = async (action: () => Promise<void>) => {
     if (busy) return;
@@ -47,11 +53,11 @@ export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
         </div>
 
         <span className="font-['JetBrains_Mono'] text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#4edea3]">
-          You've been called out
+          {isOutgoing ? 'Pending challenge' : "You've been called out"}
         </span>
 
         <h2 className="mt-1 font-['Chivo'] text-2xl font-black tracking-tight text-white">
-          {challenge.challengerName}
+          {isOutgoing ? challenge.opponentName : challenge.challengerName}
         </h2>
         {challenger?.department && (
           <p className="font-['Space_Grotesk'] text-xs text-[#86948a]">{challenger.department}</p>
@@ -74,26 +80,40 @@ export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => run(() => onAccept(challenge))}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#10b981] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            <Check className="h-4 w-4" />
-            Accept
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => run(() => onDecline(challenge))}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-[#30363d] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#86948a] transition-all hover:border-[#ef4444] hover:text-[#ffb4ab] active:scale-[0.98] disabled:opacity-50"
-          >
-            <X className="h-4 w-4" />
-            Duck it
-          </button>
-        </div>
+        {isOutgoing ? (
+          <div className="grid grid-cols-1 gap-2">
+            <button
+              type="button"
+              disabled={busy || !onCancel}
+              onClick={() => run(() => onCancel!(challenge))}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#ef4444] px-3 py-3 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+              Cancel challenge
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={busy || !onAccept}
+              onClick={() => run(() => onAccept!(challenge))}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#10b981] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+              Accept
+            </button>
+            <button
+              type="button"
+              disabled={busy || !onDecline}
+              onClick={() => run(() => onDecline!(challenge))}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#30363d] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#86948a] transition-all hover:border-[#ef4444] hover:text-[#ffb4ab] active:scale-[0.98] disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+              Duck it
+            </button>
+          </div>
+        )}
 
         <button
           type="button"
@@ -101,7 +121,7 @@ export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
           onClick={() => onDismiss(challenge)}
           className="mt-3 w-full font-['Space_Grotesk'] text-[11px] text-[#86948a] hover:text-white disabled:opacity-50"
         >
-          Decide later
+          {isOutgoing ? 'Close' : 'Decide later'}
         </button>
       </div>
     </div>
