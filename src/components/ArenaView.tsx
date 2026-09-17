@@ -55,12 +55,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   const now = Date.now();
   const byId = new Map(players.map((player) => [player.id, player]));
 
-  const open = challenges.filter(
-    (challenge) => challenge.status === 'pending' || challenge.status === 'accepted'
-  );
-  const incoming = open.filter(
-    (challenge) => challenge.opponentId === currentPlayer.id && challenge.status === 'pending'
-  );
+  const open = challenges.filter((challenge) => challenge.status === 'accepted');
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
   // Prediction standings: the second ladder, open to everyone who never wins the first.
@@ -249,20 +244,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </button>
       </div>
 
-      {incoming.length > 0 && (
-        <div className="space-y-2 px-1">
-          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#ffb95f]">
-            Waiting on you
-          </span>
-          {incoming.map(renderChallenge)}
-        </div>
-      )}
-
       <div className="space-y-2 px-1">
         <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
           On the board
         </span>
-        {open.filter((challenge) => !incoming.includes(challenge)).length === 0 && incoming.length === 0 ? (
+        {open.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-5 py-10 text-center">
             <Target className="mx-auto mb-2 h-6 w-6 text-[#86948a]" />
             <p className="font-['Chivo'] text-sm font-bold text-white">Nothing on the board</p>
@@ -271,7 +257,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             </p>
           </div>
         ) : (
-          open.filter((challenge) => !incoming.includes(challenge)).map(renderChallenge)
+          open.map(renderChallenge)
         )}
       </div>
 

@@ -19,6 +19,7 @@ import { QuickMatchModal } from './components/QuickMatchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
+import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
 import { previewStakes } from './utils/stakes';
@@ -51,6 +52,8 @@ export default function App() {
   const loggingRef = useRef(false);
   /** Challenge currently playing its accept animation before opening the match. */
   const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
+  const [declinedDuel, setDeclinedDuel] = useState<Challenge | null>(null);
+  const [showChallengeInbox, setShowChallengeInbox] = useState(false);
   const [leaderboardChanges, setLeaderboardChanges] = useState<Record<string, 'reordered' | 'woke'>>({});
   /** Incoming challenges the user chose to answer later, this session. */
   const [snoozedChallengeIds, setSnoozedChallengeIds] = useState<string[]>([]);
@@ -402,6 +405,8 @@ export default function App() {
     if (status === 'accepted') {
       // Hand straight over to the match rather than leaving them to find it.
       setAcceptedDuel(challenge);
+    } else {
+      setDeclinedDuel(challenge);
     }
     await sendNotification({
       recipientPlayerId: challenge.challengerId,
@@ -517,6 +522,8 @@ export default function App() {
           matchesCount={matches.length}
           onOpenProfile={() => setShowProfile(true)}
           onQuickMatch={() => setShowQuickMatch(true)}
+          challengeBadge={arenaBadge}
+          onOpenChallengeInbox={() => setShowChallengeInbox(true)}
         />
 
         <main className="flex-1 overflow-x-hidden px-4 pt-3 pb-[var(--safe-bottom)]">
@@ -539,7 +546,7 @@ export default function App() {
             <div className="anim-fade">
               <ArenaView
                 players={players}
-                challenges={challenges}
+                challenges={challenges.filter((challenge) => challenge.status === 'accepted')}
                 currentPlayer={currentPlayer}
                 onIssueChallenge={() => setChallengeTarget({})}
                 onRespond={handleRespondToChallenge}
@@ -638,23 +645,25 @@ export default function App() {
             challenge={acceptedDuel}
             players={players}
             onComplete={() => {
-              handlePlayChallenge(acceptedDuel);
+              setActiveTab('arena');
               setAcceptedDuel(null);
             }}
           />
         )}
 
-        {incomingChallenge && !acceptedDuel && (
+        {showChallengeInbox && incomingChallenge && !acceptedDuel && !declinedDuel && (
           <IncomingChallengeModal
             challenge={incomingChallenge}
             players={players}
             onAccept={(challenge) => handleRespondToChallenge(challenge, 'accepted')}
             onDecline={(challenge) => handleRespondToChallenge(challenge, 'declined')}
             onDismiss={(challenge) =>
-              setSnoozedChallengeIds((prev) => [...prev, challenge.id])
+              (setSnoozedChallengeIds((prev) => [...prev, challenge.id]), setShowChallengeInbox(false))
             }
           />
         )}
+
+        {declinedDuel && <DuckChallengeOverlay onComplete={() => setDeclinedDuel(null)} />}
 
         {challengeTarget && (
           <ChallengeModal

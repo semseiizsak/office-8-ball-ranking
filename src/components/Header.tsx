@@ -9,6 +9,8 @@ interface HeaderProps {
   matchesCount: number;
   onOpenProfile: () => void;
   onQuickMatch: () => void;
+  challengeBadge?: number;
+  onOpenChallengeInbox: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +19,8 @@ export const Header: React.FC<HeaderProps> = ({
   matchesCount,
   onOpenProfile,
   onQuickMatch,
+  challengeBadge = 0,
+  onOpenChallengeInbox,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
 
@@ -73,11 +77,14 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Activity / Notification Bell */}
           <div className="relative">
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={onOpenChallengeInbox}
+              title="Challenge invitations"
               className="w-9 h-9 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center text-[#86948a] hover:text-white transition-colors relative"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#10b981] ring-2 ring-[#10141a]"></span>
+              {challengeBadge > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ffb95f] px-1 font-['JetBrains_Mono'] text-[9px] font-black text-[#2a1700] ring-2 ring-[#10141a]">{challengeBadge}</span>
+              )}
             </button>
 
             {showMenu && (

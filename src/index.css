@@ -15,6 +15,13 @@
 .leaderboard-reordered { animation: leaderboard-reordered 850ms ease-out both; }
 .leaderboard-woke { animation: leaderboard-woke 1100ms ease-out both; border-color: rgba(245, 185, 95, 0.75); }
 
+@keyframes duck-waddle {
+  0%, 100% { transform: translateX(-18px) rotate(-8deg); }
+  50% { transform: translateX(18px) rotate(8deg); }
+}
+
+.duck-waddle { animation: duck-waddle 420ms ease-in-out 3; }
+
 @media (prefers-reduced-motion: reduce) {
   .leaderboard-reordered,
   .leaderboard-woke { animation: none; }
