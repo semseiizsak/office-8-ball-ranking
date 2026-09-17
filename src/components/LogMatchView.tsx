@@ -34,8 +34,14 @@ interface LogMatchViewProps {
   players: Player[];
   recentMatches: MatchRecord[];
   crown: CrownState;
-  initialPlayerAId?: string;
-  initialPlayerBId?: string;
+  /**
+   * Who is playing. Owned by the app rather than this view: the view is
+   * unmounted whenever you switch tabs, and local state meant the pair silently
+   * reset to the top two players while the one-tap win buttons stayed put.
+   */
+  playerAId?: string;
+  playerBId?: string;
+  onChangePlayers: (playerAId: string, playerBId: string) => void;
   onRecordMatch: (
     playerAId: string,
     playerBId: string,
@@ -49,30 +55,14 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   players,
   recentMatches,
   crown,
-  initialPlayerAId,
-  initialPlayerBId,
+  playerAId,
+  playerBId,
+  onChangePlayers,
   onRecordMatch,
   isSubmitting = false,
 }) => {
   // Sort players by rating to get proper ranking indices
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
-
-  // Default Player A and B
-  const [playerAId, setPlayerAId] = useState<string>(() => {
-    if (initialPlayerAId && players.some((p) => p.id === initialPlayerAId)) {
-      return initialPlayerAId;
-    }
-    return sortedPlayers[0]?.id || '';
-  });
-
-  const [playerBId, setPlayerBId] = useState<string>(() => {
-    if (initialPlayerBId && players.some((p) => p.id === initialPlayerBId)) {
-      return initialPlayerBId;
-    }
-    // Pick rank 4 or second player
-    const second = sortedPlayers.find((p) => p.id !== playerAId);
-    return second?.id || '';
-  });
 
   // Modal selectors for picking player
   const [selectingFor, setSelectingFor] = useState<'A' | 'B' | null>(null);
@@ -81,20 +71,19 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   const [ballTypeA, setBallTypeA] = useState<BallPreference>('solids');
   const [ballTypeB, setBallTypeB] = useState<BallPreference>('stripes');
 
-  const playerA = players.find((p) => p.id === playerAId) || sortedPlayers[0];
-  const playerB =
-    players.find((p) => p.id === playerBId) ||
-    players.find((p) => p.id !== playerA?.id) ||
-    sortedPlayers[1];
+  // No silent fallback to the top of the table. If a selection is missing the
+  // view says so rather than quietly substituting somebody the user never
+  // picked and leaving the win buttons armed.
+  const playerA = players.find((p) => p.id === playerAId) ?? null;
+  const playerB = players.find((p) => p.id === playerBId) ?? null;
 
   const rankA = sortedPlayers.findIndex((p) => p.id === playerA?.id) + 1;
   const rankB = sortedPlayers.findIndex((p) => p.id === playerB?.id) + 1;
 
   // Swap players
   const handleSwap = () => {
-    const tempId = playerAId;
-    setPlayerAId(playerBId);
-    setPlayerBId(tempId);
+    if (!playerA || !playerB) return;
+    onChangePlayers(playerB.id, playerA.id);
 
     const tempBall = ballTypeA;
     setBallTypeA(ballTypeB);
@@ -106,10 +95,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   const lastMatchTimeAgo = lastMatch ? describeElapsed(Date.now() - lastMatch.timestamp) : null;
 
   const handleRematchClick = () => {
-    if (lastMatch) {
-      setPlayerAId(lastMatch.playerAId);
-      setPlayerBId(lastMatch.playerBId);
-    }
+    if (lastMatch) onChangePlayers(lastMatch.playerAId, lastMatch.playerBId);
   };
 
   // Beating the crown holder also collects their reign bounty, so the numbers
@@ -401,8 +387,21 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
       {/* DECLARE WINNER (1-TAP) Massive Satisfying Action Buttons */}
       <div className="space-y-2 pt-2">
         <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase px-1">
-          DECLARE WINNER (1-TAP)
+          {isSubmitting ? 'RECORDING RESULT...' : 'DECLARE WINNER (1-TAP)'}
         </span>
+
+        {(!playerA || !playerB) && (
+          <p className="rounded-xl border border-[#ffb95f]/40 bg-[#ffb95f]/10 px-3 py-2.5 font-['Space_Grotesk'] text-xs text-[#ffb95f]">
+            Pick both players before recording a result.
+          </p>
+        )}
+
+        {playerA && playerB && (
+          <p className="px-1 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
+            Recording <span className="font-bold text-[#bbcabf]">{playerA.name}</span> vs{' '}
+            <span className="font-bold text-[#bbcabf]">{playerB.name}</span>.
+          </p>
+        )}
 
         {/* Massive Button 1: Player A Won */}
         <button
@@ -421,10 +420,10 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
             </div>
             <div>
               <div className="font-['Chivo'] text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
-                {playerA?.name} WON
+                {playerA?.name ?? 'Player A'} WON
               </div>
               <div className="font-['JetBrains_Mono'] text-[10px] font-extrabold tracking-wider opacity-80 uppercase mt-0.5">
-                {isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
+                {isSubmitting ? 'RECORDING...' : isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
               </div>
             </div>
           </div>
@@ -452,10 +451,10 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
             </div>
             <div>
               <div className="font-['Chivo'] text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
-                {playerB?.name} WON
+                {playerB?.name ?? 'Player B'} WON
               </div>
               <div className="font-['JetBrains_Mono'] text-[10px] font-extrabold tracking-wider text-[#ffb95f] uppercase mt-0.5">
-                {!isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
+                {isSubmitting ? 'RECORDING...' : !isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
               </div>
             </div>
           </div>
@@ -496,9 +495,9 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
                     disabled={isOther}
                     onClick={() => {
                       if (selectingFor === 'A') {
-                        setPlayerAId(player.id);
+                        onChangePlayers(player.id, playerBId ?? '');
                       } else {
-                        setPlayerBId(player.id);
+                        onChangePlayers(playerAId ?? '', player.id);
                       }
                       setSelectingFor(null);
                     }}

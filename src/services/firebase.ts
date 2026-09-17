@@ -358,21 +358,33 @@ export async function logMatch(
   if (playerAId === playerBId) throw new Error('A player cannot play themselves');
   if (winnerId !== playerAId && winnerId !== playerBId) throw new Error('Winner must be one of the players');
 
-  const playerIndex = await getDocs(playersCollection);
-  const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
+  // The standings are read OUTSIDE the transaction, on purpose. They are only
+  // needed to work out who ends up on top, and pulling every player into the
+  // transaction's read set meant any concurrent write to any player aborted and
+  // retried it. Two people logging at once — or one person double-tapping —
+  // could stall the app for seconds. The transaction below touches exactly the
+  // two players it changes, and the crown is re-derived from scratch whenever a
+  // match is edited, so a stale reading here cannot become permanent.
+  const rosterSnapshot = await getDocs(playersCollection);
+  const others = rosterSnapshot.docs
+    .map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()))
+    .filter((player) => player.id !== playerAId && player.id !== playerBId);
+
+  const playerARef = doc(db, 'players', playerAId);
+  const playerBRef = doc(db, 'players', playerBId);
   const matchRef = doc(matchesCollection);
 
   return runTransaction(db, async (transaction) => {
-    const playerDocs = await Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef)));
-    const stateDoc = await transaction.get(leagueStateRef);
+    const [playerADoc, playerBDoc, stateDoc] = await Promise.all([
+      transaction.get(playerARef),
+      transaction.get(playerBRef),
+      transaction.get(leagueStateRef),
+    ]);
     const state = toLeagueState(stateDoc.data());
 
-    const roster = new Map(
-      playerDocs.map((playerDoc) => [playerDoc.id, toPlayer(playerDoc.id, playerDoc.data())])
-    );
-    const playerA = roster.get(playerAId);
-    const playerB = roster.get(playerBId);
-    if (!playerA || !playerB) throw new Error('Players not found');
+    if (!playerADoc.exists() || !playerBDoc.exists()) throw new Error('Players not found');
+    const playerA = toPlayer(playerAId, playerADoc.data());
+    const playerB = toPlayer(playerBId, playerBDoc.data());
 
     const now = Date.now();
     const winnerIsA = winnerId === playerAId;
@@ -412,10 +424,7 @@ export async function logMatch(
       lastPlayedAt: now,
     };
 
-    roster.set(nextWinner.id, nextWinner);
-    roster.set(nextLoser.id, nextLoser);
-
-    const players = [...roster.values()];
+    const players = [...others, nextWinner, nextLoser];
     const newLeader = leaderOf(
       players.map((player) => ({ id: player.id, elo: player.elo, played: player.wins + player.losses }))
     );
@@ -445,7 +454,7 @@ export async function logMatch(
     };
 
     const writePlayer = (player: Player) =>
-      transaction.update(doc(db, 'players', player.id), {
+      transaction.update(player.id === playerAId ? playerARef : playerBRef, {
         elo: player.elo,
         peakElo: player.peakElo,
         wins: player.wins,
