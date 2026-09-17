@@ -17,6 +17,8 @@ import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
 import { ChallengeModal } from './components/ChallengeModal';
+import { IncomingChallengeModal } from './components/IncomingChallengeModal';
+import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
 import { previewStakes } from './utils/stakes';
@@ -46,6 +48,11 @@ export default function App() {
    * pre-update value and every one of them starts a transaction.
    */
   const loggingRef = useRef(false);
+  /** Challenge currently playing its accept animation before opening the match. */
+  const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
+  /** Incoming challenges the user chose to answer later, this session. */
+  const [snoozedChallengeIds, setSnoozedChallengeIds] = useState<string[]>([]);
+  const sendingChallengeRef = useRef(false);
 
   // Match setup state passed to LogMatchView
   const [selectedPlayerAId, setSelectedPlayerAId] = useState<string | undefined>(undefined);
@@ -304,8 +311,17 @@ export default function App() {
 
   const handleSendChallenge = async (opponent: Player, stakes: ChallengeStakes) => {
     if (!currentPlayer) return;
-    const challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
-    setChallenges((prev) => [challenge, ...prev]);
+    if (sendingChallengeRef.current) return;
+    sendingChallengeRef.current = true;
+    let challenge;
+    try {
+      challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
+    } finally {
+      sendingChallengeRef.current = false;
+    }
+    // Deliberately no optimistic insert here. Firestore's snapshot listener
+    // fires on the local write before createChallenge resolves, so adding it
+    // again put the same challenge on the board twice.
     setChallengeTarget(null);
     // Line the match up so the log view is already on the right pair.
     setSelectedPlayerAId(currentPlayer.id);
@@ -331,6 +347,10 @@ export default function App() {
 
   const handleRespondToChallenge = async (challenge: Challenge, status: 'accepted' | 'declined') => {
     await poolService.respondToChallenge(challenge.id, status);
+    if (status === 'accepted') {
+      // Hand straight over to the match rather than leaving them to find it.
+      setAcceptedDuel(challenge);
+    }
     await sendNotification({
       recipientPlayerId: challenge.challengerId,
       type: 'challenge_answered',
@@ -368,6 +388,15 @@ export default function App() {
   const dossierRank = dossierPlayer
     ? sortedPlayers.findIndex((p) => p.id === dossierPlayer.id) + 1
     : 1;
+  // The one standing challenge to put in front of the user when they open up.
+  const incomingChallenge = currentPlayer
+    ? challenges.find(
+        (challenge) =>
+          challenge.status === 'pending' &&
+          challenge.opponentId === currentPlayer.id &&
+          !snoozedChallengeIds.includes(challenge.id)
+      ) ?? null
+    : null;
   const arenaBadge = currentPlayer
     ? challenges.filter(
         (challenge) => challenge.status === 'pending' && challenge.opponentId === currentPlayer.id
@@ -438,9 +467,9 @@ export default function App() {
           onQuickMatch={() => setShowQuickMatch(true)}
         />
 
-        <main className="flex-1 px-4 pt-3 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden px-4 pt-3 pb-[var(--safe-bottom)]">
           {activeTab === 'leaderboard' && (
-            <div className="animate-in fade-in duration-150">
+            <div className="anim-fade">
               <LeaderboardView
                 players={players}
                 matches={seasonMatches}
@@ -454,7 +483,7 @@ export default function App() {
           )}
 
           {activeTab === 'arena' && (
-            <div className="animate-in fade-in duration-150">
+            <div className="anim-fade">
               <ArenaView
                 players={players}
                 challenges={challenges}
@@ -469,7 +498,7 @@ export default function App() {
           )}
 
           {activeTab === 'log' && (
-            <div className="animate-in fade-in duration-150">
+            <div className="anim-fade">
               <LogMatchView
                 players={players}
                 recentMatches={seasonMatches}
@@ -487,7 +516,7 @@ export default function App() {
           )}
 
           {activeTab === 'players' && (
-            <div className="animate-in fade-in duration-150">
+            <div className="anim-fade">
               <PlayersView
                 players={players}
                 matches={seasonMatches}
@@ -500,7 +529,7 @@ export default function App() {
           )}
 
           {activeTab === 'events' && (
-            <div className="animate-in fade-in duration-150">
+            <div className="anim-fade">
               <EventsView
                 matches={matches}
                 players={players}
@@ -548,6 +577,29 @@ export default function App() {
             opponents={players.filter((player) => player.id !== currentPlayer.id)}
             onComplete={handleQuickMatchComplete}
             onClose={() => setShowQuickMatch(false)}
+          />
+        )}
+
+        {acceptedDuel && (
+          <DuelAcceptedOverlay
+            challenge={acceptedDuel}
+            players={players}
+            onComplete={() => {
+              handlePlayChallenge(acceptedDuel);
+              setAcceptedDuel(null);
+            }}
+          />
+        )}
+
+        {incomingChallenge && !acceptedDuel && (
+          <IncomingChallengeModal
+            challenge={incomingChallenge}
+            players={players}
+            onAccept={(challenge) => handleRespondToChallenge(challenge, 'accepted')}
+            onDecline={(challenge) => handleRespondToChallenge(challenge, 'declined')}
+            onDismiss={(challenge) =>
+              setSnoozedChallengeIds((prev) => [...prev, challenge.id])
+            }
           />
         )}
 

@@ -26,7 +26,7 @@ export const MatchSuccessModal: React.FC<MatchSuccessModalProps> = ({
   if (!result) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md anim-fade">
       <div className="relative w-full max-w-sm bg-gradient-to-b from-[#1c2026] to-[#10141a] border border-[#10b981]/50 rounded-2xl p-6 text-center shadow-[0_0_32px_rgba(16,185,129,0.25)]">
         {/* Glow effect */}
         <div className="w-16 h-16 rounded-full bg-[#10b981]/20 border border-[#10b981] flex items-center justify-center mx-auto mb-3 text-[#4edea3] shadow-[0_0_20px_#10b981]/40 animate-bounce">

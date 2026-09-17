@@ -70,7 +70,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md transition-all">
       <div
         id="player-dossier-modal"
-        className="relative w-full max-w-md max-h-[92vh] flex flex-col bg-[#10141a] border-t sm:border border-[#30363d] rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200"
+        className="relative w-full max-w-md max-h-[92vh] flex flex-col bg-[#10141a] border-t sm:border border-[#30363d] rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl anim-sheet"
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-[#30363d]/40">
           <div className="flex items-center gap-2 text-[#4edea3] text-xs font-['JetBrains_Mono'] font-bold tracking-wider uppercase">

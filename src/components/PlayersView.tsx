@@ -92,7 +92,7 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
       {showAddForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl bg-[#161b22] border border-[#10b981]/50 p-4 space-y-3 shadow-lg animate-in fade-in zoom-in-95 duration-150"
+          className="rounded-2xl bg-[#161b22] border border-[#10b981]/50 p-4 space-y-3 shadow-lg anim-pop"
         >
           <div className="flex items-center justify-between pb-2 border-b border-[#30363d]">
             <span className="font-['Chivo'] text-sm font-bold text-white flex items-center gap-1.5">

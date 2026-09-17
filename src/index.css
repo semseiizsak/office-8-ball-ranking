@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+/*
+ * Safe-area insets as variables.
+ *
+ * env() only returns real values when the viewport is declared
+ * `viewport-fit=cover`, which is what an installed home-screen app needs: the
+ * page then owns the full screen, including the strip under the home
+ * indicator. Routing them through variables also makes the insets overridable,
+ * so the layout can be checked at a phone's real inset sizes on a desktop
+ * browser.
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/*
+ * Entrance animations.
+ *
+ * The markup already asked for `animate-in`, `fade-in` and
+ * `slide-in-from-bottom`, which ship with tailwindcss-animate — a package this
+ * project does not depend on. Under Tailwind v4 those class names compiled to
+ * nothing, so every modal and view transition was instant. These are the real
+ * thing.
+ */
+@keyframes anim-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes anim-sheet {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes anim-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.anim-fade { animation: anim-fade 150ms ease-out both; }
+.anim-sheet { animation: anim-sheet 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-pop { animation: anim-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* The duel hand-off: two players closing on each other before the match opens. */
+@keyframes duel-in-left {
+  0% { opacity: 0; transform: translateX(-90px) scale(0.8); }
+  55% { opacity: 1; transform: translateX(6px) scale(1.04); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes duel-in-right {
+  0% { opacity: 0; transform: translateX(90px) scale(0.8); }
+  55% { opacity: 1; transform: translateX(-6px) scale(1.04); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes duel-clash {
+  0%, 40% { opacity: 0; transform: scale(2.4) rotate(-12deg); }
+  55% { opacity: 1; transform: scale(0.92) rotate(0deg); }
+  70% { transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes duel-shock {
+  0%, 45% { opacity: 0; transform: scale(0.2); }
+  60% { opacity: 0.55; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+
+@keyframes duel-shake {
+  0%, 44%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-7px); }
+  56% { transform: translateX(6px); }
+  62% { transform: translateX(-3px); }
+  68% { transform: translateX(2px); }
+}
+
+.duel-in-left { animation: duel-in-left 620ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.duel-in-right { animation: duel-in-right 620ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.duel-clash { animation: duel-clash 900ms cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.duel-shock { animation: duel-shock 900ms ease-out both; }
+.duel-shake { animation: duel-shake 900ms ease-out both; }
+
+/* Anyone who has asked the OS to calm things down gets the result, not the show. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade,
+  .anim-sheet,
+  .anim-pop,
+  .duel-in-left,
+  .duel-in-right,
+  .duel-clash,
+  .duel-shock,
+  .duel-shake {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}

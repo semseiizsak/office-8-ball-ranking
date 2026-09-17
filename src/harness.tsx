@@ -10,6 +10,9 @@ import { ChallengeModal } from './components/ChallengeModal';
 import { Navigation } from './components/Navigation';
 import { EventsView } from './components/EventsView';
 import { LogMatchView } from './components/LogMatchView';
+import { IncomingChallengeModal } from './components/IncomingChallengeModal';
+import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
+import { Header } from './components/Header';
 import { Season } from './types';
 
 const NAMES = ['Ármin Kovács', 'Sarah Jenkins', 'Dave Bell', 'Priya Nair', 'Tom Oakes'];
@@ -116,6 +119,8 @@ const Harness: React.FC = () => {
   const [logged, setLogged] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
   const loggingRef = React.useRef(false);
+  const [showIncoming, setShowIncoming] = useState(false);
+  const [showDuel, setShowDuel] = useState(false);
   const [aId, setAId] = useState<string | undefined>('p2');
   const [bId, setBId] = useState<string | undefined>('p1');
 
@@ -139,6 +144,15 @@ const Harness: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center">
       <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
+        <Header activeTab={tab === 'log' ? 'log' : tab === 'arena' ? 'arena' : 'leaderboard'}
+          currentUser={me} matchesCount={seasonMatches.length}
+          onOpenProfile={() => {}} onQuickMatch={() => {}} />
+        <div className="flex gap-2 p-2">
+          <button id="demo-incoming" onClick={() => setShowIncoming(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">incoming</button>
+          <button id="demo-duel" onClick={() => setShowDuel(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">duel</button>
+        </div>
         <main className="flex-1 px-4 pt-3">
           {tab === 'log' ? (
             <>
@@ -176,6 +190,16 @@ const Harness: React.FC = () => {
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
           allPlayers={players} matches={seasonMatches} league={league}
           onClose={() => setDossier(null)} onChallenge={() => setDossier(null)} />
+        {showIncoming && (
+          <IncomingChallengeModal challenge={challenges[0]} players={players}
+            onAccept={async () => { setShowIncoming(false); setShowDuel(true); }}
+            onDecline={async () => setShowIncoming(false)}
+            onDismiss={() => setShowIncoming(false)} />
+        )}
+        {showDuel && (
+          <DuelAcceptedOverlay challenge={challenges[0]} players={players}
+            onComplete={() => { setShowDuel(false); setTab('log'); }} />
+        )}
         {challenging && (
           <ChallengeModal currentPlayer={me} players={players} crown={league.crown}
             onSend={async () => setChallenging(false)} onClose={() => setChallenging(false)} />

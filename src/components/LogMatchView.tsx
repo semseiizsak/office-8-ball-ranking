@@ -469,7 +469,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
       {/* Contender Selection Drawer/Modal */}
       {selectingFor && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-          <div className="w-full max-w-md bg-[#161b22] border border-[#30363d] rounded-t-2xl sm:rounded-2xl max-h-[75vh] flex flex-col p-4 shadow-2xl animate-in slide-in-from-bottom">
+          <div className="w-full max-w-md bg-[#161b22] border border-[#30363d] rounded-t-2xl sm:rounded-2xl max-h-[75vh] flex flex-col p-4 shadow-2xl anim-sheet">
             <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
               <h3 className="font-['Chivo'] text-base font-bold text-white">
                 Select {selectingFor === 'A' ? 'Player A' : 'Player B'}

@@ -60,7 +60,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab, 
   return (
     <nav
       id="bottom-navigation-bar"
-      className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-lg border-t border-[#30363d]/80 pb-[env(safe-area-inset-bottom,12px)] pt-2"
+      className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-lg border-t border-[#30363d]/80 pb-[calc(var(--safe-bottom)+0.625rem)] pt-2"
     >
       <div className="max-w-md mx-auto px-1 flex items-center justify-around">
         {TABS.map(({ tab, label, icon: Icon }) => {

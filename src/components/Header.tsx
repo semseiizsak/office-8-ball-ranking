@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-md border-b border-[#30363d]/60 px-4 py-3">
+    <header className="sticky top-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-md border-b border-[#30363d]/60 px-4 pb-3 pt-[calc(var(--safe-top)+0.75rem)]">
       <div className="flex items-center justify-between">
         {/* Left: Brand & Section */}
         <div className="flex items-center gap-3">
@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#1c2026] border border-[#30363d] p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#1c2026] border border-[#30363d] p-3 shadow-2xl z-50 anim-pop">
                 <div className="flex items-center justify-between pb-2 border-b border-[#30363d]/60 mb-2">
                   <span className="font-['Chivo'] text-xs font-bold text-white uppercase tracking-wider">
                     League Status

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Crown, Swords, X } from 'lucide-react';
 import { ChallengeStakes, Player } from '../types';
 import { CrownState } from '../utils/league';
@@ -36,6 +36,9 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   );
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
+  // State alone cannot stop taps that land in the same frame: they all read the
+  // pre-update value and each one sends a challenge.
+  const sendingRef = useRef(false);
 
   const opponent = opponents.find((player) => player.id === opponentId) ?? null;
   const bountyOnOpponent = opponent && crown.holderId === opponent.id ? crown.bounty : 0;
@@ -46,7 +49,8 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     : null;
 
   const handleSend = async () => {
-    if (!opponent || !stakes) return;
+    if (!opponent || !stakes || sendingRef.current) return;
+    sendingRef.current = true;
     const theirSide = previewStakes(opponent, currentPlayer, players, bountyOnMe, bountyOnOpponent);
     try {
       setIsSending(true);
@@ -62,6 +66,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
         crownBounty: bountyOnOpponent,
       });
     } catch {
+      sendingRef.current = false;
       setError('Could not send that challenge. Try again.');
       setIsSending(false);
     }
