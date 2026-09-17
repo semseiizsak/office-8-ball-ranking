@@ -15,6 +15,7 @@ import {
   createChallenge,
   deleteMatch,
   getChallenges,
+  reconcileChallengesWithMatches,
   getLeaderboard,
   getMatches,
   getSeasons,
@@ -39,6 +40,7 @@ export const poolService = {
   startNewSeason: (params: { current: Season; standings: SeasonStanding[]; titles: SeasonTitle[] }) =>
     startNewSeason(params),
   getChallenges,
+  reconcileChallengesWithMatches,
   subscribeToChallenges,
   createChallenge: (params: { challenger: Player; opponent: Player; stakes: ChallengeStakes }) =>
     createChallenge(params),

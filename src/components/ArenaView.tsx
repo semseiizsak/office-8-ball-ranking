@@ -98,7 +98,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
             <Clock className="h-3 w-3" />
-            {challenge.status === 'accepted' ? 'On' : timeLeft(challenge.expiresAt, now)}
+            {challenge.status === 'accepted' ? 'Accepted · awaiting result' : timeLeft(challenge.expiresAt, now)}
           </span>
           {challenge.stakes.crownBounty > 0 && (
             <span className="inline-flex items-center gap-1 rounded border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] font-bold text-[#f59e0b]">

@@ -560,6 +560,30 @@ export async function getChallenges(): Promise<Challenge[]> {
   return snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now));
 }
 
+/** Cancels challenges whose settled match was removed from the event log. */
+export async function reconcileChallengesWithMatches(): Promise<void> {
+  const [challengeSnapshot, matchSnapshot] = await Promise.all([
+    getDocs(challengesCollection),
+    getDocs(matchesCollection),
+  ]);
+  const matchIds = new Set(matchSnapshot.docs.map((matchDoc) => matchDoc.id));
+  const batch = writeBatch(db);
+  let changes = 0;
+  for (const challengeDoc of challengeSnapshot.docs) {
+    const challenge = toChallenge(challengeDoc.id, challengeDoc.data(), Date.now());
+    if (challenge.status === 'played' && challenge.matchId && !matchIds.has(challenge.matchId)) {
+      batch.update(challengeDoc.ref, {
+        status: 'cancelled' satisfies ChallengeStatus,
+        matchId: null,
+        resolvedWinnerId: null,
+        respondedAt: Date.now(),
+      });
+      changes += 1;
+    }
+  }
+  if (changes > 0) await batch.commit();
+}
+
 /**
  * Live challenge feed. Predictions live in a map on the challenge document so a
  * single listener carries the whole arena, and one player can only ever hold one

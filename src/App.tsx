@@ -119,6 +119,7 @@ export default function App() {
             poolService.getSeasons(),
           ])
         );
+          await poolService.reconcileChallengesWithMatches();
         if (cancelled) return;
         setPlayers(loadedPlayers);
         setMatches(loadedMatches);
