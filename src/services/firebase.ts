@@ -229,11 +229,14 @@ async function mutateMatch(
   ]);
   const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
   const matchRefs = matchIndex.docs.map((matchDoc) => doc(db, 'matches', matchDoc.id));
+  const challengeIndex = await getDocs(challengesCollection);
+  const challengeRefs = challengeIndex.docs.map((challengeDoc) => doc(db, 'challenges', challengeDoc.id));
 
   return runTransaction(db, async (transaction) => {
-    const [playerSnapshot, matchSnapshot] = await Promise.all([
+    const [playerSnapshot, matchSnapshot, challengeSnapshot] = await Promise.all([
       Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef))),
       Promise.all(matchRefs.map((matchRef) => transaction.get(matchRef))),
+      Promise.all(challengeRefs.map((challengeRef) => transaction.get(challengeRef))),
     ]);
 
     const existingMatch = matchSnapshot.find((matchDoc) => matchDoc.id === matchId);
@@ -305,6 +308,16 @@ async function mutateMatch(
       }
     } else {
       transaction.delete(doc(db, 'matches', matchId));
+      if (target.challengeId) {
+        const linkedChallenge = challengeSnapshot.find((challengeDoc) => challengeDoc.id === target.challengeId);
+        if (linkedChallenge?.exists()) {
+          transaction.update(doc(db, 'challenges', target.challengeId), {
+            status: 'cancelled' satisfies ChallengeStatus,
+            matchId: null,
+            respondedAt: Date.now(),
+          });
+        }
+      }
     }
 
     // The replay is authoritative for the crown too, so an edited or deleted
@@ -565,6 +578,19 @@ export async function createChallenge(params: {
   stakes: ChallengeStakes;
 }): Promise<Challenge> {
   const challengeRef = doc(challengesCollection);
+  const existing = await getDocs(query(challengesCollection, orderBy('createdAt', 'desc')));
+  const activeStatuses: ChallengeStatus[] = ['pending', 'accepted'];
+  const hasActiveChallenge = existing.docs.some((challengeDoc) => {
+    const challenge = toChallenge(challengeDoc.id, challengeDoc.data(), Date.now());
+    return activeStatuses.includes(challenge.status) &&
+      (challenge.challengerId === params.challenger.id ||
+        challenge.opponentId === params.challenger.id ||
+        challenge.challengerId === params.opponent.id ||
+        challenge.opponentId === params.opponent.id);
+  });
+  if (hasActiveChallenge) {
+    throw new Error('One of these players already has an active challenge.');
+  }
   const now = Date.now();
   const data = {
     challengerId: params.challenger.id,
@@ -588,16 +614,38 @@ export async function respondToChallenge(
   challengeId: string,
   status: Extract<ChallengeStatus, 'accepted' | 'declined'>
 ): Promise<void> {
-  await updateDoc(doc(db, 'challenges', challengeId), {
-    status,
-    respondedAt: Date.now(),
+  const challengeRef = doc(db, 'challenges', challengeId);
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(challengeRef);
+    if (!snapshot.exists()) throw new Error('Challenge not found');
+    const challenge = toChallenge(snapshot.id, snapshot.data(), Date.now());
+    if (challenge.status !== 'pending') throw new Error('This challenge is no longer waiting for a response.');
+    if (status === 'accepted') {
+      const active = await getDocs(query(challengesCollection, orderBy('createdAt', 'desc')));
+      const conflicting = active.docs.some((challengeDoc) => {
+        if (challengeDoc.id === challengeId) return false;
+        const other = toChallenge(challengeDoc.id, challengeDoc.data(), Date.now());
+        return ['pending', 'accepted'].includes(other.status) &&
+          (other.challengerId === challenge.opponentId || other.opponentId === challenge.opponentId);
+      });
+      if (conflicting) throw new Error('You already have another active challenge.');
+    }
+    transaction.update(challengeRef, { status, respondedAt: Date.now() });
   });
 }
 
 export async function cancelChallenge(challengeId: string): Promise<void> {
-  await updateDoc(doc(db, 'challenges', challengeId), {
-    status: 'cancelled' satisfies ChallengeStatus,
-    respondedAt: Date.now(),
+  const challengeRef = doc(db, 'challenges', challengeId);
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(challengeRef);
+    if (!snapshot.exists()) throw new Error('Challenge not found');
+    const challenge = toChallenge(snapshot.id, snapshot.data(), Date.now());
+    if (!['pending', 'accepted'].includes(challenge.status)) return;
+    transaction.update(challengeRef, {
+      status: 'cancelled' satisfies ChallengeStatus,
+      respondedAt: Date.now(),
+      matchId: null,
+    });
   });
 }
 

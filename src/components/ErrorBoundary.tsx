@@ -11,7 +11,8 @@ interface ErrorBoundaryState {
  * an empty document and no indication of what went wrong. Showing the message
  * is worth more than showing nothing.
  */
-export class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, ErrorBoundaryState> {
+  declare readonly props: React.PropsWithChildren<{}>;
   state: ErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

@@ -205,13 +205,14 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </div>
         )}
 
-        {challenge.status === 'pending' && challenge.challengerId === currentPlayer.id && (
+        {['pending', 'accepted'].includes(challenge.status) &&
+          (challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id) && (
           <button
             type="button"
             onClick={() => onCancel(challenge)}
             className="mt-3 w-full rounded-xl border border-[#30363d] px-3 py-2 font-['Space_Grotesk'] text-[11px] text-[#86948a] hover:text-white"
           >
-            Withdraw challenge
+            {challenge.status === 'accepted' ? 'Cancel duel' : 'Withdraw challenge'}
           </button>
         )}
 

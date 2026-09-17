@@ -316,6 +316,9 @@ export default function App() {
     let challenge;
     try {
       challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not send challenge.');
+      return;
     } finally {
       sendingChallengeRef.current = false;
     }
@@ -346,7 +349,12 @@ export default function App() {
   };
 
   const handleRespondToChallenge = async (challenge: Challenge, status: 'accepted' | 'declined') => {
-    await poolService.respondToChallenge(challenge.id, status);
+    try {
+      await poolService.respondToChallenge(challenge.id, status);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not update challenge.');
+      return;
+    }
     if (status === 'accepted') {
       // Hand straight over to the match rather than leaving them to find it.
       setAcceptedDuel(challenge);
