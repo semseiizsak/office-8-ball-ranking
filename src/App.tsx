@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TabType, Player, MatchRecord, MatchModifier, BallPreference, Challenge, ChallengeStakes,
   Season, SeasonStanding, SeasonTitle,
@@ -39,6 +39,13 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickMatch, setShowQuickMatch] = useState(false);
   const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string } | null>(null);
+  const [isLoggingMatch, setIsLoggingMatch] = useState(false);
+  /**
+   * Synchronous lock on match submission.
+   * State alone is not enough: taps that land in the same frame all read the
+   * pre-update value and every one of them starts a transaction.
+   */
+  const loggingRef = useRef(false);
 
   // Match setup state passed to LogMatchView
   const [selectedPlayerAId, setSelectedPlayerAId] = useState<string | undefined>(undefined);
@@ -149,6 +156,13 @@ export default function App() {
     });
   }, [currentPlayer]);
 
+  // You are almost always one of the two people in a match you are logging.
+  // Defaulting to the top of the table instead made a stray tap credit a result
+  // to the leaders.
+  useEffect(() => {
+    if (currentPlayer && !selectedPlayerAId) setSelectedPlayerAId(currentPlayer.id);
+  }, [currentPlayer, selectedPlayerAId]);
+
   const refreshPlayers = async () => {
     setPlayers(await poolService.getPlayers());
   };
@@ -159,6 +173,9 @@ export default function App() {
     winnerId: string,
     modifiers: MatchModifier
   ) => {
+    if (loggingRef.current) return;
+    loggingRef.current = true;
+    setIsLoggingMatch(true);
     try {
       const result = await poolService.logMatch({
         playerAId,
@@ -186,6 +203,9 @@ export default function App() {
     } catch (err) {
       console.error('Failed to log match:', err);
       alert('Failed to log match. Please try again.');
+    } finally {
+      loggingRef.current = false;
+      setIsLoggingMatch(false);
     }
   };
 
@@ -287,6 +307,9 @@ export default function App() {
     const challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
     setChallenges((prev) => [challenge, ...prev]);
     setChallengeTarget(null);
+    // Line the match up so the log view is already on the right pair.
+    setSelectedPlayerAId(currentPlayer.id);
+    setSelectedPlayerBId(opponent.id);
     setActiveTab('arena');
 
     // Tell them what the match is worth to them, not just that it exists.
@@ -303,7 +326,7 @@ export default function App() {
       title: `${currentPlayer.name} called you out`,
       body: theirStakes.headline,
       challengeId: challenge.id,
-    }).catch(() => undefined);
+    }).catch((error) => console.warn('Challenge notification not delivered:', error));
   };
 
   const handleRespondToChallenge = async (challenge: Challenge, status: 'accepted' | 'declined') => {
@@ -317,7 +340,7 @@ export default function App() {
           ? `${challenge.opponentName} is up for it.`
           : `${challenge.opponentName} ducked it.`,
       challengeId: challenge.id,
-    }).catch(() => undefined);
+    }).catch((error) => console.warn('Challenge reply notification not delivered:', error));
   };
 
   const handleCancelChallenge = async (challenge: Challenge) => {
@@ -448,12 +471,16 @@ export default function App() {
           {activeTab === 'log' && (
             <div className="animate-in fade-in duration-150">
               <LogMatchView
-                key={`${selectedPlayerAId ?? 'default'}-${selectedPlayerBId ?? 'default'}`}
                 players={players}
                 recentMatches={seasonMatches}
                 crown={league.crown}
-                initialPlayerAId={selectedPlayerAId}
-                initialPlayerBId={selectedPlayerBId}
+                playerAId={selectedPlayerAId}
+                playerBId={selectedPlayerBId}
+                onChangePlayers={(playerAId, playerBId) => {
+                  setSelectedPlayerAId(playerAId || undefined);
+                  setSelectedPlayerBId(playerBId || undefined);
+                }}
+                isSubmitting={isLoggingMatch}
                 onRecordMatch={handleRecordMatch}
               />
             </div>

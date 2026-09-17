@@ -9,6 +9,7 @@ import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { Navigation } from './components/Navigation';
 import { EventsView } from './components/EventsView';
+import { LogMatchView } from './components/LogMatchView';
 import { Season } from './types';
 
 const NAMES = ['Ármin Kovács', 'Sarah Jenkins', 'Dave Bell', 'Priya Nair', 'Tom Oakes'];
@@ -110,7 +111,26 @@ const currentSeason: Season = {
 };
 
 const Harness: React.FC = () => {
-  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events'>('leaderboard');
+  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
+  // Mirrors the app's submission lock so the double-tap guard is exercised.
+  const [logged, setLogged] = useState<string[]>([]);
+  const [isLogging, setIsLogging] = useState(false);
+  const loggingRef = React.useRef(false);
+  const [aId, setAId] = useState<string | undefined>('p2');
+  const [bId, setBId] = useState<string | undefined>('p1');
+
+  const record = async (playerAId: string, playerBId: string, winnerId: string) => {
+    if (loggingRef.current) return;
+    loggingRef.current = true;
+    setIsLogging(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      setLogged((prev) => [...prev, `${playerAId}|${playerBId}|${winnerId}`]);
+    } finally {
+      loggingRef.current = false;
+      setIsLogging(false);
+    }
+  };
   const [dossier, setDossier] = useState<Player | null>(null);
   const [challenging, setChallenging] = useState(false);
   const league = deriveLeagueInsights(players, seasonMatches, challenges, now);
@@ -120,7 +140,23 @@ const Harness: React.FC = () => {
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center">
       <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
         <main className="flex-1 px-4 pt-3">
-          {tab === 'events' ? (
+          {tab === 'log' ? (
+            <>
+              <div id="logged-count" data-count={logged.length} className="p-2 font-mono text-xs text-white">
+                logged={logged.length} last={logged[logged.length - 1] ?? 'none'}
+              </div>
+              <LogMatchView
+                players={players}
+                recentMatches={seasonMatches}
+                crown={league.crown}
+                playerAId={aId}
+                playerBId={bId}
+                onChangePlayers={(a, b) => { setAId(a || undefined); setBId(b || undefined); }}
+                isSubmitting={isLogging}
+                onRecordMatch={record}
+              />
+            </>
+          ) : tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
               seasons={[currentSeason, pastSeason]} onEditWinner={async () => {}}
               onDelete={async () => {}} onEndSeason={async () => {}} />
@@ -135,7 +171,7 @@ const Harness: React.FC = () => {
           )}
         </main>
         <Navigation activeTab={tab}
-          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'events' ? 'events' : 'leaderboard')}
+          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'events' ? 'events' : t === 'log' ? 'log' : 'leaderboard')}
           arenaBadge={1} />
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
           allPlayers={players} matches={seasonMatches} league={league}
