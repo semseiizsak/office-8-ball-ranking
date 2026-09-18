@@ -73,7 +73,7 @@ export const CrownBanner: React.FC<CrownBannerProps> = ({ crown, players, curren
           </>
         ) : (
           <>
-            The crown is clean today. It starts paying out {BOUNTY_PER_DAY} rating a day the moment it goes undefended.
+            The crown is clean today. It gains {BOUNTY_PER_DAY} rating every morning it goes undefended.
           </>
         )}
       </p>

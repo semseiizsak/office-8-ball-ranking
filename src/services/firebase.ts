@@ -410,7 +410,7 @@ export async function logMatch(
     // moved off the holder rather than minted, so the ladder stays closed.
     const bounty =
       state.crownHolderId === loser.id && state.crownSince !== null
-        ? bountyForReign(now - state.crownSince)
+        ? bountyForReign(state.crownSince, now)
         : 0;
 
     const winnerElo = winner.elo + gained + bounty;

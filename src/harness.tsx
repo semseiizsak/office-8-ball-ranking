@@ -173,7 +173,7 @@ const Harness: React.FC = () => {
       <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
         <Header activeTab={tab === 'log' ? 'log' : tab === 'arena' ? 'arena' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
-          onOpenProfile={() => {}} onQuickMatch={() => {}} />
+          onOpenProfile={() => {}} onQuickMatch={() => {}} onOpenChallengeInbox={() => {}} />
         <div className="flex gap-2 p-2">
           <button id="demo-incoming" onClick={() => setShowIncoming(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">incoming</button>
@@ -203,7 +203,7 @@ const Harness: React.FC = () => {
               onDelete={async () => {}} onEndSeason={async () => {}} />
           ) : tab === 'leaderboard' ? (
             <LeaderboardView players={players} matches={seasonMatches} league={league}
-              season={currentSeason} currentPlayer={me} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} />
+              season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} />
           ) : (
             <ArenaView players={players} challenges={challengesList} currentPlayer={me}
               onSelectPlayer={setDossier}

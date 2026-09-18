@@ -52,14 +52,36 @@ export function matchesInSeason(matches: MatchRecord[], season: Season | null): 
   );
 }
 
+/** Local midnight for a moment in time. */
+const startOfDay = (value: number): number => {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
 /**
- * The bounty riding on the crown, given how long the holder has sat on it.
- * Only whole days count, so the crown cannot be farmed by trading it back and
- * forth on the same afternoon.
+ * Calendar days between two moments, counting midnights crossed rather than
+ * elapsed hours. Rounded so the 23 and 25 hour days either side of a clock
+ * change still count as one day.
  */
-export function bountyForReign(heldMs: number): number {
-  if (heldMs <= 0) return 0;
-  return Math.min(BOUNTY_CAP, Math.floor(heldMs / DAY_MS) * BOUNTY_PER_DAY);
+export function calendarDaysBetween(from: number, to: number): number {
+  return Math.max(0, Math.round((startOfDay(to) - startOfDay(from)) / DAY_MS));
+}
+
+/**
+ * The bounty riding on the crown.
+ *
+ * Priced on mornings survived, not on a rolling 24 hours: the crown is worth
+ * more every morning it is still undefended, which is something the office can
+ * see coming. A rolling timer ticked over at whatever hour the crown happened
+ * to change hands, so the board moved at a time nobody could predict and
+ * looked stuck the morning after a win.
+ *
+ * It is still worth nothing on the day it is won, so taking the crown and
+ * handing it straight back pays no one.
+ */
+export function bountyForReign(startedAt: number, now: number): number {
+  return Math.min(BOUNTY_CAP, calendarDaysBetween(startedAt, now) * BOUNTY_PER_DAY);
 }
 
 /** Per-player state carried through a replay of the whole match history. */
@@ -172,7 +194,7 @@ export function runLeagueReplay(
     const openReign = reigns.length > 0 ? reigns[reigns.length - 1] : null;
     const bounty =
       crownHolderId === loserId && openReign && openReign.endedAt === null
-        ? bountyForReign(match.timestamp - openReign.startedAt)
+        ? bountyForReign(openReign.startedAt, match.timestamp)
         : 0;
 
     winner.elo = winnerEloBefore + gained + bounty;
@@ -370,8 +392,8 @@ export function deriveLeagueInsights(
   const crown: CrownState = {
     holderId: holder?.id ?? null,
     heldSince,
-    heldDays: heldSince === null ? 0 : daysBetween(heldSince, now),
-    bounty: heldSince === null ? 0 : bountyForReign(now - heldSince),
+    heldDays: heldSince === null ? 0 : calendarDaysBetween(heldSince, now),
+    bounty: heldSince === null ? 0 : bountyForReign(heldSince, now),
     defences: openReign?.defences ?? 0,
     idleDays: holderInsight?.daysSincePlayed ?? null,
   };

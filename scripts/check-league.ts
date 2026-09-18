@@ -27,10 +27,20 @@ const mkMatch = (a: string, b: string, winner: string, atMs: number): MatchRecor
 });
 
 // --- bounty pricing ---
-eq('bounty: same day = 0', bountyForReign(DAY_MS - 1), 0);
-eq('bounty: 1 day = 3', bountyForReign(DAY_MS), 3);
-eq('bounty: 6 days = 18', bountyForReign(6 * DAY_MS), 18);
-eq('bounty: capped at 60', bountyForReign(400 * DAY_MS), 60);
+// The crown is priced on mornings survived, not on elapsed hours.
+const at = (iso: string) => new Date(iso).getTime();
+const wonTuesdayEvening = at('2026-09-15T18:00:00');
+eq('bounty: still nothing later the same evening',
+   bountyForReign(wonTuesdayEvening, at('2026-09-15T23:30:00')), 0);
+eq('bounty: 3 the very next morning, only 15 hours later',
+   bountyForReign(wonTuesdayEvening, at('2026-09-16T09:00:00')), 3);
+eq('bounty: still 3 later that same day',
+   bountyForReign(wonTuesdayEvening, at('2026-09-16T22:00:00')), 3);
+eq('bounty: 6 on the second morning',
+   bountyForReign(wonTuesdayEvening, at('2026-09-17T07:30:00')), 6);
+eq('bounty: a win just before midnight is worth nothing that night',
+   bountyForReign(at('2026-09-15T23:50:00'), at('2026-09-15T23:59:00')), 0);
+eq('bounty: capped at 60', bountyForReign(at('2026-01-01T12:00:00'), at('2026-09-01T12:00:00')), 60);
 
 // --- elo asymmetry (the user's one requirement) ---
 const underdog = calculateMatchElo(900, 1100, 'A');
