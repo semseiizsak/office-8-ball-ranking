@@ -12,6 +12,8 @@ import { EventsView } from './components/EventsView';
 import { MatchLoggerSheet } from './components/MatchLoggerSheet';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
+import { CalloutSentOverlay } from './components/CalloutSentOverlay';
+import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { Header } from './components/Header';
 import { Season } from './types';
 
@@ -138,6 +140,17 @@ const liveChallenge: Challenge = {
   ],
 };
 
+/** A callout between two other people, so the call buttons can be exercised. */
+const callableChallenge: Challenge = {
+  id: 'c4', challengerId: 'p0', challengerName: NAMES[0],
+  opponentId: 'p3', opponentName: NAMES[3], status: 'pending',
+  createdAt: now - 600_000, expiresAt: now + 7 * 3600_000,
+  respondedAt: null, startedAt: null,
+  stakes: { challengerElo: 1004, opponentElo: 1030, challengerRank: 3, opponentRank: 2,
+    challengerWinDelta: 18, opponentWinDelta: 14, challengerIsUnderdog: true, crownBounty: 0 },
+  matchId: null, resolvedWinnerId: null, predictions: [],
+};
+
 const Harness: React.FC = () => {
   const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
   // Mirrors the app's submission lock so the double-tap guard is exercised.
@@ -146,6 +159,8 @@ const Harness: React.FC = () => {
   const loggingRef = React.useRef(false);
   const [showIncoming, setShowIncoming] = useState(false);
   const [showDuel, setShowDuel] = useState(false);
+  const [showSent, setShowSent] = useState(false);
+  const [showAccept, setShowAccept] = useState(false);
   const [aId, setAId] = useState<string | undefined>('p2');
   const [bId, setBId] = useState<string | undefined>('p1');
 
@@ -163,7 +178,7 @@ const Harness: React.FC = () => {
   };
   const [dossier, setDossier] = useState<Player | null>(null);
   const [challenging, setChallenging] = useState(false);
-  const [challengesList, setChallengesList] = useState<Challenge[]>(challenges);
+  const [challengesList, setChallengesList] = useState<Challenge[]>([callableChallenge, ...challenges]);
   const league = deriveLeagueInsights(players, seasonMatches, challengesList, now);
   const me = players[2];
 
@@ -200,6 +215,10 @@ const Harness: React.FC = () => {
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">incoming</button>
           <button id="demo-duel" onClick={() => setShowDuel(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">duel</button>
+          <button id="demo-sent" onClick={() => setShowSent(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">sent</button>
+          <button id="demo-accept" onClick={() => setShowAccept(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
         <main className="flex-1 px-4 pt-3">
           {tab === 'events' ? (
@@ -229,6 +248,14 @@ const Harness: React.FC = () => {
             onAccept={async () => { setShowIncoming(false); setShowDuel(true); }}
             onDecline={async () => setShowIncoming(false)}
             onDismiss={() => setShowIncoming(false)} />
+        )}
+        {showSent && (
+          <CalloutSentOverlay opponent={players[1]} winDelta={41} crownBounty={24}
+            onComplete={() => setShowSent(false)} />
+        )}
+        {showAccept && (
+          <ChallengeAcceptedOverlay challenge={challengesList[0]} players={players}
+            onComplete={() => setShowAccept(false)} />
         )}
         {showDuel && (
           <DuelAcceptedOverlay challenge={challenges[0]} players={players}

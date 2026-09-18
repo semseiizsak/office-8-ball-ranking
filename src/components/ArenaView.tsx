@@ -207,6 +207,12 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
 }) => {
   const now = Date.now();
   const [armedLockId, setArmedLockId] = useState<string | null>(null);
+  /**
+   * The call that just landed, so it can pop.
+   * Held in state rather than toggled on the node: casting a call re-renders the
+   * button, which wiped a class added imperatively before it ever animated.
+   */
+  const [poppedCall, setPoppedCall] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   // Everything still live belongs on the board, answered or not. Showing only
@@ -298,7 +304,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
       });
 
     return (
-      <div key={challenge.id} className="rounded-2xl border border-[#30363d] bg-[#161b22] p-4">
+      <div key={challenge.id} className="card-drop rounded-2xl border border-[#30363d] bg-[#161b22] p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
             <Clock className="h-3 w-3" />
@@ -453,11 +459,15 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                     disabled={Boolean(myCall)}
                     onClick={() => {
                       if (myCall) return;
+                      setPoppedCall(`${challenge.id}:${side.id}`);
+                      window.setTimeout(() => setPoppedCall(null), 360);
                       void onPredict(challenge, side.id, lockArmed && !lockUsedToday);
                       setArmedLockId(null);
                     }}
                     style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
                     className={`truncate rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold transition-all ${
+                      poppedCall === `${challenge.id}:${side.id}` ? 'call-pop ' : ''
+                    }${
                       picked
                         ? 'bg-[#1c2026] opacity-100 cursor-default shadow-[0_0_12px_rgba(0,0,0,0.4)]'
                         : myCall
