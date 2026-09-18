@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, Moon, Search, UserPlus } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS } from '../utils/league';
+import { CollapsibleSection } from './CollapsibleSection';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
 
@@ -31,6 +32,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
 
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
+  const crownHolder = players.find((player) => player.id === league.crown.holderId) ?? null;
 
   // Dormant players keep their rating but drop out of the live ladder, so the
   // ranking answers "who is good now" rather than "who played a lot in March".
@@ -187,11 +189,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     <div id="leaderboard-view" className="space-y-4 pb-24 pt-1">
       <div className="flex items-start justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="font-['Chivo'] text-2xl font-black text-white tracking-tight">
-            Office Pool Power Rankings
+          <h2 className="font-['Chivo'] text-xl font-black tracking-tight text-white">
+            Power Rankings
           </h2>
-          <p className="text-xs text-[#86948a] font-['Space_Grotesk'] mt-0.5">
-            Realtime Elo ratings • {season.name}
+          <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
+            {season.name} • {active.length} active • {matches.length} played
           </p>
         </div>
         <button
@@ -206,21 +208,49 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       </div>
 
       <div className="px-1">
-        <CrownBanner
-          crown={league.crown}
-          players={players}
-          currentPlayer={currentPlayer}
-          onChallenge={onChallenge}
-        />
+        <CollapsibleSection
+          title="The Crown"
+          accent="#f59e0b"
+          storageKey="office_8ball_section_crown"
+          defaultOpen
+          containerClassName="rounded-2xl border border-[#f59e0b]/40 bg-gradient-to-br from-[#241a07] to-[#161b22] shadow-lg"
+          summary={
+            crownHolder && (
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate font-['Chivo'] text-xs font-bold text-white">
+                  {crownHolder.name.split(' ')[0]}
+                </span>
+                <span className="shrink-0 font-['JetBrains_Mono'] text-xs font-black text-[#f59e0b]">
+                  {league.crown.bounty}
+                </span>
+              </span>
+            )
+          }
+        >
+          <CrownBanner
+            crown={league.crown}
+            players={players}
+            currentPlayer={currentPlayer}
+            onChallenge={onChallenge}
+          />
+        </CollapsibleSection>
       </div>
 
       {league.titles.length > 0 && (
         <div className="px-1">
-          <div className="rounded-2xl border border-[#30363d] bg-[#161b22] p-3">
-            <span className="font-['JetBrains_Mono'] text-[10px] font-extrabold uppercase tracking-widest text-[#86948a]">
-              Titles held
-            </span>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+          <CollapsibleSection
+            title="Titles held"
+            storageKey="office_8ball_section_titles"
+            defaultOpen={false}
+            summary={
+              <span className="flex items-center gap-0.5 text-[13px] leading-none">
+                {league.titles.slice(0, 7).map((title) => (
+                  <span key={title.key}>{title.emoji}</span>
+                ))}
+              </span>
+            }
+          >
+            <div className="flex flex-wrap gap-1.5">
               {league.titles.map((title) => (
                 <span
                   key={title.key}
@@ -233,32 +263,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 </span>
               ))}
             </div>
-          </div>
+          </CollapsibleSection>
         </div>
       )}
-
-      <div className="grid grid-cols-3 gap-2 px-1">
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-2.5 text-center">
-          <span className="block text-[10px] font-['JetBrains_Mono'] uppercase tracking-wider text-[#86948a]">
-            Active
-          </span>
-          <span className="font-['JetBrains_Mono'] text-lg font-black text-white">{active.length}</span>
-        </div>
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-2.5 text-center">
-          <span className="block text-[10px] font-['JetBrains_Mono'] uppercase tracking-wider text-[#86948a]">
-            Top Rating
-          </span>
-          <span className="font-['JetBrains_Mono'] text-lg font-black text-[#4edea3]">
-            {active[0]?.elo ?? sortedPlayers[0]?.elo ?? 1000}
-          </span>
-        </div>
-        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-2.5 text-center">
-          <span className="block text-[10px] font-['JetBrains_Mono'] uppercase tracking-wider text-[#86948a]">
-            Total Clashes
-          </span>
-          <span className="font-['JetBrains_Mono'] text-lg font-black text-[#ffb95f]">{matches.length}</span>
-        </div>
-      </div>
 
       <div className="relative px-1">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#86948a]" />

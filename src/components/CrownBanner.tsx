@@ -24,8 +24,8 @@ export const CrownBanner: React.FC<CrownBannerProps> = ({ crown, players, curren
   const idleDays = crown.idleDays ?? 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#f59e0b]/40 bg-gradient-to-br from-[#241a07] to-[#161b22] p-4 shadow-lg">
-      <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#f59e0b]/10 blur-2xl" />
+    <div className="relative">
+      <div className="pointer-events-none absolute -right-8 -top-12 h-32 w-32 rounded-full bg-[#f59e0b]/10 blur-2xl" />
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -42,11 +42,10 @@ export const CrownBanner: React.FC<CrownBannerProps> = ({ crown, players, curren
             </div>
           )}
           <div className="min-w-0">
-            <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-extrabold uppercase tracking-widest text-[#f59e0b]">
-              <Crown className="h-3.5 w-3.5 fill-[#f59e0b]" />
-              The Crown
-            </span>
-            <h3 className="truncate font-['Chivo'] text-base font-bold text-white">{holder.name}</h3>
+            <h3 className="flex items-center gap-1.5 truncate font-['Chivo'] text-base font-bold text-white">
+              <Crown className="h-4 w-4 shrink-0 fill-[#f59e0b] text-[#f59e0b]" />
+              {holder.name}
+            </h3>
             <p className="font-['Space_Grotesk'] text-[11px] text-[#bbcabf]">
               Held {crown.heldDays} {crown.heldDays === 1 ? 'day' : 'days'}
               {crown.defences > 0 && ` · ${crown.defences} defended`}
