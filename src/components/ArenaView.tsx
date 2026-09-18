@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Clock, Crown, Lock, Swords, Target, Trophy, X } from 'lucide-react';
+import { Check, Clock, Crown, Lock, Swords, Target, Trophy, X, Zap } from 'lucide-react';
 import { Challenge, Player, Prediction } from '../types';
-import { ORACLE_MIN_PREDICTIONS } from '../utils/league';
+import { hasLockOnDay, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
 
 interface ArenaViewProps {
   players: Player[];
@@ -10,7 +10,7 @@ interface ArenaViewProps {
   onIssueChallenge: () => void;
   onRespond: (challenge: Challenge, status: 'accepted' | 'declined') => Promise<void>;
   onCancel: (challenge: Challenge) => Promise<void>;
-  onPredict: (challenge: Challenge, predictedWinnerId: string) => Promise<void>;
+  onPredict: (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
   onSelectPlayer?: (player: Player) => void;
 }
@@ -191,12 +191,16 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onSelectPlayer,
 }) => {
   const now = Date.now();
+  const [armedLockId, setArmedLockId] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   const open = challenges.filter((challenge) => challenge.status === 'accepted');
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
   // Prediction standings: the second ladder, open to everyone who never wins the first.
+  // Ranked on nerve, not on accuracy. Accuracy rewarded calling only the
+  // matches nobody could get wrong; nerve pays for the calls that were worth
+  // making, so the safe route no longer wins.
   const oracles = [...players]
     .filter((player) => player.predictionsTotal > 0)
     .map((player) => ({
@@ -205,12 +209,15 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     }))
     .sort(
       (left, right) =>
-        right.accuracy - left.accuracy ||
+        right.player.nerve - left.player.nerve ||
         right.player.predictionsTotal - left.player.predictionsTotal
     )
     .slice(0, 5);
 
+  const lockUsedToday = hasLockOnDay(challenges, currentPlayer.id, now);
+
   const renderChallenge = (challenge: Challenge) => {
+    const lockArmed = armedLockId === challenge.id;
     const challenger = byId.get(challenge.challengerId);
     const opponent = byId.get(challenge.opponentId);
     const isPlayer =
@@ -352,8 +359,35 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                   'Call it'
                 )}
               </span>
+              {!myCall && !isPlayer && (
+                <button
+                  type="button"
+                  disabled={lockUsedToday}
+                  onClick={() => setArmedLockId(lockArmed ? null : challenge.id)}
+                  title={
+                    lockUsedToday
+                      ? 'You have already staked your lock today'
+                      : 'Stake your one lock of the day: settles for double, win or lose'
+                  }
+                  className={`flex items-center gap-1 rounded-lg border px-2 py-1 font-['JetBrains_Mono'] text-[10px] font-bold transition-all ${
+                    lockUsedToday
+                      ? 'cursor-not-allowed border-[#30363d]/50 text-[#86948a]/40'
+                      : lockArmed
+                      ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]'
+                      : 'border-[#30363d] text-[#86948a] hover:border-[#f59e0b]/60 hover:text-[#f59e0b]'
+                  }`}
+                >
+                  <Zap className={`h-3 w-3 ${lockArmed ? 'fill-[#f59e0b]' : ''}`} />
+                  {lockUsedToday ? 'Lock used' : lockArmed ? 'LOCK ARMED ×2' : 'Lock of the day'}
+                </button>
+              )}
               {myCall && (
-                <span className="font-['Space_Grotesk'] text-[10px] text-[#86948a]">
+                <span className="flex items-center gap-1 font-['Space_Grotesk'] text-[10px] text-[#86948a]">
+                  {myCall.isLock && (
+                    <span className="flex items-center gap-0.5 font-['JetBrains_Mono'] font-bold text-[#f59e0b]">
+                      <Zap className="h-3 w-3 fill-[#f59e0b]" />×2
+                    </span>
+                  )}
                   Predictions can't be switched
                 </span>
               )}
@@ -369,7 +403,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                     key={side.id}
                     type="button"
                     disabled={Boolean(myCall)}
-                    onClick={() => !myCall && onPredict(challenge, side.id)}
+                    onClick={() => {
+                      if (myCall) return;
+                      void onPredict(challenge, side.id, lockArmed && !lockUsedToday);
+                      setArmedLockId(null);
+                    }}
                     style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
                     className={`truncate rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold transition-all ${
                       picked
@@ -476,7 +514,9 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </span>
         {oracles.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-4 py-6 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
-            Nobody has called a match yet. {ORACLE_MIN_PREDICTIONS} calls earns you a shot at 🔮 The Oracle.
+            Nobody has called a match yet. Everyone starts on {NERVE_BASE} nerve — calling an
+            underdog that comes in is worth far more than calling the favourite. {NERVE_MIN_CALLS} calls
+            earns you a shot at 🔮 The Oracle.
           </p>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-[#30363d] bg-[#161b22]">
@@ -494,11 +534,15 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                   {entry.player.name}
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className="block font-['JetBrains_Mono'] text-sm font-black text-[#4edea3]">
-                    {entry.accuracy}%
+                  <span
+                    className={`block font-['JetBrains_Mono'] text-sm font-black ${
+                      entry.player.nerve >= NERVE_BASE ? 'text-[#4edea3]' : 'text-[#ffb4ab]'
+                    }`}
+                  >
+                    {entry.player.nerve}
                   </span>
                   <span className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    {entry.player.predictionsCorrect}/{entry.player.predictionsTotal}
+                    {entry.player.predictionsCorrect}/{entry.player.predictionsTotal} · {entry.accuracy}%
                   </span>
                 </span>
               </div>

@@ -20,6 +20,14 @@ export interface Player {
   /** Running tally of spectator predictions this player has called. */
   predictionsCorrect: number;
   predictionsTotal: number;
+  /**
+   * Rating for calling matches, on the same 1000 baseline as the playing
+   * ladder. Moves by how unlikely the call was, not by whether it was right.
+   */
+  nerve: number;
+  /** Longest run of correct calls, and the run currently going. */
+  nerveStreak: number;
+  bestNerveStreak: number;
   createdAt: string;
 }
 
@@ -89,6 +97,8 @@ export interface Prediction {
   predictorName: string;
   predictedWinnerId: string;
   createdAt: number;
+  /** A call staked as the day's lock, settling for double either way. */
+  isLock?: boolean;
 }
 
 export interface Challenge {

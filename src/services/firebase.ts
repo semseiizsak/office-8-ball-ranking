@@ -37,6 +37,8 @@ import {
   runLeagueReplay,
   softResetElo,
   matchesInSeason,
+  nerveDelta,
+  NERVE_BASE,
   CHALLENGE_EXPIRY_HOURS,
   IMPLICIT_SEASON,
 } from '../utils/league';
@@ -108,6 +110,9 @@ const toPlayer = (id: string, data: Record<string, unknown>): Player => ({
   lastPlayedAt: timestampToMillis(data.lastPlayedAt),
   predictionsCorrect: Number(data.predictionsCorrect ?? 0),
   predictionsTotal: Number(data.predictionsTotal ?? 0),
+  nerve: Number(data.nerve ?? NERVE_BASE),
+  nerveStreak: Number(data.nerveStreak ?? 0),
+  bestNerveStreak: Number(data.bestNerveStreak ?? 0),
   createdAt: timestampToIso(data.createdAt),
 });
 
@@ -175,6 +180,9 @@ export async function addPlayer(params: {
     lastPlayedAt: null,
     predictionsCorrect: 0,
     predictionsTotal: 0,
+    nerve: NERVE_BASE,
+    nerveStreak: 0,
+    bestNerveStreak: 0,
     createdAt: serverTimestamp(),
   };
 
@@ -682,6 +690,7 @@ export async function addPrediction(params: {
   predictorId: string;
   predictorName: string;
   predictedWinnerId: string;
+  isLock?: boolean;
 }): Promise<void> {
   const challengeRef = doc(db, 'challenges', params.challengeId);
   const snap = await getDoc(challengeRef);
@@ -695,6 +704,7 @@ export async function addPrediction(params: {
     [`predictions.${params.predictorId}`]: {
       predictorName: params.predictorName,
       predictedWinnerId: params.predictedWinnerId,
+      isLock: params.isLock === true,
       createdAt: Date.now(),
     },
   });
@@ -716,6 +726,17 @@ export async function resolveChallenge(params: {
   const challenge = toChallenge(snapshot.id, snapshot.data(), Date.now());
   if (challenge.status === 'played') return;
 
+  // Read the callers first: a nerve rating is a running total, not a counter,
+  // so the new value has to be computed from the current one.
+  const predictorDocs = new Map(
+    await Promise.all(
+      challenge.predictions.map(async (prediction) => {
+        const snapshot = await getDoc(doc(db, 'players', prediction.predictorId));
+        return [prediction.predictorId, snapshot.exists() ? toPlayer(snapshot.id, snapshot.data()) : null] as const;
+      })
+    )
+  );
+
   const batch = writeBatch(db);
   batch.update(challengeRef, {
     status: 'played' satisfies ChallengeStatus,
@@ -723,10 +744,27 @@ export async function resolveChallenge(params: {
     resolvedWinnerId: params.winnerId,
   });
 
+  // Settle every call against the ratings advertised when the challenge was
+  // issued, so a call is judged on what was known when it was made.
   for (const prediction of challenge.predictions) {
+    const calledChallenger = prediction.predictedWinnerId === challenge.challengerId;
+    const wasCorrect = prediction.predictedWinnerId === params.winnerId;
+    const delta = nerveDelta({
+      calledElo: calledChallenger ? challenge.stakes.challengerElo : challenge.stakes.opponentElo,
+      opponentElo: calledChallenger ? challenge.stakes.opponentElo : challenge.stakes.challengerElo,
+      wasCorrect,
+      isLock: prediction.isLock,
+    });
+
+    const predictor = predictorDocs.get(prediction.predictorId);
+    const streak = wasCorrect ? (predictor?.nerveStreak ?? 0) + 1 : 0;
+
     batch.update(doc(db, 'players', prediction.predictorId), {
       predictionsTotal: increment(1),
-      predictionsCorrect: increment(prediction.predictedWinnerId === params.winnerId ? 1 : 0),
+      predictionsCorrect: increment(wasCorrect ? 1 : 0),
+      nerve: Math.max(100, (predictor?.nerve ?? NERVE_BASE) + delta),
+      nerveStreak: streak,
+      bestNerveStreak: Math.max(predictor?.bestNerveStreak ?? 0, streak),
     });
   }
 

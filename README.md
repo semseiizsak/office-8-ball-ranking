@@ -10,7 +10,7 @@ a K-factor of 32.
 - The crown: a bounty that grows for each day the top spot goes undefended and
   transfers to whoever takes it down
 - Challenges that state what the match is worth before it is played
-- Spectator predictions with their own standings, so people who are not playing
+- Spectator predictions scored on a nerve rating, so people who are not playing
   still have something to win
 - Titles awarded on orthogonal measures, so the ladder is not the only thing to
   be best at
@@ -21,6 +21,31 @@ a K-factor of 32.
 - Atomic Firestore transactions for match results
 - Targeted push notifications
 - Production deployment through Vercel
+
+## Calling matches
+
+Anyone not playing can call the winner of an open challenge. A call moves a
+**nerve rating**, which sits on the same 1000 baseline as the playing ladder and
+uses the same formula:
+
+    delta = K * (result - expected)
+
+where `expected` is the called player's win probability from the two ratings
+advertised when the challenge was issued. Backing a 900 against an 1100 and
+being right is worth +24; backing the 1100 and being right is worth +8. Missing
+on the favourite costs 24, missing on the underdog costs 8.
+
+That makes it a proper scoring rule: calling every match at the odds the model
+already gives is worth nothing on average, and calling nothing is worth nothing
+either. Ranking on accuracy rewarded the opposite — the best strategy was to
+call only the matches nobody could get wrong and skip every close one. The only
+way to climb now is to know something the ratings do not.
+
+Each caller may stake one **lock** per day, which settles for double either way.
+
+Predictions never touch anyone's playing Elo. A spectator cannot move a
+player's rank, and the two ladders stay separate so that whoever is mid-table at
+pool can still top the calling table.
 
 ## Only win and loss are ever recorded
 
@@ -82,6 +107,7 @@ Each document stores the player identity and rating state:
 - `currentStreak`, `bestWinStreak`, `breakAndRuns`, `recentForm`
 - `lastPlayedAt` — drives dormancy
 - `predictionsCorrect`, `predictionsTotal` — spectator prediction record
+- `nerve`, `nerveStreak`, `bestNerveStreak` — rating for calling matches
 - `createdAt`
 
 ### `matches`
@@ -103,7 +129,8 @@ A challenge and the spectator calls on it:
 - `status` — `pending`, `accepted`, `declined`, `expired`, `played`, `cancelled`
 - `createdAt`, `expiresAt`, `respondedAt`
 - `stakes` — what was advertised when the challenge was issued
-- `predictions` — a map keyed by predictor, so one person holds one call
+- `predictions` — a map keyed by predictor, so one person holds one call; each
+  carries `isLock` for a call staked as that day's double
 - `matchId`, `resolvedWinnerId` once settled
 
 A pending challenge past `expiresAt` reads as expired without anything having to

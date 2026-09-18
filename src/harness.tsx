@@ -36,6 +36,9 @@ const basePlayers: Player[] = NAMES.map((name, index) => ({
   lastPlayedAt: null,
   predictionsCorrect: [0, 7, 3, 5, 1][index],
   predictionsTotal: [0, 9, 8, 6, 4][index],
+  nerve: [1000, 1042, 1088, 964, 1011][index],
+  nerveStreak: [0, 2, 4, 0, 1][index],
+  bestNerveStreak: [0, 3, 6, 2, 1][index],
   createdAt: new Date(now - 90 * DAY_MS).toISOString(),
 }));
 

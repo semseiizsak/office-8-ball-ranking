@@ -2,6 +2,7 @@ import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, 
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
+import { nerveDelta, NERVE_BASE } from '../src/utils/league';
 import { MatchRecord, Player } from '../src/types';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
@@ -15,7 +16,8 @@ const eq = (label: string, got: unknown, want: unknown) => {
 const mkPlayer = (id: string): Player => ({
   id, name: id, avatarUrl: '', ballPreference: 'solids', elo: 1000, peakElo: 1000,
   wins: 0, losses: 0, currentStreak: 0, bestWinStreak: 0, breakAndRuns: 0, recentForm: [],
-  lastPlayedAt: null, predictionsCorrect: 0, predictionsTotal: 0, createdAt: '2026-01-01',
+  lastPlayedAt: null, predictionsCorrect: 0, predictionsTotal: 0,
+  nerve: NERVE_BASE, nerveStreak: 0, bestNerveStreak: 0, createdAt: '2026-01-01',
 });
 let n = 0;
 const mkMatch = (a: string, b: string, winner: string, atMs: number): MatchRecord => ({
@@ -179,6 +181,35 @@ eq('season: season-two record ignores season-one results',
    [s2replay.members.get('A')!.wins, s2replay.members.get('B')!.wins], [0, 1]);
 eq('season: carried ratings stay zero-sum within the season',
    s2replay.members.get('B')!.elo + s2replay.members.get('C')!.elo, 1950);
+
+// --- nerve: calls are paid on how unlikely they were ---
+const underdogHit = nerveDelta({ calledElo: 900, opponentElo: 1100, wasCorrect: true });
+const favouriteHit = nerveDelta({ calledElo: 1100, opponentElo: 900, wasCorrect: true });
+eq('nerve: calling the underdog pays more than calling the favourite',
+   underdogHit > favouriteHit, true);
+console.log(`      underdog call +${underdogHit} vs favourite call +${favouriteHit}`);
+
+const favouriteMiss = nerveDelta({ calledElo: 1100, opponentElo: 900, wasCorrect: false });
+const underdogMiss = nerveDelta({ calledElo: 900, opponentElo: 1100, wasCorrect: false });
+eq('nerve: missing on the favourite costs more than missing on the underdog',
+   favouriteMiss < underdogMiss, true);
+console.log(`      favourite miss ${favouriteMiss} vs underdog miss ${underdogMiss}`);
+
+// A proper scoring rule: at the model's own odds, calling is worth nothing on
+// average, so there is no edge in only calling the easy ones.
+const p = 1 / (1 + Math.pow(10, (900 - 1100) / 400));
+const expectedValue = p * nerveDelta({ calledElo: 1100, opponentElo: 900, wasCorrect: true })
+  + (1 - p) * nerveDelta({ calledElo: 1100, opponentElo: 900, wasCorrect: false });
+eq('nerve: calling at the model odds is worth nothing on average',
+   Math.abs(expectedValue) < 1, true);
+console.log(`      expected value of a favourite call: ${expectedValue.toFixed(3)}`);
+
+const evenUp = nerveDelta({ calledElo: 1000, opponentElo: 1000, wasCorrect: true });
+eq('nerve: a coin-flip call pays half the K factor', evenUp, 16);
+eq('nerve: a lock doubles the gain',
+   nerveDelta({ calledElo: 1000, opponentElo: 1000, wasCorrect: true, isLock: true }), 32);
+eq('nerve: a lock doubles the loss',
+   nerveDelta({ calledElo: 1000, opponentElo: 1000, wasCorrect: false, isLock: true }), -32);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

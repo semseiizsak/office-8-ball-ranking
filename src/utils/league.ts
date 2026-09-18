@@ -398,6 +398,27 @@ export function deriveLeagueInsights(
     idleDays: holderInsight?.daysSincePlayed ?? null,
   };
 
+  // Going against the room only counts when the room was actually wrong.
+  const contrarianCounts = new Map<string, number>();
+  for (const challenge of challenges) {
+    if (challenge.status !== 'played' || !challenge.resolvedWinnerId) continue;
+    const forChallenger = challenge.predictions.filter(
+      (prediction) => prediction.predictedWinnerId === challenge.challengerId
+    ).length;
+    const forOpponent = challenge.predictions.length - forChallenger;
+    if (forChallenger === forOpponent) continue;
+    const majorityId =
+      forChallenger > forOpponent ? challenge.challengerId : challenge.opponentId;
+    if (majorityId === challenge.resolvedWinnerId) continue;
+    for (const prediction of challenge.predictions) {
+      if (prediction.predictedWinnerId !== challenge.resolvedWinnerId) continue;
+      contrarianCounts.set(
+        prediction.predictorId,
+        (contrarianCounts.get(prediction.predictorId) ?? 0) + 1
+      );
+    }
+  }
+
   const declineCounts = new Map<string, number>();
   for (const challenge of challenges) {
     if (challenge.status !== 'declined' && challenge.status !== 'expired') continue;
@@ -483,18 +504,39 @@ export function deriveLeagueInsights(
       'the-oracle',
       'The Oracle',
       '🔮',
-      `Best prediction accuracy over at least ${ORACLE_MIN_PREDICTIONS} calls.`,
+      `Highest nerve rating over at least ${NERVE_MIN_CALLS} calls.`,
       score((player) => {
-        const eligible = player.predictionsTotal >= ORACLE_MIN_PREDICTIONS;
-        const accuracy = eligible
-          ? Math.round((player.predictionsCorrect / player.predictionsTotal) * 100)
-          : 0;
+        // Only a rating built above the baseline counts, so nobody takes the
+        // title for sitting on the 1000 everyone starts with.
+        const eligible = player.predictionsTotal >= NERVE_MIN_CALLS && player.nerve > NERVE_BASE;
         return {
-          value: accuracy,
-          valueLabel: `${accuracy}% of ${player.predictionsTotal}`,
+          value: eligible ? player.nerve : 0,
+          valueLabel: `${player.nerve} nerve`,
         };
       }),
       1
+    ),
+    awardTitle(
+      'the-contrarian',
+      'The Contrarian',
+      '🃏',
+      'Most correct calls made against what the rest of the room called.',
+      score((player) => {
+        const value = contrarianCounts.get(player.id) ?? 0;
+        return { value, valueLabel: plural(value, 'call against the room', 'calls against the room') };
+      }),
+      1
+    ),
+    awardTitle(
+      'sharpshooter',
+      'Sharpshooter',
+      '🎯',
+      'Longest run of correct calls in a row.',
+      score((player) => ({
+        value: player.bestNerveStreak,
+        valueLabel: plural(player.bestNerveStreak, 'call in a row', 'calls in a row'),
+      })),
+      3
     ),
   ].filter((title): title is LeagueTitle => title !== null);
 
@@ -647,4 +689,55 @@ export function findTopRival(
   )[0];
   if (!top) return null;
   return computeRivalry(playerId, top[0], players, matches, now);
+}
+
+/** Rating everyone starts calling matches on. */
+export const NERVE_BASE = 1000;
+/** How much a single call can move a nerve rating. */
+export const NERVE_K = 32;
+/** A lock settles for double, win or lose. */
+export const LOCK_MULTIPLIER = 2;
+/** Calls needed before a nerve rating counts for a title. */
+export const NERVE_MIN_CALLS = 5;
+
+/**
+ * What a call is worth.
+ *
+ * The same formula the players run on, pointed at the people watching: you are
+ * paid for how unlikely your call was, not for being right. Backing a 35% shot
+ * that comes in is worth far more than backing the favourite, and backing the
+ * favourite when they lose costs far more than backing the underdog.
+ *
+ * This makes it a proper scoring rule. Calling every match at the odds the
+ * model already gives is worth nothing on average, and so is calling nothing,
+ * so the only way to climb is to know something the ratings do not — that
+ * somebody is tired, or on a heater, or cannot be beaten on that one table.
+ */
+export function nerveDelta(params: {
+  /** Rating of the player being called, at the time the call was made. */
+  calledElo: number;
+  opponentElo: number;
+  wasCorrect: boolean;
+  isLock?: boolean;
+}): number {
+  const expected = 1 / (1 + Math.pow(10, (params.opponentElo - params.calledElo) / 400));
+  const raw = NERVE_K * ((params.wasCorrect ? 1 : 0) - expected);
+  return Math.round(raw * (params.isLock ? LOCK_MULTIPLIER : 1));
+}
+
+/** Whether a predictor already staked a lock on the given day. */
+export function hasLockOnDay(
+  challenges: Challenge[],
+  predictorId: string,
+  day: number
+): boolean {
+  return challenges.some((challenge) =>
+    challenge.predictions.some(
+      (prediction) =>
+        prediction.predictorId === predictorId &&
+        prediction.isLock === true &&
+        calendarDaysBetween(prediction.createdAt, day) === 0 &&
+        prediction.createdAt <= day
+    )
+  );
 }
