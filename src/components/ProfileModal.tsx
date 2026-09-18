@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ImagePlus, Save, X } from 'lucide-react';
+import { ImagePlus, RotateCw, Save, X } from 'lucide-react';
 import { BallPreference, Player } from '../types';
+import { hardRefresh } from '../utils/refresh';
 
 interface ProfileModalProps {
   player: Player | null;
@@ -121,6 +122,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
         <button type="button" onClick={onSwitchPlayer} disabled={isSaving} className="w-full py-2 text-xs font-medium text-[#86948a] hover:text-white disabled:opacity-50">
           Switch player / Log out
         </button>
+
+        <div className="border-t border-[#30363d]/60 pt-2 text-center">
+          <button
+            type="button"
+            onClick={() => hardRefresh()}
+            className="inline-flex items-center gap-1.5 py-1 text-[11px] font-['Space_Grotesk'] text-[#86948a] transition-colors hover:text-[#4edea3]"
+          >
+            <RotateCw className="h-3 w-3" />
+            Hard refresh & check for updates
+          </button>
+        </div>
       </form>
     </div>
   );

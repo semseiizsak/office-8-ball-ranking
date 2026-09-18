@@ -1,4 +1,5 @@
 import React from 'react';
+import { hardRefresh } from '../utils/refresh';
 
 interface ErrorBoundaryState {
   error: Error | null;
@@ -41,7 +42,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, 
           </pre>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => hardRefresh()}
             className="mt-4 w-full rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113]"
           >
             Reload

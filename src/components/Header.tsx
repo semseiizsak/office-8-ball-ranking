@@ -1,7 +1,8 @@
 import React from 'react';
-import { Bell, Dices } from 'lucide-react';
+import { Bell, Dices, RotateCw } from 'lucide-react';
 import { EightBallIcon } from './EightBallIcon';
 import { TabType, Player } from '../types';
+import { hardRefresh } from '../utils/refresh';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -23,6 +24,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChallengeInbox,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await hardRefresh();
+  };
 
   const getSubtext = () => {
     switch (activeTab) {
@@ -65,11 +72,12 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onQuickMatch}
             title="Quick Match"
-            className="flex h-9 items-center gap-1.5 rounded-full border border-[#10b981]/40 bg-[#10b981]/10 px-3 text-[#4edea3] transition-colors hover:bg-[#10b981]/20"
+            className="flex h-9 items-center gap-1.5 rounded-full border border-[#10b981]/40 bg-[#10b981]/10 px-2.5 text-[#4edea3] transition-colors hover:bg-[#10b981]/20 sm:px-3"
           >
             <Dices className="h-4 w-4" />
             <span className="hidden font-['Chivo'] text-[10px] font-bold uppercase tracking-wide sm:inline">Quick Match</span>
           </button>
+
           {/* Activity / Notification Bell */}
           <div className="relative">
             <button
@@ -108,6 +116,17 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+
+          {/* Hard Refresh / Update Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Check for updates & hard refresh"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#30363d] bg-[#161b22] text-[#86948a] transition-all hover:border-[#10b981]/50 hover:text-[#4edea3] active:scale-95 disabled:opacity-50"
+          >
+            <RotateCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-[#4edea3]' : ''}`} />
+          </button>
 
           {/* Current User Avatar */}
           {currentUser && (
