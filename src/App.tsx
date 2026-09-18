@@ -569,6 +569,7 @@ export default function App() {
                 onCancel={handleCancelChallenge}
                 onPredict={handlePredict}
                 onPlayChallenge={handlePlayChallenge}
+                nerve={league.nerve}
               />
             </div>
           )}

@@ -34,11 +34,6 @@ const basePlayers: Player[] = NAMES.map((name, index) => ({
   breakAndRuns: 0,
   recentForm: [],
   lastPlayedAt: null,
-  predictionsCorrect: [0, 7, 3, 5, 1][index],
-  predictionsTotal: [0, 9, 8, 6, 4][index],
-  nerve: [1000, 1042, 1088, 964, 1011][index],
-  nerveStreak: [0, 2, 4, 0, 1][index],
-  bestNerveStreak: [0, 3, 6, 2, 1][index],
   createdAt: new Date(now - 90 * DAY_MS).toISOString(),
 }));
 
@@ -119,6 +114,14 @@ const currentSeason: Season = {
   startedAt: now - 60 * DAY_MS, endedAt: null,
   startingElo: {}, standings: [], titles: [],
 };
+
+// Stands in for what deriveNerve would rebuild from settled challenges.
+const nerveFixture = new Map([
+  ['p2', { nerve: 1088, correct: 3, total: 8, streak: 4, bestStreak: 6 }],
+  ['p1', { nerve: 1042, correct: 7, total: 9, streak: 2, bestStreak: 3 }],
+  ['p4', { nerve: 1011, correct: 1, total: 4, streak: 1, bestStreak: 1 }],
+  ['p3', { nerve: 964, correct: 5, total: 6, streak: 0, bestStreak: 2 }],
+]);
 
 const Harness: React.FC = () => {
   const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
@@ -209,7 +212,7 @@ const Harness: React.FC = () => {
               season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} />
           ) : (
             <ArenaView players={players} challenges={challengesList} currentPlayer={me}
-              onSelectPlayer={setDossier}
+              nerve={nerveFixture} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}} />

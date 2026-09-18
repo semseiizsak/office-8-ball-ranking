@@ -2,7 +2,8 @@ import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, 
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
-import { nerveDelta, NERVE_BASE } from '../src/utils/league';
+import { nerveDelta, deriveNerve, NERVE_BASE } from '../src/utils/league';
+import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
@@ -16,8 +17,7 @@ const eq = (label: string, got: unknown, want: unknown) => {
 const mkPlayer = (id: string): Player => ({
   id, name: id, avatarUrl: '', ballPreference: 'solids', elo: 1000, peakElo: 1000,
   wins: 0, losses: 0, currentStreak: 0, bestWinStreak: 0, breakAndRuns: 0, recentForm: [],
-  lastPlayedAt: null, predictionsCorrect: 0, predictionsTotal: 0,
-  nerve: NERVE_BASE, nerveStreak: 0, bestNerveStreak: 0, createdAt: '2026-01-01',
+  lastPlayedAt: null, createdAt: '2026-01-01',
 });
 let n = 0;
 const mkMatch = (a: string, b: string, winner: string, atMs: number): MatchRecord => ({
@@ -210,6 +210,51 @@ eq('nerve: a lock doubles the gain',
    nerveDelta({ calledElo: 1000, opponentElo: 1000, wasCorrect: true, isLock: true }), 32);
 eq('nerve: a lock doubles the loss',
    nerveDelta({ calledElo: 1000, opponentElo: 1000, wasCorrect: false, isLock: true }), -32);
+
+// --- nerve is rebuilt from challenges already settled, with nothing stored ---
+let cn = 0;
+const settledChallenge = (
+  challengerElo: number, opponentElo: number, winner: 'challenger' | 'opponent',
+  calls: Array<[string, 'challenger' | 'opponent', boolean?]>, atMs: number
+): Challenge => ({
+  id: `c${cn++}`, challengerId: 'A', challengerName: 'A', opponentId: 'B', opponentName: 'B',
+  status: 'played', createdAt: atMs, expiresAt: atMs + 1, respondedAt: atMs,
+  stakes: { challengerElo, opponentElo, challengerRank: 1, opponentRank: 2,
+    challengerWinDelta: 0, opponentWinDelta: 0, challengerIsUnderdog: false, crownBounty: 0 },
+  matchId: null, resolvedWinnerId: winner === 'challenger' ? 'A' : 'B',
+  predictions: calls.map(([who, side, lock]) => ({
+    id: who, predictorId: who, predictorName: who,
+    predictedWinnerId: side === 'challenger' ? 'A' : 'B', createdAt: atMs, isLock: lock,
+  })),
+});
+
+const history: Challenge[] = [
+  // Brave called the 900 underdog and was right; Safe called the 1100 favourite.
+  settledChallenge(900, 1100, 'challenger', [['brave', 'challenger'], ['safe', 'opponent']], T0),
+  settledChallenge(900, 1100, 'challenger', [['brave', 'challenger'], ['safe', 'opponent']], T0 + 1000),
+];
+const rebuilt = deriveNerve(history, []);
+eq('nerve: history is recovered with nothing stored on the player',
+   rebuilt.get('brave')!.total, 2);
+eq('nerve: two correct underdog calls beat the baseline',
+   rebuilt.get('brave')!.nerve > NERVE_BASE, true);
+eq('nerve: two wrong favourite calls fall below it',
+   rebuilt.get('safe')!.nerve < NERVE_BASE, true);
+eq('nerve: streaks rebuild too', rebuilt.get('brave')!.bestStreak, 2);
+eq('nerve: a wrong call ends the streak', rebuilt.get('safe')!.streak, 0);
+console.log(`      rebuilt: brave ${rebuilt.get('brave')!.nerve}, safe ${rebuilt.get('safe')!.nerve}`);
+
+// The 38%-accuracy caller outranking the 78% one is the whole point.
+const mixed = deriveNerve([
+  settledChallenge(900, 1100, 'challenger', [['brave', 'challenger'], ['safe', 'opponent']], T0),
+  settledChallenge(1100, 900, 'challenger', [['brave', 'opponent'], ['safe', 'challenger']], T0 + 1),
+  settledChallenge(1100, 900, 'challenger', [['brave', 'opponent'], ['safe', 'challenger']], T0 + 2),
+], []);
+const braveAcc = mixed.get('brave')!.correct / mixed.get('brave')!.total;
+const safeAcc = mixed.get('safe')!.correct / mixed.get('safe')!.total;
+eq('nerve: the braver caller outranks the more accurate one',
+   braveAcc < safeAcc && mixed.get('brave')!.nerve > mixed.get('safe')!.nerve, true);
+console.log(`      brave ${Math.round(braveAcc*100)}% -> ${mixed.get('brave')!.nerve}; safe ${Math.round(safeAcc*100)}% -> ${mixed.get('safe')!.nerve}`);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

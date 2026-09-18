@@ -299,6 +299,8 @@ export interface PlayerInsight {
 
 export interface LeagueInsights {
   crown: CrownState;
+  /** Calling records, rebuilt from every settled challenge. */
+  nerve: Map<string, NerveRecord>;
   titles: LeagueTitle[];
   titlesByPlayer: Map<string, LeagueTitle[]>;
   insights: Map<string, PlayerInsight>;
@@ -397,6 +399,8 @@ export function deriveLeagueInsights(
     defences: openReign?.defences ?? 0,
     idleDays: holderInsight?.daysSincePlayed ?? null,
   };
+
+  const nerve = deriveNerve(challenges, matches);
 
   // Going against the room only counts when the room was actually wrong.
   const contrarianCounts = new Map<string, number>();
@@ -508,10 +512,11 @@ export function deriveLeagueInsights(
       score((player) => {
         // Only a rating built above the baseline counts, so nobody takes the
         // title for sitting on the 1000 everyone starts with.
-        const eligible = player.predictionsTotal >= NERVE_MIN_CALLS && player.nerve > NERVE_BASE;
+        const record = nerve.get(player.id) ?? emptyNerve();
+        const eligible = record.total >= NERVE_MIN_CALLS && record.nerve > NERVE_BASE;
         return {
-          value: eligible ? player.nerve : 0,
-          valueLabel: `${player.nerve} nerve`,
+          value: eligible ? record.nerve : 0,
+          valueLabel: `${record.nerve} nerve`,
         };
       }),
       1
@@ -532,10 +537,10 @@ export function deriveLeagueInsights(
       'Sharpshooter',
       '🎯',
       'Longest run of correct calls in a row.',
-      score((player) => ({
-        value: player.bestNerveStreak,
-        valueLabel: plural(player.bestNerveStreak, 'call in a row', 'calls in a row'),
-      })),
+      score((player) => {
+        const best = (nerve.get(player.id) ?? emptyNerve()).bestStreak;
+        return { value: best, valueLabel: plural(best, 'call in a row', 'calls in a row') };
+      }),
       3
     ),
   ].filter((title): title is LeagueTitle => title !== null);
@@ -545,7 +550,7 @@ export function deriveLeagueInsights(
     titlesByPlayer.set(title.holderId, [...(titlesByPlayer.get(title.holderId) ?? []), title]);
   }
 
-  return { crown, titles, titlesByPlayer, insights };
+  return { crown, nerve, titles, titlesByPlayer, insights };
 }
 
 export interface Rivalry {
@@ -723,6 +728,80 @@ export function nerveDelta(params: {
   const expected = 1 / (1 + Math.pow(10, (params.opponentElo - params.calledElo) / 400));
   const raw = NERVE_K * ((params.wasCorrect ? 1 : 0) - expected);
   return Math.round(raw * (params.isLock ? LOCK_MULTIPLIER : 1));
+}
+
+export interface NerveRecord {
+  nerve: number;
+  correct: number;
+  total: number;
+  /** Correct calls in a row, right now and at their best. */
+  streak: number;
+  bestStreak: number;
+}
+
+const emptyNerve = (): NerveRecord => ({
+  nerve: NERVE_BASE,
+  correct: 0,
+  total: 0,
+  streak: 0,
+  bestStreak: 0,
+});
+
+/**
+ * Rebuilds every caller's record from the challenges themselves.
+ *
+ * Derived rather than accumulated, for the same reason the crown and the titles
+ * are: a challenge already stores the ratings advertised when it was issued,
+ * who won, and every call cast on it, so the whole table can be recomputed from
+ * history. Settling a call used to write a running total, which meant a rating
+ * introduced after the fact started everyone at the baseline no matter how many
+ * matches they had already called.
+ *
+ * Calls are settled in the order their matches were played, so a streak means
+ * what it says.
+ */
+export function deriveNerve(
+  challenges: Challenge[],
+  matches: MatchRecord[]
+): Map<string, NerveRecord> {
+  const matchTimes = new Map(matches.map((match) => [match.id, match.timestamp]));
+  const settled = challenges
+    .filter((challenge) => challenge.status === 'played' && challenge.resolvedWinnerId)
+    .sort((left, right) => {
+      const leftAt = (left.matchId ? matchTimes.get(left.matchId) : undefined) ?? left.createdAt;
+      const rightAt = (right.matchId ? matchTimes.get(right.matchId) : undefined) ?? right.createdAt;
+      return leftAt - rightAt;
+    });
+
+  const records = new Map<string, NerveRecord>();
+  for (const challenge of settled) {
+    for (const prediction of challenge.predictions) {
+      const record = records.get(prediction.predictorId) ?? emptyNerve();
+      const calledChallenger = prediction.predictedWinnerId === challenge.challengerId;
+      const wasCorrect = prediction.predictedWinnerId === challenge.resolvedWinnerId;
+
+      record.nerve = Math.max(
+        100,
+        record.nerve +
+          nerveDelta({
+            calledElo: calledChallenger
+              ? challenge.stakes.challengerElo
+              : challenge.stakes.opponentElo,
+            opponentElo: calledChallenger
+              ? challenge.stakes.opponentElo
+              : challenge.stakes.challengerElo,
+            wasCorrect,
+            isLock: prediction.isLock,
+          })
+      );
+      record.total += 1;
+      record.correct += wasCorrect ? 1 : 0;
+      record.streak = wasCorrect ? record.streak + 1 : 0;
+      record.bestStreak = Math.max(record.bestStreak, record.streak);
+      records.set(prediction.predictorId, record);
+    }
+  }
+  return records;
 }
 
 /** Whether a predictor already staked a lock on the given day. */

@@ -17,17 +17,11 @@ export interface Player {
   recentForm: ('W' | 'L')[];
   /** Timestamp of this player's most recent match, used for dormancy. */
   lastPlayedAt: number | null;
-  /** Running tally of spectator predictions this player has called. */
-  predictionsCorrect: number;
-  predictionsTotal: number;
   /**
-   * Rating for calling matches, on the same 1000 baseline as the playing
-   * ladder. Moves by how unlikely the call was, not by whether it was right.
+   * Calling record is not stored on the player. It is rebuilt from the
+   * challenges, which already hold the ratings at issue time, the winner and
+   * every call cast — see deriveNerve.
    */
-  nerve: number;
-  /** Longest run of correct calls, and the run currently going. */
-  nerveStreak: number;
-  bestNerveStreak: number;
   createdAt: string;
 }
 

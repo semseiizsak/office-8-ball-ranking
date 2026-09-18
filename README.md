@@ -43,6 +43,13 @@ way to climb now is to know something the ratings do not.
 
 Each caller may stake one **lock** per day, which settles for double either way.
 
+Nerve is not stored on the player. It is rebuilt from the challenges, which
+already record the ratings advertised when each one was issued, who won, and
+every call cast on it. That means the standings count calls made before the
+rating existed, and a corrected result re-settles the calls that rode on it —
+the same way the crown and the titles are derived from match history rather
+than accumulated.
+
 Predictions never touch anyone's playing Elo. A spectator cannot move a
 player's rank, and the two ladders stay separate so that whoever is mid-table at
 pool can still top the calling table.
@@ -106,8 +113,6 @@ Each document stores the player identity and rating state:
 - `elo`, `peakElo`, `wins`, `losses`
 - `currentStreak`, `bestWinStreak`, `breakAndRuns`, `recentForm`
 - `lastPlayedAt` — drives dormancy
-- `predictionsCorrect`, `predictionsTotal` — spectator prediction record
-- `nerve`, `nerveStreak`, `bestNerveStreak` — rating for calling matches
 - `createdAt`
 
 ### `matches`

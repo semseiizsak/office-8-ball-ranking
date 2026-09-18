@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Clock, Crown, Lock, Swords, Target, Trophy, X, Zap } from 'lucide-react';
 import { Challenge, Player, Prediction } from '../types';
-import { hasLockOnDay, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
+import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
 
 interface ArenaViewProps {
   players: Player[];
@@ -13,6 +13,8 @@ interface ArenaViewProps {
   onPredict: (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
   onSelectPlayer?: (player: Player) => void;
+  /** Calling records, rebuilt from every settled challenge. */
+  nerve: Map<string, NerveRecord>;
 }
 
 interface VoterInfo {
@@ -189,6 +191,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onPredict,
   onPlayChallenge,
   onSelectPlayer,
+  nerve,
 }) => {
   const now = Date.now();
   const [armedLockId, setArmedLockId] = useState<string | null>(null);
@@ -201,16 +204,18 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   // Ranked on nerve, not on accuracy. Accuracy rewarded calling only the
   // matches nobody could get wrong; nerve pays for the calls that were worth
   // making, so the safe route no longer wins.
-  const oracles = [...players]
-    .filter((player) => player.predictionsTotal > 0)
-    .map((player) => ({
-      player,
-      accuracy: Math.round((player.predictionsCorrect / player.predictionsTotal) * 100),
+  const oracles = players
+    .map((player) => ({ player, record: nerve.get(player.id) }))
+    .filter((entry): entry is { player: Player; record: NerveRecord } =>
+      entry.record !== undefined && entry.record.total > 0
+    )
+    .map((entry) => ({
+      ...entry,
+      accuracy: Math.round((entry.record.correct / entry.record.total) * 100),
     }))
     .sort(
       (left, right) =>
-        right.player.nerve - left.player.nerve ||
-        right.player.predictionsTotal - left.player.predictionsTotal
+        right.record.nerve - left.record.nerve || right.record.total - left.record.total
     )
     .slice(0, 5);
 
@@ -536,13 +541,13 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                 <span className="shrink-0 text-right">
                   <span
                     className={`block font-['JetBrains_Mono'] text-sm font-black ${
-                      entry.player.nerve >= NERVE_BASE ? 'text-[#4edea3]' : 'text-[#ffb4ab]'
+                      entry.record.nerve >= NERVE_BASE ? 'text-[#4edea3]' : 'text-[#ffb4ab]'
                     }`}
                   >
-                    {entry.player.nerve}
+                    {entry.record.nerve}
                   </span>
                   <span className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    {entry.player.predictionsCorrect}/{entry.player.predictionsTotal} · {entry.accuracy}%
+                    {entry.record.correct}/{entry.record.total} · {entry.accuracy}%
                   </span>
                 </span>
               </div>
