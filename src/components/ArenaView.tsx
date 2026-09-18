@@ -46,7 +46,10 @@ const VoterAvatar: React.FC<{
   return (
     <div
       className="group relative shrink-0 cursor-pointer"
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.();
+      }}
       title={`${name}${isCurrentUser ? ' (You)' : ''}`}
     >
       {player?.avatarUrl ? (
@@ -128,7 +131,10 @@ const VoterAvatarStack: React.FC<{
       {shouldCollapse && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(true);
+          }}
           title={`${hiddenCount} more: ${sorted.slice(4).map((v) => v.name).join(', ')}`}
           className="group relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#161b22] bg-[#262a31] font-['JetBrains_Mono'] text-[9px] font-bold text-[#86948a] transition-all hover:bg-[#30363d] hover:text-white cursor-pointer z-10"
         >
@@ -146,7 +152,10 @@ const VoterAvatarStack: React.FC<{
       {expanded && sorted.length > 5 && (
         <button
           type="button"
-          onClick={() => setExpanded(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(false);
+          }}
           title="Show less"
           className="flex h-6 px-1.5 shrink-0 items-center justify-center rounded-full border border-[#30363d] bg-[#1c2026] font-['Space_Grotesk'] text-[9px] font-bold text-[#86948a] hover:text-white transition-colors cursor-pointer"
         >
@@ -191,6 +200,240 @@ const timeLeft = (expiresAt: number, now: number): string => {
   return `${Math.round(minutes / 60)}h left`;
 };
 
+/**
+ * The board when a match is actually on the table, not just a card in a list.
+ *
+ * Tapped in from the board rather than forced open, because the two players
+ * are away from their phones playing pool, not staring at this screen — but
+ * when someone does open it, it should feel like the game is happening here.
+ * The room keeps calling it: closing calls at the start of a match locked
+ * spectators out for however long the game ran, which is most of the point of
+ * calling it live rather than after the fact.
+ */
+const LiveMatchScreen: React.FC<{
+  challenge: Challenge;
+  challenger?: Player;
+  opponent?: Player;
+  isPlayer: boolean;
+  myCall?: Prediction;
+  forChallenger: number;
+  forOpponent: number;
+  total: number;
+  challengerShare: number;
+  challengerVoters: VoterInfo[];
+  opponentVoters: VoterInfo[];
+  lockUsedToday: boolean;
+  onPredict: (predictedWinnerId: string, isLock: boolean) => void;
+  onSelectPlayer?: (player: Player) => void;
+  onPlayChallenge: () => void;
+  onClose: () => void;
+}> = ({
+  challenge,
+  challenger,
+  opponent,
+  isPlayer,
+  myCall,
+  forChallenger,
+  forOpponent,
+  total,
+  challengerShare,
+  challengerVoters,
+  opponentVoters,
+  lockUsedToday,
+  onPredict,
+  onSelectPlayer,
+  onPlayChallenge,
+  onClose,
+}) => {
+  const [lockArmed, setLockArmed] = useState(false);
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div role="dialog" aria-label="Match in progress" className="fixed inset-0 z-40 flex flex-col bg-[#05070a]">
+      <div className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(var(--safe-top)+0.75rem)]">
+        <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-[0.25em] text-[#ef4444]">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ef4444] opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
+          </span>
+          On the table
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full p-1.5 text-[#86948a] transition-colors hover:bg-[#1c2026] hover:text-white"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-[calc(var(--safe-bottom)+1.5rem)]">
+        <div className="mt-2 text-center">
+          <span className="font-['JetBrains_Mono'] text-4xl font-black tabular-nums text-white">
+            {elapsed(challenge.startedAt ?? Date.now(), Date.now())}
+          </span>
+          <p className="mt-1 font-['Space_Grotesk'] text-xs text-[#86948a]">on the clock</p>
+        </div>
+
+        {challenge.stakes.crownBounty > 0 && (
+          <div className="mt-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-3 py-1 font-['JetBrains_Mono'] text-xs font-bold text-[#f59e0b]">
+              <Crown className="h-3.5 w-3.5" />
+              {challenge.stakes.crownBounty} crown bounty
+            </span>
+          </div>
+        )}
+
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={() => challenger && onSelectPlayer?.(challenger)}
+            className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center"
+          >
+            <Avatar player={challenger} name={challenge.challengerName} size="h-20 w-20" ring="border-2 border-[#10b981]/60" />
+            <span className="w-full truncate font-['Chivo'] text-base font-bold text-white">
+              {challenge.challengerName}
+            </span>
+            <span className="font-['JetBrains_Mono'] text-xs text-[#4edea3]">
+              +{challenge.stakes.challengerWinDelta}
+            </span>
+          </button>
+          <Swords className="h-6 w-6 shrink-0 text-[#86948a]" />
+          <button
+            type="button"
+            onClick={() => opponent && onSelectPlayer?.(opponent)}
+            className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center"
+          >
+            <Avatar player={opponent} name={challenge.opponentName} size="h-20 w-20" ring="border-2 border-[#ffb95f]/60" />
+            <span className="w-full truncate font-['Chivo'] text-base font-bold text-white">
+              {challenge.opponentName}
+            </span>
+            <span className="font-['JetBrains_Mono'] text-xs text-[#ffb95f]">
+              +{challenge.stakes.opponentWinDelta}
+            </span>
+          </button>
+        </div>
+
+        <div className="mt-8">
+          <div className="flex items-center justify-between font-['JetBrains_Mono'] text-xs text-[#86948a]">
+            <span>{forChallenger}</span>
+            <span className="uppercase tracking-wider">
+              {total === 0 ? 'No calls yet' : `${total} ${total === 1 ? 'call' : 'calls'}`}
+            </span>
+            <span>{forOpponent}</span>
+          </div>
+          <div className="mt-1.5 flex h-2.5 w-full overflow-hidden rounded-full bg-[#1c2026]">
+            {total > 0 && (
+              <>
+                <div className="bg-[#10b981] transition-all duration-300" style={{ width: `${challengerShare}%` }} />
+                <div className="bg-[#ffb95f] transition-all duration-300" style={{ width: `${100 - challengerShare}%` }} />
+              </>
+            )}
+          </div>
+          {total > 0 && (
+            <div className="mt-3 flex min-h-[28px] items-center justify-between gap-2">
+              <VoterAvatarStack voters={challengerVoters} side="challenger" onSelectPlayer={onSelectPlayer} />
+              <VoterAvatarStack voters={opponentVoters} side="opponent" onSelectPlayer={onSelectPlayer} />
+            </div>
+          )}
+        </div>
+
+        {isPlayer ? (
+          <p className="mt-8 rounded-xl border border-[#30363d] bg-[#161b22] px-4 py-3 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
+            You're playing this one. The room is still calling it — log the result once the table's clear.
+          </p>
+        ) : (
+          <div className="mt-8">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1 font-['JetBrains_Mono'] text-xs font-bold uppercase tracking-wider text-[#86948a]">
+                {myCall ? (
+                  <>
+                    <Lock className="h-3.5 w-3.5 text-[#4edea3]" />
+                    <span className="text-[#4edea3]">Call locked in</span>
+                  </>
+                ) : (
+                  'Call it'
+                )}
+              </span>
+              {!myCall && (
+                <button
+                  type="button"
+                  disabled={lockUsedToday}
+                  onClick={() => setLockArmed((value) => !value)}
+                  title={
+                    lockUsedToday
+                      ? 'You have already staked your lock today'
+                      : 'Stake your one lock of the day: settles for double, win or lose'
+                  }
+                  className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 font-['JetBrains_Mono'] text-xs font-bold transition-all ${
+                    lockUsedToday
+                      ? 'cursor-not-allowed border-[#30363d]/50 text-[#86948a]/40'
+                      : lockArmed
+                      ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]'
+                      : 'border-[#30363d] text-[#86948a] hover:border-[#f59e0b]/60 hover:text-[#f59e0b]'
+                  }`}
+                >
+                  <Zap className={`h-3.5 w-3.5 ${lockArmed ? 'fill-[#f59e0b]' : ''}`} />
+                  {lockUsedToday ? 'Lock used' : lockArmed ? 'LOCK ARMED ×2' : 'Lock of the day'}
+                </button>
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              {[
+                { id: challenge.challengerId, name: challenge.challengerName, tone: '#10b981' },
+                { id: challenge.opponentId, name: challenge.opponentName, tone: '#ffb95f' },
+              ].map((side) => {
+                const picked = myCall?.predictedWinnerId === side.id;
+                return (
+                  <button
+                    key={side.id}
+                    type="button"
+                    disabled={Boolean(myCall)}
+                    onClick={() => {
+                      if (myCall) return;
+                      onPredict(side.id, lockArmed && !lockUsedToday);
+                      setLockArmed(false);
+                    }}
+                    style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
+                    className={`truncate rounded-xl border px-4 py-3 font-['Chivo'] text-sm font-bold transition-all ${
+                      picked
+                        ? 'bg-[#161b22] opacity-100 shadow-[0_0_12px_rgba(0,0,0,0.4)]'
+                        : myCall
+                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 cursor-not-allowed opacity-40'
+                        : 'border-[#30363d] bg-[#161b22] text-[#bbcabf] hover:border-[#4edea3] active:scale-[0.98] cursor-pointer'
+                    }`}
+                  >
+                    {picked && '✓ '}
+                    {side.name.split(' ')[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isPlayer && (
+        <div className="shrink-0 border-t border-[#30363d] bg-[#0d1117] px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-3">
+          <button
+            type="button"
+            onClick={onPlayChallenge}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
+          >
+            <Trophy className="h-4 w-4" />
+            Log the result
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const ArenaView: React.FC<ArenaViewProps> = ({
   players,
   challenges,
@@ -221,6 +464,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
    * a second, impatient tap.
    */
   const [startingId, setStartingId] = useState<string | null>(null);
+  /** Which live match has its full-screen view open, tapped in from the board. */
+  const [openLiveId, setOpenLiveId] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   // Everything still live belongs on the board, answered or not. Showing only
@@ -279,9 +524,9 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     return () => window.clearInterval(timer);
   }, [live.length]);
 
-  const renderChallenge = (challenge: Challenge) => {
-    const lockArmed = armedLockId === challenge.id;
-    const isLive = challenge.status === 'live';
+  /** Everything derived from a challenge that both the board card and the
+   * full-screen live view need, kept in one place so they cannot drift. */
+  const deriveChallengeView = (challenge: Challenge) => {
     const challenger = byId.get(challenge.challengerId);
     const opponent = byId.get(challenge.opponentId);
     const isPlayer =
@@ -321,8 +566,44 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         };
       });
 
+    return {
+      challenger,
+      opponent,
+      isPlayer,
+      myCall,
+      forChallenger,
+      forOpponent,
+      total,
+      challengerShare,
+      challengerVoters,
+      opponentVoters,
+    };
+  };
+
+  const renderChallenge = (challenge: Challenge) => {
+    const lockArmed = armedLockId === challenge.id;
+    const isLive = challenge.status === 'live';
+    const {
+      challenger,
+      opponent,
+      isPlayer,
+      myCall,
+      forChallenger,
+      forOpponent,
+      total,
+      challengerShare,
+      challengerVoters,
+      opponentVoters,
+    } = deriveChallengeView(challenge);
+
     return (
-      <div key={challenge.id} className="card-drop rounded-2xl border border-[#30363d] bg-[#161b22] p-4">
+      <div
+        key={challenge.id}
+        onClick={isLive ? () => setOpenLiveId(challenge.id) : undefined}
+        className={`card-drop rounded-2xl border border-[#30363d] bg-[#161b22] p-4 ${
+          isLive ? 'cursor-pointer transition-colors active:scale-[0.99] hover:border-[#ef4444]/50' : ''
+        }`}
+      >
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
             <Clock className="h-3 w-3" />
@@ -343,7 +624,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <button
             type="button"
-            onClick={() => challenger && onSelectPlayer?.(challenger)}
+            onClick={(e) => {
+              e.stopPropagation();
+              challenger && onSelectPlayer?.(challenger);
+            }}
             className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
           >
             <Avatar player={challenger} name={challenge.challengerName} ring="border-[#10b981]/60" />
@@ -357,7 +641,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           <span className="font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">VS</span>
           <button
             type="button"
-            onClick={() => opponent && onSelectPlayer?.(opponent)}
+            onClick={(e) => {
+              e.stopPropagation();
+              opponent && onSelectPlayer?.(opponent);
+            }}
             className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
           >
             <Avatar player={opponent} name={challenge.opponentName} ring="border-[#ffb95f]/60" />
@@ -410,13 +697,9 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           )}
         </div>
 
-        {isLive ? (
-          <p className="mt-3 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#ffb4ab]">
-            Calls are closed — they're playing.
-          </p>
-        ) : isPlayer ? (
+        {isPlayer ? (
           <p className="mt-3 rounded-lg border border-[#30363d] bg-[#1c2026] px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-            You're in this one. The room calls it, not you.
+            {isLive ? "You're playing this one. Tap in to see the calls land live." : "You're in this one. The room calls it, not you."}
           </p>
         ) : (
           <div className="mt-3">
@@ -435,7 +718,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                 <button
                   type="button"
                   disabled={lockUsedToday}
-                  onClick={() => setArmedLockId(lockArmed ? null : challenge.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setArmedLockId(lockArmed ? null : challenge.id);
+                  }}
                   title={
                     lockUsedToday
                       ? 'You have already staked your lock today'
@@ -475,7 +761,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                     key={side.id}
                     type="button"
                     disabled={Boolean(myCall)}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (myCall) return;
                       setPoppedCall(`${challenge.id}:${side.id}`);
                       window.setTimeout(() => setPoppedCall(null), 360);
@@ -538,7 +825,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         {(challenge.status === 'accepted' || isLive) && isPlayer && startingId !== challenge.id && (
           <button
             type="button"
-            onClick={() => onPlayChallenge(challenge)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPlayChallenge(challenge);
+            }}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
           >
             <Trophy className="h-4 w-4" />
@@ -562,7 +852,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     );
   };
 
+  const openLiveChallenge = openLiveId ? live.find((challenge) => challenge.id === openLiveId) : undefined;
+
   return (
+    <>
     <div id="arena-view" className="space-y-4 pb-24 pt-1">
       <div className="px-1">
         <h2 className="font-['Chivo'] text-2xl font-black tracking-tight text-white">The Arena</h2>
@@ -708,5 +1001,41 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </div>
       )}
     </div>
+
+    {openLiveChallenge && (() => {
+      const {
+        challenger,
+        opponent,
+        isPlayer,
+        myCall,
+        forChallenger,
+        forOpponent,
+        total,
+        challengerShare,
+        challengerVoters,
+        opponentVoters,
+      } = deriveChallengeView(openLiveChallenge);
+      return (
+        <LiveMatchScreen
+          challenge={openLiveChallenge}
+          challenger={challenger}
+          opponent={opponent}
+          isPlayer={isPlayer}
+          myCall={myCall}
+          forChallenger={forChallenger}
+          forOpponent={forOpponent}
+          total={total}
+          challengerShare={challengerShare}
+          challengerVoters={challengerVoters}
+          opponentVoters={opponentVoters}
+          lockUsedToday={lockUsedToday}
+          onPredict={(predictedWinnerId, isLock) => void onPredict(openLiveChallenge, predictedWinnerId, isLock)}
+          onSelectPlayer={onSelectPlayer}
+          onPlayChallenge={() => onPlayChallenge(openLiveChallenge)}
+          onClose={() => setOpenLiveId(null)}
+        />
+      );
+    })()}
+    </>
   );
 };
