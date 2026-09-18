@@ -458,7 +458,7 @@ export default function App() {
     await poolService.cancelChallenge(challenge.id);
   };
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string) => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
     if (!currentPlayer) return;
     const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
     if (alreadyVoted) return;
@@ -467,6 +467,7 @@ export default function App() {
       predictorId: currentPlayer.id,
       predictorName: currentPlayer.name,
       predictedWinnerId,
+      isLock,
     });
   };
 
@@ -689,8 +690,13 @@ export default function App() {
             challenge={acceptedDuel}
             players={players}
             onComplete={() => {
-              setActiveTab('arena');
+              const challenge = acceptedDuel;
               setAcceptedDuel(null);
+              openMatchLogger({
+                playerAId: challenge.challengerId,
+                playerBId: challenge.opponentId,
+                challengeId: challenge.id,
+              });
             }}
           />
         )}

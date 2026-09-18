@@ -213,6 +213,14 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
    * button, which wiped a class added imperatively before it ever animated.
    */
   const [poppedCall, setPoppedCall] = useState<string | null>(null);
+  /**
+   * Starting writes to the server before the card can move to "live", so
+   * there is a gap where the start button is still showing. Tracking it
+   * locally lets the card go quiet immediately instead of leaving Start and
+   * Cancel both tappable while the layout is about to shift out from under
+   * a second, impatient tap.
+   */
+  const [startingId, setStartingId] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   // Everything still live belongs on the board, answered or not. Showing only
@@ -252,6 +260,16 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     .slice(0, 5);
 
   const lockUsedToday = hasLockOnDay(challenges, currentPlayer.id, now);
+
+  const handleStart = async (challenge: Challenge) => {
+    if (startingId) return;
+    setStartingId(challenge.id);
+    try {
+      await onStartChallenge(challenge);
+    } finally {
+      setStartingId(null);
+    }
+  };
 
   // A live card carries a running clock, so it ticks while one is on.
   const [, setTick] = useState(0);
@@ -508,15 +526,16 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         {challenge.status === 'accepted' && isPlayer && (
           <button
             type="button"
-            onClick={() => void onStartChallenge(challenge)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98]"
+            disabled={startingId === challenge.id}
+            onClick={() => void handleStart(challenge)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60"
           >
             <PlayCircle className="h-4 w-4" />
-            Start the match
+            {startingId === challenge.id ? 'Starting…' : 'Start the match'}
           </button>
         )}
 
-        {(challenge.status === 'accepted' || isLive) && isPlayer && (
+        {(challenge.status === 'accepted' || isLive) && isPlayer && startingId !== challenge.id && (
           <button
             type="button"
             onClick={() => onPlayChallenge(challenge)}
@@ -528,6 +547,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         )}
 
         {['pending', 'accepted'].includes(challenge.status) &&
+          startingId !== challenge.id &&
           (challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id) && (
           <button
             type="button"
