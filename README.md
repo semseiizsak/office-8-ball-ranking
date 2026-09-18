@@ -22,6 +22,22 @@ a K-factor of 32.
 - Targeted push notifications
 - Production deployment through Vercel
 
+## Getting around
+
+Three destinations, not five:
+
+- **Ranks** — the ladder, the crown and its bounty, the titles, and who has gone
+  dormant. Enrolling a new contender lives here.
+- **Arena** — everything live. Open challenges answered or not, the calls on
+  them, the prediction standings, and both of the things you come here to do:
+  log a match and call someone out.
+- **History** — every logged match with its corrections, the hall of fame and
+  the season controls.
+
+Logging is a task rather than a place, so it opens as a sheet over the arena —
+next to the challenges whose results it settles — and closes again. A roster tab
+was the ladder a second time with an enrol button on it.
+
 ## Calling matches
 
 Anyone not playing can call the winner of an open challenge. A call moves a

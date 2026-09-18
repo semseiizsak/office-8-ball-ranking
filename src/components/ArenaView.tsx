@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Clock, Crown, Lock, Swords, Target, Trophy, X, Zap } from 'lucide-react';
+import { Check, ClipboardCheck, Clock, Crown, Lock, Swords, Target, Trophy, X, Zap } from 'lucide-react';
 import { Challenge, Player, Prediction } from '../types';
 import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
 
@@ -12,6 +12,8 @@ interface ArenaViewProps {
   onCancel: (challenge: Challenge) => Promise<void>;
   onPredict: (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
+  /** Opens the logger for a game that was never challenged. */
+  onLogMatch: () => void;
   onSelectPlayer?: (player: Player) => void;
   /** Calling records, rebuilt from every settled challenge. */
   nerve: Map<string, NerveRecord>;
@@ -190,6 +192,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onCancel,
   onPredict,
   onPlayChallenge,
+  onLogMatch,
   onSelectPlayer,
   nerve,
 }) => {
@@ -488,17 +491,28 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
 
   return (
     <div id="arena-view" className="space-y-4 pb-24 pt-1">
-      <div className="flex items-end justify-between px-1">
-        <div>
-          <h2 className="font-['Chivo'] text-2xl font-black tracking-tight text-white">The Arena</h2>
-          <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
-            Call someone out. Everyone else calls the winner.
-          </p>
-        </div>
+      <div className="px-1">
+        <h2 className="font-['Chivo'] text-2xl font-black tracking-tight text-white">The Arena</h2>
+        <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
+          Call someone out. Everyone else calls the winner.
+        </p>
+      </div>
+
+      {/* The two things you come here to do. Logging lives here now because a
+          result is the end of a match, and the matches are on this screen. */}
+      <div className="grid grid-cols-2 gap-2 px-1">
+        <button
+          type="button"
+          onClick={onLogMatch}
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#10b981] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#002113] shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]"
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          Log a match
+        </button>
         <button
           type="button"
           onClick={onIssueChallenge}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#10b981] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#002113] shadow-[0_0_12px_rgba(16,185,129,0.3)] transition-all active:scale-95"
+          className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#4edea3] transition-all hover:border-[#10b981] active:scale-[0.98]"
         >
           <Swords className="h-4 w-4" />
           Challenge

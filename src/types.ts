@@ -112,7 +112,12 @@ export interface Challenge {
   predictions: Prediction[];
 }
 
-export type TabType = 'leaderboard' | 'log' | 'arena' | 'events' | 'players';
+/**
+ * Three places, not five. Logging is a task rather than a destination, so it
+ * opens over the arena where the challenges it settles already live, and the
+ * roster was the ladder again with an enrol button on it.
+ */
+export type TabType = 'leaderboard' | 'arena' | 'history';
 
 export interface SeasonStanding {
   playerId: string;

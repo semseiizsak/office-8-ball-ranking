@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Moon, Search } from 'lucide-react';
+import { ChevronRight, Moon, Search, UserPlus } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS } from '../utils/league';
 import { CrownBanner } from './CrownBanner';
@@ -14,6 +14,7 @@ interface LeaderboardViewProps {
   leaderboardChanges: Record<string, 'reordered' | 'woke'>;
   onSelectPlayer: (player: Player) => void;
   onChallenge: (player: Player) => void;
+  onAddPlayer: () => void;
 }
 
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
@@ -25,6 +26,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   leaderboardChanges,
   onSelectPlayer,
   onChallenge,
+  onAddPlayer,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -183,13 +185,24 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
   return (
     <div id="leaderboard-view" className="space-y-4 pb-24 pt-1">
-      <div className="px-1">
-        <h2 className="font-['Chivo'] text-2xl font-black text-white tracking-tight">
-          Office Pool Power Rankings
-        </h2>
-        <p className="text-xs text-[#86948a] font-['Space_Grotesk'] mt-0.5">
-          Realtime Elo ratings • {season.name}
-        </p>
+      <div className="flex items-start justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <h2 className="font-['Chivo'] text-2xl font-black text-white tracking-tight">
+            Office Pool Power Rankings
+          </h2>
+          <p className="text-xs text-[#86948a] font-['Space_Grotesk'] mt-0.5">
+            Realtime Elo ratings • {season.name}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onAddPlayer}
+          title="Enroll a new contender"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-[#30363d] bg-[#161b22] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#4edea3] transition-all hover:border-[#10b981] active:scale-95"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add
+        </button>
       </div>
 
       <div className="px-1">

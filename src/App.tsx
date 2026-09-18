@@ -7,8 +7,7 @@ import { poolService } from './services/poolService';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { LeaderboardView } from './components/LeaderboardView';
-import { LogMatchView } from './components/LogMatchView';
-import { PlayersView } from './components/PlayersView';
+import { MatchLoggerSheet } from './components/MatchLoggerSheet';
 import { ArenaView } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
@@ -17,6 +16,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { EventsView } from './components/EventsView';
 import { QuickMatchModal } from './components/QuickMatchModal';
 import { ChallengeModal } from './components/ChallengeModal';
+import { AddPlayerModal } from './components/AddPlayerModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
@@ -44,6 +44,9 @@ export default function App() {
   const [showQuickMatch, setShowQuickMatch] = useState(false);
   const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string } | null>(null);
   const [isLoggingMatch, setIsLoggingMatch] = useState(false);
+  /** The log sheet, opened over the arena rather than living in the tab bar. */
+  const [isLoggerOpen, setIsLoggerOpen] = useState(false);
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
   /**
    * Synchronous lock on match submission.
    * State alone is not enough: taps that land in the same frame all read the
@@ -242,6 +245,7 @@ export default function App() {
       setPlayers(result.players);
       setMatches((prev) => [result.match, ...prev]);
       setMatchResult(result);
+      setIsLoggerOpen(false);
 
       if (activeChallengeId) {
         // Settling the challenge books every spectator's call, so the player
@@ -341,12 +345,23 @@ export default function App() {
     setSeasons(result.seasons);
   };
 
+  /**
+   * Opens the log sheet. Logging is a task, so it comes up over the arena and
+   * closes again, rather than being a place you navigate to and out of.
+   */
+  const openMatchLogger = (options?: { playerAId?: string; playerBId?: string; challengeId?: string }) => {
+    if (options) {
+      if (options.playerAId) setSelectedPlayerAId(options.playerAId);
+      if (options.playerBId) setSelectedPlayerBId(options.playerBId);
+      setActiveChallengeId(options.challengeId);
+    }
+    setActiveTab('arena');
+    setIsLoggerOpen(true);
+  };
+
   const handleQuickMatchComplete = (opponent: Player) => {
     setShowQuickMatch(false);
-    setSelectedPlayerAId(currentPlayer?.id);
-    setSelectedPlayerBId(opponent.id);
-    setActiveChallengeId(undefined);
-    setActiveTab('log');
+    openMatchLogger({ playerAId: currentPlayer?.id, playerBId: opponent.id, challengeId: undefined });
   };
 
   /** Opens the challenge composer rather than silently jumping to the log form. */
@@ -437,10 +452,11 @@ export default function App() {
   };
 
   const handlePlayChallenge = (challenge: Challenge) => {
-    setSelectedPlayerAId(challenge.challengerId);
-    setSelectedPlayerBId(challenge.opponentId);
-    setActiveChallengeId(challenge.id);
-    setActiveTab('log');
+    openMatchLogger({
+      playerAId: challenge.challengerId,
+      playerBId: challenge.opponentId,
+      challengeId: challenge.id,
+    });
   };
 
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
@@ -551,6 +567,7 @@ export default function App() {
                 leaderboardChanges={leaderboardChanges}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}
+                onAddPlayer={() => setShowAddPlayer(true)}
               />
             </div>
           )}
@@ -560,7 +577,10 @@ export default function App() {
               <ArenaView
                 players={players}
                 challenges={challenges.filter(
-                  (challenge) => challenge.status === 'accepted' || challenge.status === 'played'
+                  (challenge) =>
+                    challenge.status === 'pending' ||
+                    challenge.status === 'accepted' ||
+                    challenge.status === 'played'
                 )}
                 currentPlayer={currentPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
@@ -569,43 +589,13 @@ export default function App() {
                 onCancel={handleCancelChallenge}
                 onPredict={handlePredict}
                 onPlayChallenge={handlePlayChallenge}
+                onLogMatch={() => openMatchLogger()}
                 nerve={league.nerve}
               />
             </div>
           )}
 
-          {activeTab === 'log' && (
-            <div className="anim-fade">
-              <LogMatchView
-                players={players}
-                recentMatches={seasonMatches}
-                crown={league.crown}
-                playerAId={selectedPlayerAId}
-                playerBId={selectedPlayerBId}
-                onChangePlayers={(playerAId, playerBId) => {
-                  setSelectedPlayerAId(playerAId || undefined);
-                  setSelectedPlayerBId(playerBId || undefined);
-                }}
-                isSubmitting={isLoggingMatch}
-                onRecordMatch={handleRecordMatch}
-              />
-            </div>
-          )}
-
-          {activeTab === 'players' && (
-            <div className="anim-fade">
-              <PlayersView
-                players={players}
-                matches={seasonMatches}
-                league={league}
-                onAddPlayer={handleAddPlayer}
-                onSelectPlayer={(player) => setDossierPlayer(player)}
-                onChallengePlayer={handleChallenge}
-              />
-            </div>
-          )}
-
-          {activeTab === 'events' && (
+          {activeTab === 'history' && (
             <div className="anim-fade">
               <EventsView
                 matches={matches}
@@ -621,6 +611,23 @@ export default function App() {
         </main>
 
         <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge} />
+
+        {isLoggerOpen && (
+          <MatchLoggerSheet
+            players={players}
+            recentMatches={seasonMatches}
+            crown={league.crown}
+            playerAId={selectedPlayerAId}
+            playerBId={selectedPlayerBId}
+            isSubmitting={isLoggingMatch}
+            onChangePlayers={(playerAId, playerBId) => {
+              setSelectedPlayerAId(playerAId || undefined);
+              setSelectedPlayerBId(playerBId || undefined);
+            }}
+            onRecordMatch={handleRecordMatch}
+            onClose={() => setIsLoggerOpen(false)}
+          />
+        )}
 
         <PlayerDossierModal
           player={dossierPlayer}
@@ -684,6 +691,10 @@ export default function App() {
         )}
 
         {declinedDuel && <DuckChallengeOverlay onComplete={() => setDeclinedDuel(null)} />}
+
+        {showAddPlayer && (
+          <AddPlayerModal onAdd={handleAddPlayer} onClose={() => setShowAddPlayer(false)} />
+        )}
 
         {challengeTarget && (
           <ChallengeModal

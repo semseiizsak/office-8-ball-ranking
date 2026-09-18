@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Swords, Trophy, Users } from 'lucide-react';
+import { History, Swords, Trophy } from 'lucide-react';
 import { TabType } from '../types';
 
 interface NavigationProps {
@@ -8,21 +8,6 @@ interface NavigationProps {
   /** Open challenges waiting on this player, shown as a dot on the Arena tab. */
   arenaBadge?: number;
 }
-
-const EightBallTabIcon: React.FC<{ active: boolean }> = ({ active }) => (
-  <div
-    className={`w-6 h-6 rounded-full flex items-center justify-center transition-transform duration-200 ${
-      active
-        ? 'scale-110 ring-2 ring-[#4edea3]/80 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-        : 'group-hover:scale-105 opacity-80'
-    }`}
-    style={{ background: 'radial-gradient(circle at 35% 35%, #1f2937 0%, #030712 100%)' }}
-  >
-    <div className="w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center">
-      <span className="text-[7px] font-black text-black leading-none">8</span>
-    </div>
-  </div>
-);
 
 const TABS: Array<{ tab: TabType; label: string; icon: React.FC<{ active: boolean }> }> = [
   {
@@ -39,19 +24,11 @@ const TABS: Array<{ tab: TabType; label: string; icon: React.FC<{ active: boolea
       <Swords className={`w-6 h-6 transition-transform duration-200 ${active ? 'scale-110 stroke-[2.5]' : 'group-hover:scale-105'}`} />
     ),
   },
-  { tab: 'log', label: 'Log', icon: EightBallTabIcon },
   {
-    tab: 'events',
-    label: 'Events',
+    tab: 'history',
+    label: 'History',
     icon: ({ active }) => (
       <History className={`w-6 h-6 transition-transform duration-200 ${active ? 'scale-110 stroke-[2.5]' : 'group-hover:scale-105'}`} />
-    ),
-  },
-  {
-    tab: 'players',
-    label: 'Roster',
-    icon: ({ active }) => (
-      <Users className={`w-6 h-6 transition-transform duration-200 ${active ? 'scale-110 stroke-[2.5]' : 'group-hover:scale-105'}`} />
     ),
   },
 ];
@@ -62,7 +39,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab, 
       id="bottom-navigation-bar"
       className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#10141a]/95 backdrop-blur-lg border-t border-[#30363d]/80 pb-[calc(var(--safe-bottom)+0.625rem)] pt-2"
     >
-      <div className="max-w-md mx-auto px-1 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-6 flex items-center justify-around">
         {TABS.map(({ tab, label, icon: Icon }) => {
           const active = activeTab === tab;
           return (

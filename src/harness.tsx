@@ -9,7 +9,7 @@ import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { Navigation } from './components/Navigation';
 import { EventsView } from './components/EventsView';
-import { LogMatchView } from './components/LogMatchView';
+import { MatchLoggerSheet } from './components/MatchLoggerSheet';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { Header } from './components/Header';
@@ -177,7 +177,7 @@ const Harness: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center">
       <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
-        <Header activeTab={tab === 'log' ? 'log' : tab === 'arena' ? 'arena' : 'leaderboard'}
+        <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
           onOpenProfile={() => {}} onQuickMatch={() => {}} onOpenChallengeInbox={() => {}} />
         <div className="flex gap-2 p-2">
@@ -187,39 +187,23 @@ const Harness: React.FC = () => {
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">duel</button>
         </div>
         <main className="flex-1 px-4 pt-3">
-          {tab === 'log' ? (
-            <>
-              <div id="logged-count" data-count={logged.length} className="p-2 font-mono text-xs text-white">
-                logged={logged.length} last={logged[logged.length - 1] ?? 'none'}
-              </div>
-              <LogMatchView
-                players={players}
-                recentMatches={seasonMatches}
-                crown={league.crown}
-                playerAId={aId}
-                playerBId={bId}
-                onChangePlayers={(a, b) => { setAId(a || undefined); setBId(b || undefined); }}
-                isSubmitting={isLogging}
-                onRecordMatch={record}
-              />
-            </>
-          ) : tab === 'events' ? (
+          {tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
               seasons={[currentSeason, pastSeason]} onEditWinner={async () => {}}
               onDelete={async () => {}} onEndSeason={async () => {}} />
           ) : tab === 'leaderboard' ? (
             <LeaderboardView players={players} matches={seasonMatches} league={league}
-              season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} />
+              season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={challengesList} currentPlayer={me}
-              nerve={nerveFixture} onSelectPlayer={setDossier}
+              nerve={nerveFixture} onLogMatch={() => setTab('log')} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}} />
           )}
         </main>
-        <Navigation activeTab={tab}
-          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'events' ? 'events' : t === 'log' ? 'log' : 'leaderboard')}
+        <Navigation activeTab={tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab}
+          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'history' ? 'events' : 'leaderboard')}
           arenaBadge={1} />
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
           allPlayers={players} matches={seasonMatches} league={league}
@@ -233,6 +217,24 @@ const Harness: React.FC = () => {
         {showDuel && (
           <DuelAcceptedOverlay challenge={challenges[0]} players={players}
             onComplete={() => { setShowDuel(false); setTab('log'); }} />
+        )}
+        {tab === 'log' && (
+          <>
+            <div id="logged-count" data-count={logged.length} className="fixed left-2 top-2 z-[60] font-mono text-xs text-white">
+              logged={logged.length}
+            </div>
+            <MatchLoggerSheet
+              players={players}
+              recentMatches={seasonMatches}
+              crown={league.crown}
+              playerAId={aId}
+              playerBId={bId}
+              isSubmitting={isLogging}
+              onChangePlayers={(a, b) => { setAId(a || undefined); setBId(b || undefined); }}
+              onRecordMatch={record}
+              onClose={() => setTab('arena')}
+            />
+          </>
         )}
         {challenging && (
           <ChallengeModal currentPlayer={me} players={players} crown={league.crown}
