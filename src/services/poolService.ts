@@ -13,6 +13,7 @@ import {
   addPrediction,
   cancelChallenge,
   createChallenge,
+  startChallenge,
   deleteMatch,
   getChallenges,
   reconcileChallengesWithMatches,
@@ -47,6 +48,7 @@ export const poolService = {
   respondToChallenge: (challengeId: string, status: Extract<ChallengeStatus, 'accepted' | 'declined'>) =>
     respondToChallenge(challengeId, status),
   cancelChallenge,
+  startChallenge,
   addPrediction,
   resolveChallenge,
   logMatch: (params: {

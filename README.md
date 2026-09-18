@@ -28,9 +28,10 @@ Three destinations, not five:
 
 - **Ranks** — the ladder, the crown and its bounty, the titles, and who has gone
   dormant. Enrolling a new contender lives here.
-- **Arena** — everything live. Open challenges answered or not, the calls on
-  them, the prediction standings, and both of the things you come here to do:
-  log a match and call someone out.
+- **Arena** — everything live, in three groups. *On the table now* for matches
+  being played, *Agreed* for ones settled but not started, and *Waiting on an
+  answer* for callouts nobody has replied to. Plus the prediction standings and
+  both of the things you come here to do: log a match and call someone out.
 - **History** — every logged match with its corrections, the hall of fame and
   the season controls.
 
@@ -58,6 +59,12 @@ call only the matches nobody could get wrong and skip every close one. The only
 way to climb now is to know something the ratings do not.
 
 Each caller may stake one **lock** per day, which settles for double either way.
+
+Calls close when a match is called on, not when the result is typed up. Either
+player can start it, from either side, with no agreement step — a match that
+needs both people to tap before it counts is a match that gets stranded when one
+of them does not. Starting is optional: a result can still be logged straight
+from an agreed match, so a forgotten tap never blocks anything.
 
 Nerve is not stored on the player. It is rebuilt from the challenges, which
 already record the ratings advertised when each one was issued, who won, and

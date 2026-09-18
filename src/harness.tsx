@@ -69,7 +69,7 @@ const challenges: Challenge[] = [
   {
     id: 'c1', challengerId: 'p2', challengerName: NAMES[2],
     opponentId: 'p1', opponentName: NAMES[1], status: 'pending',
-    createdAt: now - 3600_000, expiresAt: now + 5 * 3600_000, respondedAt: null,
+    createdAt: now - 3600_000, expiresAt: now + 5 * 3600_000, respondedAt: null, startedAt: null,
     stakes: { challengerElo: players[2].elo, opponentElo: players[1].elo, challengerRank: 3,
       opponentRank: 1, challengerWinDelta: 41, opponentWinDelta: 9,
       challengerIsUnderdog: true, crownBounty: 24 },
@@ -82,8 +82,8 @@ const challenges: Challenge[] = [
   },
   {
     id: 'c2', challengerId: 'p0', challengerName: NAMES[0],
-    opponentId: 'p3', opponentName: NAMES[3], status: 'accepted',
-    createdAt: now - 7200_000, expiresAt: now + 3600_000, respondedAt: now - 3000_000,
+    opponentId: 'p2', opponentName: NAMES[2], status: 'accepted',
+    createdAt: now - 7200_000, expiresAt: now + 3600_000, respondedAt: now - 3000_000, startedAt: null,
     stakes: { challengerElo: players[0].elo, opponentElo: players[3].elo, challengerRank: 2,
       opponentRank: 4, challengerWinDelta: 11, opponentWinDelta: 21,
       challengerIsUnderdog: false, crownBounty: 0 },
@@ -122,6 +122,21 @@ const nerveFixture = new Map([
   ['p4', { nerve: 1011, correct: 1, total: 4, streak: 1, bestStreak: 1 }],
   ['p3', { nerve: 964, correct: 5, total: 6, streak: 0, bestStreak: 2 }],
 ]);
+
+const liveChallenge: Challenge = {
+  id: 'c3', challengerId: 'p0', challengerName: NAMES[0],
+  opponentId: 'p4', opponentName: NAMES[4], status: 'live',
+  createdAt: now - 9000_000, expiresAt: now + 3600_000,
+  respondedAt: now - 8000_000, startedAt: now - 254_000,
+  stakes: { challengerElo: 1004, opponentElo: 958, challengerRank: 3, opponentRank: 4,
+    challengerWinDelta: 14, opponentWinDelta: 18, challengerIsUnderdog: false, crownBounty: 0 },
+  matchId: null, resolvedWinnerId: null,
+  predictions: [
+    { id: 'p1', predictorId: 'p1', predictorName: NAMES[1], predictedWinnerId: 'p0', createdAt: now },
+    { id: 'p2', predictorId: 'p2', predictorName: NAMES[2], predictedWinnerId: 'p4', createdAt: now },
+    { id: 'p3', predictorId: 'p3', predictorName: NAMES[3], predictedWinnerId: 'p0', createdAt: now },
+  ],
+};
 
 const Harness: React.FC = () => {
   const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
@@ -195,11 +210,12 @@ const Harness: React.FC = () => {
             <LeaderboardView players={players} matches={seasonMatches} league={league}
               season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
-            <ArenaView players={players} challenges={challengesList} currentPlayer={me}
+            <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
               nerve={nerveFixture} onLogMatch={() => setTab('log')} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
-              onPredict={handlePredict} onPlayChallenge={() => {}} />
+              onPredict={handlePredict} onPlayChallenge={() => {}}
+              onStartChallenge={async () => setShowDuel(true)} />
           )}
         </main>
         <Navigation activeTab={tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab}

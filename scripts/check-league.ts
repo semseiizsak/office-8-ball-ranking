@@ -218,7 +218,7 @@ const settledChallenge = (
   calls: Array<[string, 'challenger' | 'opponent', boolean?]>, atMs: number
 ): Challenge => ({
   id: `c${cn++}`, challengerId: 'A', challengerName: 'A', opponentId: 'B', opponentName: 'B',
-  status: 'played', createdAt: atMs, expiresAt: atMs + 1, respondedAt: atMs,
+  status: 'played', createdAt: atMs, expiresAt: atMs + 1, respondedAt: atMs, startedAt: atMs,
   stakes: { challengerElo, opponentElo, challengerRank: 1, opponentRank: 2,
     challengerWinDelta: 0, opponentWinDelta: 0, challengerIsUnderdog: false, crownBounty: 0 },
   matchId: null, resolvedWinnerId: winner === 'challenger' ? 'A' : 'B',

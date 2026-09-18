@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, ClipboardCheck, Clock, Crown, Lock, Swords, Target, Trophy, X, Zap } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Swords, Target, Trophy, X, Zap } from 'lucide-react';
 import { Challenge, Player, Prediction } from '../types';
 import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
 
@@ -12,6 +12,8 @@ interface ArenaViewProps {
   onCancel: (challenge: Challenge) => Promise<void>;
   onPredict: (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
+  /** Calls the match on: either player, no agreement step. */
+  onStartChallenge: (challenge: Challenge) => Promise<void>;
   /** Opens the logger for a game that was never challenged. */
   onLogMatch: () => void;
   onSelectPlayer?: (player: Player) => void;
@@ -176,6 +178,12 @@ const Avatar: React.FC<{ player?: Player; name: string; size?: string; ring?: st
     </div>
   );
 
+/** Running time since the match was called on. */
+const elapsed = (startedAt: number, now: number): string => {
+  const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+};
+
 const timeLeft = (expiresAt: number, now: number): string => {
   const minutes = Math.round((expiresAt - now) / 60_000);
   if (minutes <= 0) return 'expired';
@@ -192,6 +200,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onCancel,
   onPredict,
   onPlayChallenge,
+  onStartChallenge,
   onLogMatch,
   onSelectPlayer,
   nerve,
@@ -204,12 +213,17 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   // accepted challenges meant a callout was invisible to everybody except the
   // person being called out, so the challenger saw nothing after issuing it and
   // the room could not start calling a winner until it had been accepted.
-  const open = challenges
-    .filter((challenge) => challenge.status === 'accepted' || challenge.status === 'pending')
-    .sort((left, right) => {
-      if (left.status !== right.status) return left.status === 'accepted' ? -1 : 1;
-      return right.createdAt - left.createdAt;
-    });
+  // Three states, each meaning something different to the room: being played,
+  // agreed but not started, and waiting on an answer.
+  const live = challenges
+    .filter((challenge) => challenge.status === 'live')
+    .sort((left, right) => (right.startedAt ?? 0) - (left.startedAt ?? 0));
+  const accepted = challenges
+    .filter((challenge) => challenge.status === 'accepted')
+    .sort((left, right) => (right.respondedAt ?? right.createdAt) - (left.respondedAt ?? left.createdAt));
+  const sent = challenges
+    .filter((challenge) => challenge.status === 'pending')
+    .sort((left, right) => right.createdAt - left.createdAt);
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
   // Prediction standings: the second ladder, open to everyone who never wins the first.
@@ -233,8 +247,17 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
 
   const lockUsedToday = hasLockOnDay(challenges, currentPlayer.id, now);
 
+  // A live card carries a running clock, so it ticks while one is on.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (live.length === 0) return;
+    const timer = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [live.length]);
+
   const renderChallenge = (challenge: Challenge) => {
     const lockArmed = armedLockId === challenge.id;
+    const isLive = challenge.status === 'live';
     const challenger = byId.get(challenge.challengerId);
     const opponent = byId.get(challenge.opponentId);
     const isPlayer =
@@ -279,7 +302,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
             <Clock className="h-3 w-3" />
-            {challenge.status === 'accepted' ? 'Accepted · awaiting result' : timeLeft(challenge.expiresAt, now)}
+            {challenge.status === 'live'
+              ? `Playing · ${elapsed(challenge.startedAt ?? now, now)}`
+              : challenge.status === 'accepted'
+              ? 'Agreed · not started'
+              : timeLeft(challenge.expiresAt, now)}
           </span>
           {challenge.stakes.crownBounty > 0 && (
             <span className="inline-flex items-center gap-1 rounded border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] font-bold text-[#f59e0b]">
@@ -359,7 +386,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           )}
         </div>
 
-        {isPlayer ? (
+        {isLive ? (
+          <p className="mt-3 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#ffb4ab]">
+            Calls are closed — they're playing.
+          </p>
+        ) : isPlayer ? (
           <p className="mt-3 rounded-lg border border-[#30363d] bg-[#1c2026] px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
             You're in this one. The room calls it, not you.
           </p>
@@ -464,6 +495,28 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </div>
         )}
 
+        {challenge.status === 'accepted' && isPlayer && (
+          <button
+            type="button"
+            onClick={() => void onStartChallenge(challenge)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98]"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Start the match
+          </button>
+        )}
+
+        {(challenge.status === 'accepted' || isLive) && isPlayer && (
+          <button
+            type="button"
+            onClick={() => onPlayChallenge(challenge)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
+          >
+            <Trophy className="h-4 w-4" />
+            Log the result
+          </button>
+        )}
+
         {['pending', 'accepted'].includes(challenge.status) &&
           (challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id) && (
           <button
@@ -475,16 +528,6 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </button>
         )}
 
-        {challenge.status === 'accepted' && isPlayer && (
-          <button
-            type="button"
-            onClick={() => onPlayChallenge(challenge)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
-          >
-            <Trophy className="h-4 w-4" />
-            Log the result
-          </button>
-        )}
       </div>
     );
   };
@@ -519,22 +562,46 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </button>
       </div>
 
-      <div className="space-y-2 px-1">
-        <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-          On the board
-        </span>
-        {open.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-5 py-10 text-center">
-            <Target className="mx-auto mb-2 h-6 w-6 text-[#86948a]" />
-            <p className="font-['Chivo'] text-sm font-bold text-white">Nothing on the board</p>
-            <p className="mt-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
-              Challenge someone and the office can start calling it.
-            </p>
-          </div>
-        ) : (
-          open.map(renderChallenge)
-        )}
-      </div>
+      {live.length > 0 && (
+        <div className="space-y-2 px-1">
+          <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#ef4444]">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ef4444] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
+            </span>
+            On the table now
+          </span>
+          {live.map(renderChallenge)}
+        </div>
+      )}
+
+      {accepted.length > 0 && (
+        <div className="space-y-2 px-1">
+          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#4edea3]">
+            Agreed
+          </span>
+          {accepted.map(renderChallenge)}
+        </div>
+      )}
+
+      {sent.length > 0 && (
+        <div className="space-y-2 px-1">
+          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
+            Waiting on an answer
+          </span>
+          {sent.map(renderChallenge)}
+        </div>
+      )}
+
+      {live.length + accepted.length + sent.length === 0 && (
+        <div className="mx-1 rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-5 py-10 text-center">
+          <Target className="mx-auto mb-2 h-6 w-6 text-[#86948a]" />
+          <p className="font-['Chivo'] text-sm font-bold text-white">Nothing on the board</p>
+          <p className="mt-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
+            Challenge someone and the office can start calling it.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2 px-1">
         <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">

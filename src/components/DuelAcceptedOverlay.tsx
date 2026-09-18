@@ -47,10 +47,10 @@ const Fighter: React.FC<{ player?: Player; name: string; side: 'left' | 'right' 
 };
 
 /**
- * The moment a challenge turns into a match.
+ * The moment the cue comes off the wall.
  *
- * Accepting used to change a status and leave you to find the log screen
- * yourself. This carries you there, and gives the accept the beat it deserves.
+ * Played when a match is called on rather than when it is agreed, because that
+ * is the point the room stops calling it and the two of them start playing.
  */
 export const DuelAcceptedOverlay: React.FC<DuelAcceptedOverlayProps> = ({
   challenge,
@@ -73,7 +73,7 @@ export const DuelAcceptedOverlay: React.FC<DuelAcceptedOverlayProps> = ({
       className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#05070a]/95 p-6 backdrop-blur-md"
     >
       <span className="anim-fade font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-[0.3em] text-[#4edea3]">
-        Challenge accepted
+        Match on
       </span>
 
       <div className="duel-shake relative mt-6 flex w-full max-w-sm items-start justify-between gap-3">
@@ -95,7 +95,7 @@ export const DuelAcceptedOverlay: React.FC<DuelAcceptedOverlayProps> = ({
       )}
 
       <p className="anim-fade mt-6 font-['Space_Grotesk'] text-xs text-[#86948a]">
-        Opening the match...
+        Calls are closed. Good luck.
       </p>
     </div>
   );

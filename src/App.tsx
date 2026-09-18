@@ -417,10 +417,9 @@ export default function App() {
       alert(error instanceof Error ? error.message : 'Could not update challenge.');
       return;
     }
-    if (status === 'accepted') {
-      // Hand straight over to the match rather than leaving them to find it.
-      setAcceptedDuel(challenge);
-    } else {
+
+    // Accepting only agrees the match; the duel plays when it is called on.
+    if (status === 'declined') {
       setDeclinedDuel(challenge);
     }
     await sendNotification({
@@ -433,6 +432,15 @@ export default function App() {
           : `${challenge.opponentName} ducked it.`,
       challengeId: challenge.id,
     }).catch((error) => console.warn('Challenge reply notification not delivered:', error));
+  };
+
+  /**
+   * Calls a match on. The duel plays and the card goes live; the logger stays
+   * shut, because the match is only starting.
+   */
+  const handleStartChallenge = async (challenge: Challenge) => {
+    await poolService.startChallenge(challenge.id);
+    setAcceptedDuel(challenge);
   };
 
   const handleCancelChallenge = async (challenge: Challenge) => {
@@ -589,6 +597,7 @@ export default function App() {
                 onCancel={handleCancelChallenge}
                 onPredict={handlePredict}
                 onPlayChallenge={handlePlayChallenge}
+                onStartChallenge={handleStartChallenge}
                 onLogMatch={() => openMatchLogger()}
                 nerve={league.nerve}
               />

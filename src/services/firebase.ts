@@ -534,6 +534,7 @@ const toChallenge = (id: string, data: Record<string, unknown>, now: number): Ch
     createdAt: timestampToMillis(data.createdAt) ?? 0,
     expiresAt,
     respondedAt: timestampToMillis(data.respondedAt),
+    startedAt: timestampToMillis(data.startedAt),
     stakes: {
       challengerElo: Number((data.stakes as Record<string, unknown>)?.challengerElo ?? 1000),
       opponentElo: Number((data.stakes as Record<string, unknown>)?.opponentElo ?? 1000),
@@ -621,6 +622,7 @@ export async function createChallenge(params: {
     createdAt: now,
     expiresAt: now + CHALLENGE_EXPIRY_HOURS * 3_600_000,
     respondedAt: null,
+    startedAt: null,
     stakes: params.stakes,
     matchId: null,
     resolvedWinnerId: null,
@@ -651,6 +653,18 @@ export async function respondToChallenge(
       if (conflicting) throw new Error('You already have another active challenge.');
     }
     transaction.update(challengeRef, { status, respondedAt: Date.now() });
+  });
+}
+
+/**
+ * Marks a match as being played. Either player can call it on — deliberately no
+ * agreement step, because a match that needs both people to tap before it counts
+ * is a match that gets stranded when one of them does not.
+ */
+export async function startChallenge(challengeId: string): Promise<void> {
+  await updateDoc(doc(db, 'challenges', challengeId), {
+    status: 'live' satisfies ChallengeStatus,
+    startedAt: Date.now(),
   });
 }
 

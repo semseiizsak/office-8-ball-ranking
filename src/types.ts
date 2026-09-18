@@ -67,6 +67,8 @@ export interface EloStakes {
 export type ChallengeStatus =
   | 'pending'
   | 'accepted'
+  /** Being played right now. Calls are closed from this point. */
+  | 'live'
   | 'declined'
   | 'expired'
   | 'played'
@@ -105,6 +107,8 @@ export interface Challenge {
   createdAt: number;
   expiresAt: number;
   respondedAt: number | null;
+  /** When the match was called on, which is when calling closed. */
+  startedAt: number | null;
   stakes: ChallengeStakes;
   matchId: string | null;
   /** Winner the match actually produced, stored so predictions stay auditable. */
