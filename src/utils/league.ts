@@ -9,8 +9,12 @@ export const BOUNTY_PER_DAY = 3;
 export const BOUNTY_CAP = 60;
 /** A player with no match in this many days drops off the active ladder. */
 export const DORMANT_AFTER_DAYS = 14;
-/** How long a challenge stands before it lapses. */
-export const CHALLENGE_EXPIRY_HOURS = 8;
+/**
+ * How long a challenge stands before it lapses. A full day, so a callout made
+ * in the morning is still on the board that afternoon and has not quietly
+ * vanished by the time the two of them are free.
+ */
+export const CHALLENGE_EXPIRY_HOURS = 24;
 /** Predictions needed before a player is eligible for the Oracle title. */
 export const ORACLE_MIN_PREDICTIONS = 5;
 /**

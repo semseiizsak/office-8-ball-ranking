@@ -197,7 +197,16 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   const [armedLockId, setArmedLockId] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
-  const open = challenges.filter((challenge) => challenge.status === 'accepted');
+  // Everything still live belongs on the board, answered or not. Showing only
+  // accepted challenges meant a callout was invisible to everybody except the
+  // person being called out, so the challenger saw nothing after issuing it and
+  // the room could not start calling a winner until it had been accepted.
+  const open = challenges
+    .filter((challenge) => challenge.status === 'accepted' || challenge.status === 'pending')
+    .sort((left, right) => {
+      if (left.status !== right.status) return left.status === 'accepted' ? -1 : 1;
+      return right.createdAt - left.createdAt;
+    });
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
   // Prediction standings: the second ladder, open to everyone who never wins the first.
