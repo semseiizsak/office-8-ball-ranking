@@ -690,13 +690,8 @@ export default function App() {
             challenge={acceptedDuel}
             players={players}
             onComplete={() => {
-              const challenge = acceptedDuel;
+              setActiveTab('arena');
               setAcceptedDuel(null);
-              openMatchLogger({
-                playerAId: challenge.challengerId,
-                playerBId: challenge.opponentId,
-                challengeId: challenge.id,
-              });
             }}
           />
         )}
