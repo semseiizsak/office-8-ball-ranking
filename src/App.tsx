@@ -20,6 +20,8 @@ import { AddPlayerModal } from './components/AddPlayerModal';
 import { IncomingChallengeModal } from './components/IncomingChallengeModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
+import { CalloutSentOverlay } from './components/CalloutSentOverlay';
+import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
 import { previewStakes } from './utils/stakes';
@@ -56,6 +58,8 @@ export default function App() {
   /** Challenge currently playing its accept animation before opening the match. */
   const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
   const [declinedDuel, setDeclinedDuel] = useState<Challenge | null>(null);
+  const [sentCallout, setSentCallout] = useState<{ opponent: Player; winDelta: number; crownBounty: number } | null>(null);
+  const [acceptedCallout, setAcceptedCallout] = useState<Challenge | null>(null);
   const [showChallengeInbox, setShowChallengeInbox] = useState(false);
   const [leaderboardChanges, setLeaderboardChanges] = useState<Record<string, 'reordered' | 'woke'>>({});
   /** Incoming challenges the user chose to answer later, this session. */
@@ -388,6 +392,11 @@ export default function App() {
     // fires on the local write before createChallenge resolves, so adding it
     // again put the same challenge on the board twice.
     setChallengeTarget(null);
+    setSentCallout({
+      opponent,
+      winDelta: stakes.challengerWinDelta,
+      crownBounty: stakes.crownBounty,
+    });
     // Line the match up so the log view is already on the right pair.
     setSelectedPlayerAId(currentPlayer.id);
     setSelectedPlayerBId(opponent.id);
@@ -418,9 +427,11 @@ export default function App() {
       return;
     }
 
-    // Accepting only agrees the match; the duel plays when it is called on.
+    // Accepting is the handshake; the clash plays when the match is called on.
     if (status === 'declined') {
       setDeclinedDuel(challenge);
+    } else {
+      setAcceptedCallout(challenge);
     }
     await sendNotification({
       recipientPlayerId: challenge.challengerId,
@@ -700,6 +711,23 @@ export default function App() {
         )}
 
         {declinedDuel && <DuckChallengeOverlay onComplete={() => setDeclinedDuel(null)} />}
+
+        {sentCallout && (
+          <CalloutSentOverlay
+            opponent={sentCallout.opponent}
+            winDelta={sentCallout.winDelta}
+            crownBounty={sentCallout.crownBounty}
+            onComplete={() => setSentCallout(null)}
+          />
+        )}
+
+        {acceptedCallout && !acceptedDuel && (
+          <ChallengeAcceptedOverlay
+            challenge={acceptedCallout}
+            players={players}
+            onComplete={() => setAcceptedCallout(null)}
+          />
+        )}
 
         {showAddPlayer && (
           <AddPlayerModal onAdd={handleAddPlayer} onClose={() => setShowAddPlayer(false)} />
