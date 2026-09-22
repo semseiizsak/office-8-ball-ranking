@@ -234,7 +234,7 @@ const Harness: React.FC = () => {
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}
-              onStartChallenge={async () => setShowDuel(true)} />
+              onStartChallenge={async () => setShowDuel(true)} onOpenLiveMatch={() => {}} />
           )}
         </main>
         <Navigation activeTab={tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab}

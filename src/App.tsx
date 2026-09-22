@@ -8,7 +8,7 @@ import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { LeaderboardView } from './components/LeaderboardView';
 import { MatchLoggerSheet } from './components/MatchLoggerSheet';
-import { ArenaView } from './components/ArenaView';
+import { ArenaView, deriveChallengeView, LiveMatchScreen } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
 import { IdentityPicker } from './components/IdentityPicker';
@@ -23,7 +23,7 @@ import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
 import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
-import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
+import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
@@ -57,6 +57,9 @@ export default function App() {
   const loggingRef = useRef(false);
   /** Challenge currently playing its accept animation before opening the match. */
   const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
+  /** The live match on screen — opened by a tap, or automatically for either
+   * player the instant their own match goes live, wherever they are in the app. */
+  const [activeLiveChallengeId, setActiveLiveChallengeId] = useState<string | null>(null);
   const [declinedDuel, setDeclinedDuel] = useState<Challenge | null>(null);
   const [sentCallout, setSentCallout] = useState<{ opponent: Player; winDelta: number; crownBounty: number } | null>(null);
   const [acceptedCallout, setAcceptedCallout] = useState<Challenge | null>(null);
@@ -207,6 +210,33 @@ export default function App() {
     if (!currentPlayer) return;
     return poolService.subscribeToChallenges(setChallenges);
   }, [currentPlayer]);
+
+  /**
+   * Pulls both players into the live screen the instant their match starts,
+   * not just whoever tapped the button — the whole point of starting is that
+   * play begins right now, wherever either of them happens to be in the app.
+   * Guarded against firing on the initial snapshot: every already-live match
+   * would otherwise look like a fresh transition the moment the app loads.
+   */
+  const seededLiveStatusesRef = useRef(false);
+  const previousChallengeStatusesRef = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!currentPlayer) return;
+    if (!seededLiveStatusesRef.current) {
+      previousChallengeStatusesRef.current = new Map(challenges.map((c) => [c.id, c.status]));
+      seededLiveStatusesRef.current = true;
+      return;
+    }
+    for (const challenge of challenges) {
+      const wasLive = previousChallengeStatusesRef.current.get(challenge.id) === 'live';
+      const isMine =
+        challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id;
+      if (isMine && challenge.status === 'live' && !wasLive) {
+        setActiveLiveChallengeId(challenge.id);
+      }
+    }
+    previousChallengeStatusesRef.current = new Map(challenges.map((c) => [c.id, c.status]));
+  }, [challenges, currentPlayer]);
 
   // Reactions and comments on a match should land for everyone watching the
   // feed, not just the person who posted them.
@@ -634,6 +664,7 @@ export default function App() {
                   (challenge) =>
                     challenge.status === 'pending' ||
                     challenge.status === 'accepted' ||
+                    challenge.status === 'live' ||
                     challenge.status === 'played'
                 )}
                 currentPlayer={currentPlayer}
@@ -646,6 +677,7 @@ export default function App() {
                 onStartChallenge={handleStartChallenge}
                 onLogMatch={() => openMatchLogger()}
                 nerve={league.nerve}
+                onOpenLiveMatch={setActiveLiveChallengeId}
               />
             </div>
           )}
@@ -734,6 +766,34 @@ export default function App() {
             }}
           />
         )}
+
+        {activeLiveChallengeId && (() => {
+          const liveChallenge = challenges.find(
+            (challenge) => challenge.id === activeLiveChallengeId && challenge.status === 'live'
+          );
+          if (!liveChallenge || !currentPlayer) return null;
+          const view = deriveChallengeView(liveChallenge, players, currentPlayer);
+          return (
+            <LiveMatchScreen
+              challenge={liveChallenge}
+              challenger={view.challenger}
+              opponent={view.opponent}
+              isPlayer={view.isPlayer}
+              myCall={view.myCall}
+              forChallenger={view.forChallenger}
+              forOpponent={view.forOpponent}
+              total={view.total}
+              challengerShare={view.challengerShare}
+              challengerVoters={view.challengerVoters}
+              opponentVoters={view.opponentVoters}
+              lockUsedToday={hasLockOnDay(challenges, currentPlayer.id, Date.now())}
+              onPredict={(predictedWinnerId, isLock) => void handlePredict(liveChallenge, predictedWinnerId, isLock)}
+              onSelectPlayer={(player) => setDossierPlayer(player)}
+              onPlayChallenge={() => handlePlayChallenge(liveChallenge)}
+              onClose={() => setActiveLiveChallengeId(null)}
+            />
+          );
+        })()}
 
         {showChallengeInbox && challengeInbox && !acceptedDuel && !declinedDuel && (
           <IncomingChallengeModal

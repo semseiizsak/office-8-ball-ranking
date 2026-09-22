@@ -19,6 +19,9 @@ interface ArenaViewProps {
   onSelectPlayer?: (player: Player) => void;
   /** Calling records, rebuilt from every settled challenge. */
   nerve: Map<string, NerveRecord>;
+  /** Opens the full-screen live view — also driven from outside when a
+   * match involving the current player goes live, not just from a tap. */
+  onOpenLiveMatch: (challengeId: string) => void;
 }
 
 interface VoterInfo {
@@ -219,17 +222,78 @@ const formatCountdown = (ms: number): string => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
+/** Everything derived from a challenge that both the board card and the
+ * full-screen live view need, kept in one place so they cannot drift.
+ * Standalone rather than a closure so the live screen can be driven from
+ * outside this component — a match going live pulls both players into it,
+ * whichever tab they happen to be on. */
+export const deriveChallengeView = (challenge: Challenge, players: Player[], currentPlayer: Player) => {
+  const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
+  const challenger = byId.get(challenge.challengerId);
+  const opponent = byId.get(challenge.opponentId);
+  const isPlayer =
+    challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id;
+  const myCall = challenge.predictions.find(
+    (prediction) => prediction.predictorId === currentPlayer.id
+  );
+
+  const forChallenger = challenge.predictions.filter(
+    (prediction) => prediction.predictedWinnerId === challenge.challengerId
+  ).length;
+  const forOpponent = challenge.predictions.length - forChallenger;
+  const total = challenge.predictions.length;
+  const challengerShare = total > 0 ? Math.round((forChallenger / total) * 100) : 50;
+
+  const challengerVoters: VoterInfo[] = challenge.predictions
+    .filter((prediction) => prediction.predictedWinnerId === challenge.challengerId)
+    .map((prediction) => {
+      const player = byId.get(prediction.predictorId);
+      return {
+        prediction,
+        player,
+        name: player?.name || prediction.predictorName,
+        isCurrentUser: prediction.predictorId === currentPlayer.id,
+      };
+    });
+
+  const opponentVoters: VoterInfo[] = challenge.predictions
+    .filter((prediction) => prediction.predictedWinnerId === challenge.opponentId)
+    .map((prediction) => {
+      const player = byId.get(prediction.predictorId);
+      return {
+        prediction,
+        player,
+        name: player?.name || prediction.predictorName,
+        isCurrentUser: prediction.predictorId === currentPlayer.id,
+      };
+    });
+
+  return {
+    challenger,
+    opponent,
+    isPlayer,
+    myCall,
+    forChallenger,
+    forOpponent,
+    total,
+    challengerShare,
+    challengerVoters,
+    opponentVoters,
+  };
+};
+
 /**
  * The board when a match is actually on the table, not just a card in a list.
  *
- * Tapped in from the board rather than forced open, because the two players
- * are away from their phones playing pool, not staring at this screen — but
- * when someone does open it, it should feel like the game is happening here.
- * The room keeps calling it: closing calls at the start of a match locked
- * spectators out for however long the game ran, which is most of the point of
- * calling it live rather than after the fact.
+ * Opened either by tapping in from the board, or automatically for the two
+ * players the moment their match goes live — they are about to walk to the
+ * table, not stare at this screen, but the room should feel like the game is
+ * happening here the instant it starts. The room keeps calling it: closing
+ * calls at the start of a match locked spectators out for however long the
+ * game ran, which is most of the point of calling it live rather than after
+ * the fact.
  */
-const LiveMatchScreen: React.FC<{
+export const LiveMatchScreen: React.FC<{
   challenge: Challenge;
   challenger?: Player;
   opponent?: Player;
@@ -475,6 +539,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onLogMatch,
   onSelectPlayer,
   nerve,
+  onOpenLiveMatch,
 }) => {
   const now = Date.now();
   const [armedLockId, setArmedLockId] = useState<string | null>(null);
@@ -492,8 +557,6 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
    * a second, impatient tap.
    */
   const [startingId, setStartingId] = useState<string | null>(null);
-  /** Which live match has its full-screen view open, tapped in from the board. */
-  const [openLiveId, setOpenLiveId] = useState<string | null>(null);
   const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
   // Everything still live belongs on the board, answered or not. Showing only
@@ -552,62 +615,6 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     return () => window.clearInterval(timer);
   }, [live.length]);
 
-  /** Everything derived from a challenge that both the board card and the
-   * full-screen live view need, kept in one place so they cannot drift. */
-  const deriveChallengeView = (challenge: Challenge) => {
-    const challenger = byId.get(challenge.challengerId);
-    const opponent = byId.get(challenge.opponentId);
-    const isPlayer =
-      challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id;
-    const myCall = challenge.predictions.find(
-      (prediction) => prediction.predictorId === currentPlayer.id
-    );
-
-    const forChallenger = challenge.predictions.filter(
-      (prediction) => prediction.predictedWinnerId === challenge.challengerId
-    ).length;
-    const forOpponent = challenge.predictions.length - forChallenger;
-    const total = challenge.predictions.length;
-    const challengerShare = total > 0 ? Math.round((forChallenger / total) * 100) : 50;
-
-    const challengerVoters: VoterInfo[] = challenge.predictions
-      .filter((prediction) => prediction.predictedWinnerId === challenge.challengerId)
-      .map((prediction) => {
-        const player = byId.get(prediction.predictorId);
-        return {
-          prediction,
-          player,
-          name: player?.name || prediction.predictorName,
-          isCurrentUser: prediction.predictorId === currentPlayer.id,
-        };
-      });
-
-    const opponentVoters: VoterInfo[] = challenge.predictions
-      .filter((prediction) => prediction.predictedWinnerId === challenge.opponentId)
-      .map((prediction) => {
-        const player = byId.get(prediction.predictorId);
-        return {
-          prediction,
-          player,
-          name: player?.name || prediction.predictorName,
-          isCurrentUser: prediction.predictorId === currentPlayer.id,
-        };
-      });
-
-    return {
-      challenger,
-      opponent,
-      isPlayer,
-      myCall,
-      forChallenger,
-      forOpponent,
-      total,
-      challengerShare,
-      challengerVoters,
-      opponentVoters,
-    };
-  };
-
   const renderChallenge = (challenge: Challenge) => {
     const lockArmed = armedLockId === challenge.id;
     const isLive = challenge.status === 'live';
@@ -624,12 +631,12 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
       challengerShare,
       challengerVoters,
       opponentVoters,
-    } = deriveChallengeView(challenge);
+    } = deriveChallengeView(challenge, players, currentPlayer);
 
     return (
       <div
         key={challenge.id}
-        onClick={isLive ? () => setOpenLiveId(challenge.id) : undefined}
+        onClick={isLive ? () => onOpenLiveMatch(challenge.id) : undefined}
         className={`card-drop rounded-2xl border border-[#30363d] bg-[#161b22] p-4 ${
           isLive ? 'cursor-pointer transition-colors active:scale-[0.99] hover:border-[#ef4444]/50' : ''
         }`}
@@ -891,10 +898,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     );
   };
 
-  const openLiveChallenge = openLiveId ? live.find((challenge) => challenge.id === openLiveId) : undefined;
-
   return (
-    <>
     <div id="arena-view" className="space-y-4 pb-24 pt-1">
       <div className="px-1">
         <h2 className="font-['Chivo'] text-2xl font-black tracking-tight text-white">The Arena</h2>
@@ -1040,41 +1044,5 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </div>
       )}
     </div>
-
-    {openLiveChallenge && (() => {
-      const {
-        challenger,
-        opponent,
-        isPlayer,
-        myCall,
-        forChallenger,
-        forOpponent,
-        total,
-        challengerShare,
-        challengerVoters,
-        opponentVoters,
-      } = deriveChallengeView(openLiveChallenge);
-      return (
-        <LiveMatchScreen
-          challenge={openLiveChallenge}
-          challenger={challenger}
-          opponent={opponent}
-          isPlayer={isPlayer}
-          myCall={myCall}
-          forChallenger={forChallenger}
-          forOpponent={forOpponent}
-          total={total}
-          challengerShare={challengerShare}
-          challengerVoters={challengerVoters}
-          opponentVoters={opponentVoters}
-          lockUsedToday={lockUsedToday}
-          onPredict={(predictedWinnerId, isLock) => void onPredict(openLiveChallenge, predictedWinnerId, isLock)}
-          onSelectPlayer={onSelectPlayer}
-          onPlayChallenge={() => onPlayChallenge(openLiveChallenge)}
-          onClose={() => setOpenLiveId(null)}
-        />
-      );
-    })()}
-    </>
   );
 };
