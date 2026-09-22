@@ -1,7 +1,10 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, Messaging } from 'firebase/messaging';
 import {
+  addDoc,
   collection,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -22,6 +25,7 @@ import {
   Challenge,
   ChallengeStakes,
   ChallengeStatus,
+  MatchComment,
   MatchModifier,
   MatchRecord,
   Player,
@@ -131,6 +135,13 @@ const toMatch = (id: string, data: Record<string, unknown>): MatchRecord => ({
     scratchOnEight: Boolean((data.modifiers as Record<string, unknown> | undefined)?.scratchOnEight),
     tableRun: Boolean((data.modifiers as Record<string, unknown> | undefined)?.tableRun),
   },
+  reactions: Object.fromEntries(
+    Object.entries((data.reactions as Record<string, unknown>) ?? {}).map(([playerId, emoji]) => [
+      playerId,
+      String(emoji),
+    ])
+  ),
+  commentCount: Number(data.commentCount ?? 0),
 });
 
 interface LeagueState {
@@ -199,6 +210,17 @@ export async function getLeaderboard(): Promise<Player[]> {
 export async function getMatches(): Promise<MatchRecord[]> {
   const snapshot = await getDocs(query(matchesCollection, orderBy('timestamp', 'desc')));
   return snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
+}
+
+/**
+ * Live match feed, kept fresh so a reaction or comment posted by someone
+ * else shows up without a reload — the whole point of a feed people gather
+ * around rather than a static history list.
+ */
+export function subscribeToMatches(onChange: (matches: MatchRecord[]) => void): () => void {
+  return onSnapshot(query(matchesCollection, orderBy('timestamp', 'desc')), (snapshot) => {
+    onChange(snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data())));
+  });
 }
 
 
@@ -833,4 +855,70 @@ export async function startNewSeason(params: {
 
   const [players, seasons] = await Promise.all([getLeaderboard(), getSeasons()]);
   return { players, seasons };
+}
+
+/**
+ * One reaction per player per match, Slack-emoji-style: tapping the emoji
+ * you already picked clears it, tapping another swaps it. No thread, no
+ * moderation surface — just a cheap way to react to a result in passing.
+ */
+export async function setMatchReaction(
+  matchId: string,
+  playerId: string,
+  emoji: string | null
+): Promise<void> {
+  await updateDoc(doc(db, 'matches', matchId), {
+    [`reactions.${playerId}`]: emoji === null ? deleteField() : emoji,
+  });
+}
+
+const toMatchComment = (id: string, data: Record<string, unknown>): MatchComment => ({
+  id,
+  authorId: String(data.authorId ?? ''),
+  authorName: String(data.authorName ?? 'Someone'),
+  text: String(data.text ?? ''),
+  imageDataUrl: data.imageDataUrl ? String(data.imageDataUrl) : null,
+  createdAt: timestampToMillis(data.createdAt) ?? 0,
+});
+
+/** Live comment thread for one match, oldest first like any chat. */
+export function subscribeToMatchComments(
+  matchId: string,
+  onChange: (comments: MatchComment[]) => void
+): () => void {
+  const commentsCollection = collection(db, 'matches', matchId, 'comments');
+  return onSnapshot(query(commentsCollection, orderBy('createdAt', 'asc')), (snapshot) => {
+    onChange(snapshot.docs.map((commentDoc) => toMatchComment(commentDoc.id, commentDoc.data())));
+  });
+}
+
+/**
+ * Posts a comment under a match. commentCount lives on the match itself so
+ * the feed can show "4 comments" without opening the thread to count it.
+ */
+export async function addMatchComment(params: {
+  matchId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  imageDataUrl?: string | null;
+}): Promise<void> {
+  const commentRef = doc(collection(db, 'matches', params.matchId, 'comments'));
+  const batch = writeBatch(db);
+  batch.set(commentRef, {
+    authorId: params.authorId,
+    authorName: params.authorName,
+    text: params.text,
+    imageDataUrl: params.imageDataUrl ?? null,
+    createdAt: Date.now(),
+  });
+  batch.update(doc(db, 'matches', params.matchId), { commentCount: increment(1) });
+  await batch.commit();
+}
+
+export async function deleteMatchComment(matchId: string, commentId: string): Promise<void> {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'matches', matchId, 'comments', commentId));
+  batch.update(doc(db, 'matches', matchId), { commentCount: increment(-1) });
+  await batch.commit();
 }

@@ -208,6 +208,13 @@ export default function App() {
     return poolService.subscribeToChallenges(setChallenges);
   }, [currentPlayer]);
 
+  // Reactions and comments on a match should land for everyone watching the
+  // feed, not just the person who posted them.
+  useEffect(() => {
+    if (!currentPlayer) return;
+    return poolService.subscribeToMatches(setMatches);
+  }, [currentPlayer]);
+
   useEffect(() => {
     if (!currentPlayer) return;
     void registerForPushNotifications(currentPlayer.id).catch(() => undefined);
@@ -320,6 +327,24 @@ export default function App() {
 
   const handleDeleteMatch = async (matchId: string) => {
     applyMutation(await poolService.deleteMatch(matchId, currentSeason));
+  };
+
+  const handleReactToMatch = async (matchId: string, emoji: string | null) => {
+    if (!currentPlayer) return;
+    await poolService.setMatchReaction(matchId, currentPlayer.id, emoji);
+  };
+
+  const handleSubmitComment = async (
+    matchId: string,
+    params: { text: string; imageDataUrl?: string | null }
+  ) => {
+    if (!currentPlayer) return;
+    await poolService.addMatchComment({
+      matchId,
+      authorId: currentPlayer.id,
+      authorName: currentPlayer.name,
+      ...params,
+    });
   };
 
   /** Archives the running season's standings and titles, then resets ratings. */
@@ -450,12 +475,21 @@ export default function App() {
    * shut, because the match is only starting.
    */
   const handleStartChallenge = async (challenge: Challenge) => {
-    await poolService.startChallenge(challenge.id);
+    try {
+      await poolService.startChallenge(challenge.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not start the match. Please try again.');
+      return;
+    }
     setAcceptedDuel(challenge);
   };
 
   const handleCancelChallenge = async (challenge: Challenge) => {
-    await poolService.cancelChallenge(challenge.id);
+    try {
+      await poolService.cancelChallenge(challenge.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not cancel. Please try again.');
+    }
   };
 
   const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
@@ -623,9 +657,14 @@ export default function App() {
                 players={players}
                 season={currentSeason}
                 seasons={seasons}
+                currentPlayer={currentPlayer}
                 onEditWinner={handleEditMatch}
                 onDelete={handleDeleteMatch}
                 onEndSeason={handleEndSeason}
+                onReact={handleReactToMatch}
+                onOpenComments={poolService.subscribeToMatchComments}
+                onSubmitComment={handleSubmitComment}
+                onDeleteComment={(matchId, commentId) => poolService.deleteMatchComment(matchId, commentId)}
               />
             </div>
           )}

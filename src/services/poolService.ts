@@ -9,22 +9,27 @@ import {
   SeasonTitle,
 } from '../types';
 import {
+  addMatchComment,
   addPlayer,
   addPrediction,
   cancelChallenge,
   createChallenge,
   startChallenge,
   deleteMatch,
+  deleteMatchComment,
   getChallenges,
   reconcileChallengesWithMatches,
   getLeaderboard,
   getMatches,
   getSeasons,
+  setMatchReaction,
   startNewSeason,
   logMatch,
   resolveChallenge,
   respondToChallenge,
   subscribeToChallenges,
+  subscribeToMatches,
+  subscribeToMatchComments,
   updateMatchWinner,
   updatePlayer,
 } from './firebase';
@@ -58,6 +63,11 @@ export const poolService = {
     modifiers: MatchModifier;
     challengeId?: string;
   }) => logMatch(params.playerAId, params.playerBId, params.winnerId, params.modifiers, params.challengeId),
+  setMatchReaction,
+  subscribeToMatches,
+  subscribeToMatchComments,
+  addMatchComment,
+  deleteMatchComment,
 };
 
 export type AddPlayerParams = {

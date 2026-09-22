@@ -51,6 +51,20 @@ export interface MatchRecord {
   /** Set when the match resolved a standing challenge. */
   challengeId?: string;
   modifiers: MatchModifier;
+  /** One reaction per player, keyed by player id. */
+  reactions?: Record<string, string>;
+  /** Denormalized so the feed can show a count without reading the thread. */
+  commentCount?: number;
+}
+
+export interface MatchComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  /** A resized photo or an as-uploaded gif, inlined as a data URI — no storage bucket needed. */
+  imageDataUrl: string | null;
+  createdAt: number;
 }
 
 export interface EloStakes {

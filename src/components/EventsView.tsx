@@ -1,29 +1,49 @@
 import React, { useState } from 'react';
 import { Check, Crown, Lock, Medal, Pencil, Trash2, X } from 'lucide-react';
-import { MatchRecord, Player, Season } from '../types';
+import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { matchesInSeason, softResetElo } from '../utils/league';
+import { CommentsThread, CommentsToggle, ReactionBar } from './MatchSocial';
 
 interface EventsViewProps {
   matches: MatchRecord[];
   players: Player[];
   season: Season;
   seasons: Season[];
+  currentPlayer: Player;
   onEditWinner: (matchId: string, winnerId: string) => Promise<void>;
   onDelete: (matchId: string) => Promise<void>;
   onEndSeason: () => Promise<void>;
+  onReact: (matchId: string, emoji: string | null) => Promise<void>;
+  onOpenComments: (matchId: string, onChange: (comments: MatchComment[]) => void) => () => void;
+  onSubmitComment: (
+    matchId: string,
+    params: { text: string; imageDataUrl?: string | null }
+  ) => Promise<void>;
+  onDeleteComment: (matchId: string, commentId: string) => Promise<void>;
 }
 
 const formatDate = (value: number) =>
   new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+/** A little variety in how a result reads, picked deterministically per match
+ * so the feed doesn't relabel the same result on every re-render. */
+const VERBS = ['beat', 'outlasted', 'handled', 'took down', 'got past', 'edged out', 'dispatched', 'ran over'];
+const pickVerb = (matchId: string): string =>
+  VERBS[[...matchId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % VERBS.length];
 
 export const EventsView: React.FC<EventsViewProps> = ({
   matches,
   players,
   season,
   seasons,
+  currentPlayer,
   onEditWinner,
   onDelete,
   onEndSeason,
+  onReact,
+  onOpenComments,
+  onSubmitComment,
+  onDeleteComment,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [winnerId, setWinnerId] = useState('');
@@ -31,6 +51,16 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const [error, setError] = useState('');
   const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+
+  const toggleComments = (matchId: string) => {
+    setExpandedComments((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) next.delete(matchId);
+      else next.add(matchId);
+      return next;
+    });
+  };
 
   const currentMatches = matchesInSeason(matches, season);
   const currentIds = new Set(currentMatches.map((match) => match.id));
@@ -85,6 +115,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
 
   const renderMatch = (match: MatchRecord, editable: boolean) => {
     const winnerIsA = match.winnerId === match.playerAId;
+    const winnerName = winnerIsA ? match.playerAName : match.playerBName;
+    const loserName = winnerIsA ? match.playerBName : match.playerAName;
+    const crownTaken = match.bountyCollected > 0;
     const isEditing = editingId === match.id;
     const isBusy = busyId === match.id;
 
@@ -95,16 +128,48 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <p className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-wider text-[#86948a]">
               {new Date(match.timestamp).toLocaleString()}
             </p>
-            <p className="mt-1 font-['Chivo'] text-sm font-bold text-white">
-              {match.playerAName} <span className="text-[#86948a]">vs</span> {match.playerBName}
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 font-['Chivo'] text-sm font-bold">
+              <span className="text-[#4edea3]">{winnerName}</span>
+              <span className="font-['JetBrains_Mono'] text-[11px] font-bold text-[#4edea3]">+{match.eloDelta}</span>
+              <span className="font-normal text-[#86948a]">{pickVerb(match.id)}</span>
+              <span className="text-white">{loserName}</span>
+              <span className="font-['JetBrains_Mono'] text-[11px] font-bold text-[#ffb4ab]">-{match.eloDelta}</span>
             </p>
-            <p className="mt-1 text-xs text-[#bbcabf]">
-              Winner: <span className="font-bold text-[#4edea3]">{winnerIsA ? match.playerAName : match.playerBName}</span> ·{' '}
-              {match.eloDelta} Elo
-              {match.bountyCollected > 0 && (
-                <span className="text-[#f59e0b]"> + {match.bountyCollected} bounty</span>
-              )}
-            </p>
+
+            {(match.isUpset || match.modifiers.tableRun || match.modifiers.eightOnBreak || match.modifiers.scratchOnEight) && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {match.isUpset && (
+                  <span className="rounded-md border border-[#a78bfa]/40 bg-[#a78bfa]/10 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] font-bold text-[#c4b5fd]">
+                    😱 Upset
+                  </span>
+                )}
+                {match.modifiers.tableRun && (
+                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
+                    🏃 Ran the table
+                  </span>
+                )}
+                {match.modifiers.eightOnBreak && (
+                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
+                    💥 8 on the break
+                  </span>
+                )}
+                {match.modifiers.scratchOnEight && (
+                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
+                    ❌ Scratched the 8
+                  </span>
+                )}
+              </div>
+            )}
+
+            {crownTaken && (
+              <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-[#f59e0b]/40 bg-gradient-to-r from-[#3d2a06] to-[#241a07] px-2.5 py-1.5">
+                <Crown className="h-3.5 w-3.5 shrink-0 fill-[#f59e0b] text-[#f59e0b]" />
+                <p className="font-['Chivo'] text-xs font-bold text-[#f59e0b]">
+                  Crown taken — {winnerName} wears it now
+                  <span className="font-normal text-[#f59e0b]/80"> (+{match.bountyCollected})</span>
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex shrink-0 gap-1">
             {editable ? (
@@ -139,6 +204,32 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <button type="button" onClick={() => saveEdit(match)} disabled={isBusy} className="rounded-lg bg-[#10b981] p-2 text-[#002113]" title="Save event"><Check className="h-4 w-4" /></button>
             <button type="button" onClick={() => setEditingId(null)} className="rounded-lg border border-[#30363d] p-2 text-[#86948a]" title="Cancel edit"><X className="h-4 w-4" /></button>
           </div>
+        )}
+
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#30363d] pt-3">
+          <ReactionBar
+            reactions={match.reactions ?? {}}
+            myReaction={match.reactions?.[currentPlayer.id]}
+            onReact={(emoji) =>
+              void onReact(match.id, match.reactions?.[currentPlayer.id] === emoji ? null : emoji)
+            }
+          />
+          <CommentsToggle
+            count={match.commentCount ?? 0}
+            open={expandedComments.has(match.id)}
+            onToggle={() => toggleComments(match.id)}
+          />
+        </div>
+
+        {expandedComments.has(match.id) && (
+          <CommentsThread
+            matchId={match.id}
+            currentPlayer={currentPlayer}
+            players={players}
+            onOpen={onOpenComments}
+            onSubmit={(params) => onSubmitComment(match.id, params)}
+            onDelete={(commentId) => onDeleteComment(match.id, commentId)}
+          />
         )}
       </div>
     );
