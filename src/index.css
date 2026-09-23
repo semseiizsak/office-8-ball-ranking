@@ -197,6 +197,14 @@
 .card-drop { animation: card-drop 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .call-pop { animation: call-pop 320ms cubic-bezier(0.22, 1, 0.36, 1); }
 
+@keyframes cheer-float {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  15% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-140px) scale(1); }
+}
+
+.cheer-float { animation: cheer-float 2.1s ease-out both; }
+
 @media (prefers-reduced-motion: reduce) {
   .callout-throw,
   .callout-dust,
@@ -207,6 +215,7 @@
   .accept-ring,
   .card-drop,
   .call-pop,
+  .cheer-float,
   .duck-waddle {
     animation-duration: 1ms;
     animation-iteration-count: 1;

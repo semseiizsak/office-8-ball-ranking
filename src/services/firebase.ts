@@ -25,6 +25,7 @@ import {
   Challenge,
   ChallengeStakes,
   ChallengeStatus,
+  Cheer,
   MatchComment,
   MatchModifier,
   MatchRecord,
@@ -687,6 +688,70 @@ export async function startChallenge(challengeId: string): Promise<void> {
   await updateDoc(doc(db, 'challenges', challengeId), {
     status: 'live' satisfies ChallengeStatus,
     startedAt: Date.now(),
+  });
+}
+
+/**
+ * Backs a live match out to agreed-but-not-started, rather than cancelling
+ * the challenge outright — a false start or a table opening up somewhere
+ * else shouldn't cost the two of them the challenge itself, just the clock.
+ */
+export async function revertLiveChallenge(challengeId: string): Promise<void> {
+  const challengeRef = doc(db, 'challenges', challengeId);
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(challengeRef);
+    if (!snapshot.exists()) return;
+    const challenge = toChallenge(snapshot.id, snapshot.data(), Date.now());
+    if (challenge.status !== 'live') return;
+    transaction.update(challengeRef, {
+      status: 'accepted' satisfies ChallengeStatus,
+      startedAt: null,
+    });
+  });
+}
+
+/**
+ * A cheer on a live match: written, shown, and thrown away. Deleting it a
+ * few seconds later from the sender's own client keeps the collection from
+ * growing forever without needing a server-side sweep for something this
+ * disposable.
+ */
+export async function sendCheer(params: {
+  challengeId: string;
+  playerId: string;
+  playerName: string;
+  emoji: string;
+}): Promise<void> {
+  const cheerRef = doc(collection(db, 'challenges', params.challengeId, 'cheers'));
+  await setDoc(cheerRef, {
+    playerId: params.playerId,
+    playerName: params.playerName,
+    emoji: params.emoji,
+    createdAt: Date.now(),
+  });
+  window.setTimeout(() => {
+    deleteDoc(cheerRef).catch(() => undefined);
+  }, 5000);
+}
+
+export function subscribeToCheers(
+  challengeId: string,
+  onChange: (cheers: Cheer[]) => void
+): () => void {
+  const cheersCollection = collection(db, 'challenges', challengeId, 'cheers');
+  return onSnapshot(query(cheersCollection, orderBy('createdAt', 'asc')), (snapshot) => {
+    onChange(
+      snapshot.docs.map((cheerDoc) => {
+        const data = cheerDoc.data();
+        return {
+          id: cheerDoc.id,
+          playerId: String(data.playerId ?? ''),
+          playerName: String(data.playerName ?? 'Someone'),
+          emoji: String(data.emoji ?? '🔥'),
+          createdAt: timestampToMillis(data.createdAt) ?? 0,
+        };
+      })
+    );
   });
 }
 

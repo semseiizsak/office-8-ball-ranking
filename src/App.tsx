@@ -522,6 +522,24 @@ export default function App() {
     }
   };
 
+  const handleCancelLiveMatch = async (challengeId: string) => {
+    try {
+      await poolService.revertLiveChallenge(challengeId);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not cancel the match. Please try again.');
+    }
+  };
+
+  const handleCheer = async (challengeId: string, emoji: string) => {
+    if (!currentPlayer) return;
+    await poolService.sendCheer({
+      challengeId,
+      playerId: currentPlayer.id,
+      playerName: currentPlayer.name,
+      emoji,
+    });
+  };
+
   const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
     if (!currentPlayer) return;
     const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
@@ -776,6 +794,7 @@ export default function App() {
           return (
             <LiveMatchScreen
               challenge={liveChallenge}
+              players={players}
               challenger={view.challenger}
               opponent={view.opponent}
               isPlayer={view.isPlayer}
@@ -790,6 +809,12 @@ export default function App() {
               onPredict={(predictedWinnerId, isLock) => void handlePredict(liveChallenge, predictedWinnerId, isLock)}
               onSelectPlayer={(player) => setDossierPlayer(player)}
               onPlayChallenge={() => handlePlayChallenge(liveChallenge)}
+              onCancelLive={() => {
+                setActiveLiveChallengeId(null);
+                void handleCancelLiveMatch(liveChallenge.id);
+              }}
+              onCheer={(emoji) => void handleCheer(liveChallenge.id, emoji)}
+              onSubscribeCheers={poolService.subscribeToCheers}
               onClose={() => setActiveLiveChallengeId(null)}
             />
           );

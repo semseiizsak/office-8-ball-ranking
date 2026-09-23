@@ -223,8 +223,10 @@ const Harness: React.FC = () => {
         <main className="flex-1 px-4 pt-3">
           {tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
-              seasons={[currentSeason, pastSeason]} onEditWinner={async () => {}}
-              onDelete={async () => {}} onEndSeason={async () => {}} />
+              seasons={[currentSeason, pastSeason]} currentPlayer={me} onEditWinner={async () => {}}
+              onDelete={async () => {}} onEndSeason={async () => {}}
+              onReact={async () => {}} onOpenComments={() => () => {}}
+              onSubmitComment={async () => {}} onDeleteComment={async () => {}} />
           ) : tab === 'leaderboard' ? (
             <LeaderboardView players={players} matches={seasonMatches} league={league}
               season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />

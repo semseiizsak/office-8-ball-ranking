@@ -67,6 +67,18 @@ export interface MatchComment {
   createdAt: number;
 }
 
+/**
+ * A tap of an emoji on a live match, gone almost as soon as it lands.
+ * Nothing worth keeping after the flash on screen, so it isn't a comment.
+ */
+export interface Cheer {
+  id: string;
+  playerId: string;
+  playerName: string;
+  emoji: string;
+  createdAt: number;
+}
+
 export interface EloStakes {
   playerAWinsDelta: number;
   playerBWinsDelta: number;

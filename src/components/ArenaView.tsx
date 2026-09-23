@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Swords, Target, Trophy, X, Zap } from 'lucide-react';
-import { Challenge, Player, Prediction } from '../types';
+import { Challenge, Cheer, Player, Prediction } from '../types';
 import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
+
+/** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
+const CHEER_EMOJI = ['🔥', '💪', '😱', '👏', '😂', '💀'];
 
 interface ArenaViewProps {
   players: Player[];
@@ -293,8 +296,56 @@ export const deriveChallengeView = (challenge: Challenge, players: Player[], cur
  * game ran, which is most of the point of calling it live rather than after
  * the fact.
  */
+/** One side of the matchup, styled like the log screen's player cards so the
+ * live view reads as the same app rather than a lesser cousin of it. */
+const LiveMatchPlayerCard: React.FC<{
+  player?: Player;
+  fallbackName: string;
+  rank: number;
+  tone: 'challenger' | 'opponent';
+  onSelect?: () => void;
+}> = ({ player, fallbackName, rank, tone, onSelect }) => {
+  const accent = tone === 'challenger' ? '#10b981' : '#ffb95f';
+  const accentText = tone === 'challenger' ? 'text-[#4edea3]' : 'text-[#ffb95f]';
+  const badgeText = tone === 'challenger' ? 'text-[#002113]' : 'text-[#2a1700]';
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex w-full items-center gap-3.5 rounded-2xl border border-[#30363d] bg-[#161b22] p-4 text-left shadow-md transition-all active:scale-[0.99]"
+    >
+      <div className="relative shrink-0">
+        <Avatar player={player} name={fallbackName} size="h-14 w-14" ring={`border-2`} />
+        <span
+          className={`absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full border border-[#10141a] font-['JetBrains_Mono'] text-[10px] font-black ${badgeText}`}
+          style={{ backgroundColor: accent }}
+        >
+          {rank || '–'}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-['Chivo'] text-lg font-bold tracking-tight text-white">{fallbackName}</h3>
+        <div className="mt-1 flex items-center gap-2">
+          <span className={`font-['JetBrains_Mono'] text-sm font-black ${accentText}`}>
+            {player?.elo ?? '—'} <span className="text-[10px] font-medium text-[#86948a]">ELO</span>
+          </span>
+          <div className="flex items-center gap-1">
+            {player?.recentForm.slice(0, 5).map((form, index) => (
+              <span
+                key={index}
+                className={`h-1.5 w-1.5 rounded-full ${form === 'W' ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+};
+
 export const LiveMatchScreen: React.FC<{
   challenge: Challenge;
+  players: Player[];
   challenger?: Player;
   opponent?: Player;
   isPlayer: boolean;
@@ -309,9 +360,13 @@ export const LiveMatchScreen: React.FC<{
   onPredict: (predictedWinnerId: string, isLock: boolean) => void;
   onSelectPlayer?: (player: Player) => void;
   onPlayChallenge: () => void;
+  onCancelLive: () => void;
+  onCheer: (emoji: string) => void;
+  onSubscribeCheers: (challengeId: string, onChange: (cheers: Cheer[]) => void) => () => void;
   onClose: () => void;
 }> = ({
   challenge,
+  players,
   challenger,
   opponent,
   isPlayer,
@@ -326,6 +381,9 @@ export const LiveMatchScreen: React.FC<{
   onPredict,
   onSelectPlayer,
   onPlayChallenge,
+  onCancelLive,
+  onCheer,
+  onSubscribeCheers,
   onClose,
 }) => {
   const [lockArmed, setLockArmed] = useState(false);
@@ -335,13 +393,47 @@ export const LiveMatchScreen: React.FC<{
     return () => window.clearInterval(timer);
   }, []);
 
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [floatingCheers, setFloatingCheers] = useState<{ id: string; emoji: string; x: number }[]>([]);
+  const seenCheerIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    seenCheerIdsRef.current = new Set();
+    return onSubscribeCheers(challenge.id, (cheers) => {
+      for (const cheer of cheers) {
+        if (seenCheerIdsRef.current.has(cheer.id)) continue;
+        seenCheerIdsRef.current.add(cheer.id);
+        const floatId = `${cheer.id}-${Math.random()}`;
+        setFloatingCheers((prev) => [...prev, { id: floatId, emoji: cheer.emoji, x: 10 + Math.random() * 80 }]);
+        window.setTimeout(() => {
+          setFloatingCheers((prev) => prev.filter((entry) => entry.id !== floatId));
+        }, 2200);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenge.id]);
+
   const now = Date.now();
   const remainingVoteMs = voteWindowRemaining(challenge, now);
   const callsClosed = remainingVoteMs <= 0;
   const urgent = remainingVoteMs <= 30_000;
+  const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
+  const rankChallenger = sortedPlayers.findIndex((p) => p.id === challenger?.id) + 1;
+  const rankOpponent = sortedPlayers.findIndex((p) => p.id === opponent?.id) + 1;
 
   return (
-    <div role="dialog" aria-label="Match in progress" className="fixed inset-0 z-40 flex flex-col bg-[#05070a]">
+    <div role="dialog" aria-label="Match in progress" className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-[#05070a]">
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+        {floatingCheers.map((cheer) => (
+          <span
+            key={cheer.id}
+            className="cheer-float absolute bottom-24 text-3xl"
+            style={{ left: `${cheer.x}%` }}
+          >
+            {cheer.emoji}
+          </span>
+        ))}
+      </div>
+
       <div className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(var(--safe-top)+0.75rem)]">
         <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-[0.25em] text-[#ef4444]">
           <span className="relative flex h-2 w-2">
@@ -360,9 +452,9 @@ export const LiveMatchScreen: React.FC<{
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-[calc(var(--safe-bottom)+1.5rem)]">
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
         {challenge.stakes.crownBounty > 0 && (
-          <div className="mt-2 flex justify-center">
+          <div className="mb-3 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-3 py-1 font-['JetBrains_Mono'] text-xs font-bold text-[#f59e0b]">
               <Crown className="h-3.5 w-3.5" />
               {challenge.stakes.crownBounty} crown bounty
@@ -370,32 +462,30 @@ export const LiveMatchScreen: React.FC<{
           </div>
         )}
 
-        <div className="mt-5 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => challenger && onSelectPlayer?.(challenger)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center"
-          >
-            <Avatar player={challenger} name={challenge.challengerName} size="h-14 w-14" ring="border-2 border-[#10b981]/60" />
-            <span className="w-full truncate font-['Chivo'] text-sm font-bold text-white">
-              {challenge.challengerName}
-            </span>
-          </button>
-          <Swords className="h-5 w-5 shrink-0 text-[#86948a]" />
-          <button
-            type="button"
-            onClick={() => opponent && onSelectPlayer?.(opponent)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center"
-          >
-            <Avatar player={opponent} name={challenge.opponentName} size="h-14 w-14" ring="border-2 border-[#ffb95f]/60" />
-            <span className="w-full truncate font-['Chivo'] text-sm font-bold text-white">
-              {challenge.opponentName}
-            </span>
-          </button>
+        <div className="relative space-y-2">
+          <LiveMatchPlayerCard
+            player={challenger}
+            fallbackName={challenge.challengerName}
+            rank={rankChallenger}
+            tone="challenger"
+            onSelect={() => challenger && onSelectPlayer?.(challenger)}
+          />
+          <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#10b981] bg-[#0a1210] font-['Chivo'] text-xs font-black text-[#4edea3] shadow-[0_0_14px_rgba(16,185,129,0.35)]">
+              VS
+            </div>
+          </div>
+          <LiveMatchPlayerCard
+            player={opponent}
+            fallbackName={challenge.opponentName}
+            rank={rankOpponent}
+            tone="opponent"
+            onSelect={() => opponent && onSelectPlayer?.(opponent)}
+          />
         </div>
 
         {isPlayer ? (
-          <p className="mt-8 rounded-xl border border-[#30363d] bg-[#161b22] px-4 py-3 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
+          <p className="mt-4 rounded-xl border border-[#30363d] bg-[#161b22] px-4 py-3 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
             You're playing this one. The room is calling it — log the result once the table's clear.
           </p>
         ) : callsClosed ? (
@@ -405,27 +495,28 @@ export const LiveMatchScreen: React.FC<{
           </div>
         ) : (
           <div className="mt-6">
-            {!myCall && (
-              <div className="text-center">
+            <div className="flex items-center justify-between px-1">
+              <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
+                {myCall ? 'Call locked in' : 'Call it — one tap'}
+              </span>
+              {!myCall && (
                 <span
-                  className={`font-['JetBrains_Mono'] text-4xl font-black tabular-nums ${
+                  className={`font-['JetBrains_Mono'] text-sm font-black tabular-nums ${
                     urgent ? 'text-[#ef4444]' : 'text-[#f59e0b]'
                   }`}
                 >
                   {formatCountdown(remainingVoteMs)}
                 </span>
-                <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] uppercase tracking-widest text-[#86948a]">
-                  left to call it
-                </p>
-              </div>
-            )}
+              )}
+            </div>
 
-            <div className={`grid grid-cols-2 gap-3 ${myCall ? '' : 'mt-4'}`}>
+            <div className="mt-2 space-y-2">
               {[
-                { id: challenge.challengerId, name: challenge.challengerName, tone: '#10b981' },
-                { id: challenge.opponentId, name: challenge.opponentName, tone: '#ffb95f' },
+                { id: challenge.challengerId, name: challenge.challengerName, tone: 'challenger' as const },
+                { id: challenge.opponentId, name: challenge.opponentName, tone: 'opponent' as const },
               ].map((side) => {
                 const picked = myCall?.predictedWinnerId === side.id;
+                const isChallengerSide = side.tone === 'challenger';
                 return (
                   <button
                     key={side.id}
@@ -436,17 +527,25 @@ export const LiveMatchScreen: React.FC<{
                       onPredict(side.id, lockArmed && !lockUsedToday);
                       setLockArmed(false);
                     }}
-                    style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
-                    className={`truncate rounded-2xl border px-4 py-6 font-['Chivo'] text-lg font-bold transition-all ${
+                    className={`flex min-h-[64px] w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all disabled:pointer-events-none ${
                       picked
-                        ? 'bg-[#161b22] opacity-100 shadow-[0_0_16px_rgba(0,0,0,0.4)]'
+                        ? isChallengerSide
+                          ? 'border-transparent bg-gradient-to-r from-[#10b981] to-[#4edea3] text-[#002113] shadow-[0_4px_20px_rgba(16,185,129,0.35)]'
+                          : 'border-[#ffb95f] bg-[#ffb95f]/15 text-[#ffb95f]'
                         : myCall
-                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 cursor-not-allowed opacity-40'
-                        : 'border-[#30363d] bg-[#161b22] text-[#bbcabf] hover:border-[#4edea3] active:scale-[0.97] cursor-pointer'
+                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 opacity-40'
+                        : 'border-[#30363d] bg-[#161b22] text-white hover:border-[#4edea3] active:scale-[0.98]'
                     }`}
                   >
-                    {picked && '✓ '}
-                    {side.name.split(' ')[0]}
+                    <span className="flex items-center gap-2 font-['Chivo'] text-lg font-black uppercase tracking-tight">
+                      {picked && '✓ '}
+                      {side.name.split(' ')[0]}
+                    </span>
+                    {picked && myCall?.isLock && (
+                      <span className="flex items-center gap-0.5 font-['JetBrains_Mono'] text-xs font-bold">
+                        <Zap className="h-3.5 w-3.5 fill-current" />×2
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -508,18 +607,67 @@ export const LiveMatchScreen: React.FC<{
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
+            Send a cheer
+          </span>
+          <div className="mt-2 flex justify-between gap-1.5">
+            {CHEER_EMOJI.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onCheer(emoji)}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl border border-[#30363d] bg-[#161b22] text-xl transition-all hover:border-[#4edea3]/50 active:scale-90"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {isPlayer && (
         <div className="shrink-0 border-t border-[#30363d] bg-[#0d1117] px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-3">
-          <button
-            type="button"
-            onClick={onPlayChallenge}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
-          >
-            <Trophy className="h-4 w-4" />
-            Log the result
-          </button>
+          {confirmingCancel ? (
+            <div className="flex items-center gap-2">
+              <p className="flex-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
+                Back this out to agreed-but-not-started?
+              </p>
+              <button
+                type="button"
+                onClick={onCancelLive}
+                className="shrink-0 rounded-lg bg-[#ef4444] px-3 py-2 font-['Chivo'] text-xs font-bold text-white"
+              >
+                Cancel match
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(false)}
+                className="shrink-0 rounded-lg border border-[#30363d] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#86948a]"
+              >
+                Never mind
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[auto_1fr] gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(true)}
+                className="rounded-xl border border-[#30363d] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#86948a] transition-all hover:border-[#ef4444]/60 hover:text-[#ffb4ab] active:scale-[0.98]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onPlayChallenge}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
+              >
+                <Trophy className="h-4 w-4" />
+                Log the result
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
