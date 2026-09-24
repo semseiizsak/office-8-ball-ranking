@@ -79,6 +79,16 @@ export interface Cheer {
   createdAt: number;
 }
 
+/** A line in the live chat on a match — scrolls with the game, kept only
+ * for as long as the challenge document lives. */
+export interface ChatMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface EloStakes {
   playerAWinsDelta: number;
   playerBWinsDelta: number;

@@ -25,6 +25,7 @@ import {
   Challenge,
   ChallengeStakes,
   ChallengeStatus,
+  ChatMessage,
   Cheer,
   MatchComment,
   MatchModifier,
@@ -748,6 +749,49 @@ export function subscribeToCheers(
           playerId: String(data.playerId ?? ''),
           playerName: String(data.playerName ?? 'Someone'),
           emoji: String(data.emoji ?? '🔥'),
+          createdAt: timestampToMillis(data.createdAt) ?? 0,
+        };
+      })
+    );
+  });
+}
+
+/**
+ * Live chat on a match, Twitch-style: it scrolls with the game rather than
+ * living on afterward the way a match comment does. Kept in a subcollection
+ * of the challenge, so it comes along for free whenever the challenge itself
+ * is eventually cleaned up.
+ */
+export async function sendChatMessage(params: {
+  challengeId: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+}): Promise<void> {
+  const text = params.text.trim().slice(0, 280);
+  if (!text) return;
+  await addDoc(collection(db, 'challenges', params.challengeId, 'chat'), {
+    authorId: params.authorId,
+    authorName: params.authorName,
+    text,
+    createdAt: Date.now(),
+  });
+}
+
+export function subscribeToChatMessages(
+  challengeId: string,
+  onChange: (messages: ChatMessage[]) => void
+): () => void {
+  const chatCollection = collection(db, 'challenges', challengeId, 'chat');
+  return onSnapshot(query(chatCollection, orderBy('createdAt', 'asc')), (snapshot) => {
+    onChange(
+      snapshot.docs.map((messageDoc) => {
+        const data = messageDoc.data();
+        return {
+          id: messageDoc.id,
+          authorId: String(data.authorId ?? ''),
+          authorName: String(data.authorName ?? 'Someone'),
+          text: String(data.text ?? ''),
           createdAt: timestampToMillis(data.createdAt) ?? 0,
         };
       })

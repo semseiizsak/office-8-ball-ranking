@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Swords, Target, Trophy, X, Zap } from 'lucide-react';
-import { Challenge, Cheer, Player, Prediction } from '../types';
+import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Send, Swords, Target, Trophy, X, Zap } from 'lucide-react';
+import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
 
 /** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
 const CHEER_EMOJI = ['🔥', '💪', '😱', '👏', '😂', '💀'];
+
+/** A stable, Twitch-style username color per person, picked off their id
+ * rather than stored, so it's free and never collides with a re-render. */
+const CHAT_NAME_COLORS = ['#4edea3', '#ffb95f', '#60a5fa', '#f472b6', '#c4b5fd', '#fbbf24', '#f87171', '#5eead4'];
+const chatNameColor = (id: string): string =>
+  CHAT_NAME_COLORS[[...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % CHAT_NAME_COLORS.length];
 
 interface ArenaViewProps {
   players: Player[];
@@ -363,6 +369,8 @@ export const LiveMatchScreen: React.FC<{
   onCancelLive: () => void;
   onCheer: (emoji: string) => void;
   onSubscribeCheers: (challengeId: string, onChange: (cheers: Cheer[]) => void) => () => void;
+  onSendChatMessage: (challengeId: string, text: string) => Promise<void>;
+  onSubscribeChat: (challengeId: string, onChange: (messages: ChatMessage[]) => void) => () => void;
   onClose: () => void;
 }> = ({
   challenge,
@@ -384,6 +392,8 @@ export const LiveMatchScreen: React.FC<{
   onCancelLive,
   onCheer,
   onSubscribeCheers,
+  onSendChatMessage,
+  onSubscribeChat,
   onClose,
 }) => {
   const [lockArmed, setLockArmed] = useState(false);
@@ -411,6 +421,26 @@ export const LiveMatchScreen: React.FC<{
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge.id]);
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setChatMessages([]);
+    return onSubscribeChat(challenge.id, setChatMessages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenge.id]);
+  useEffect(() => {
+    const node = chatScrollRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [chatMessages]);
+
+  const sendChat = () => {
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatInput('');
+    void onSendChatMessage(challenge.id, text);
+  };
 
   const now = Date.now();
   const remainingVoteMs = voteWindowRemaining(challenge, now);
@@ -623,6 +653,51 @@ export const LiveMatchScreen: React.FC<{
                 {emoji}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
+            Live chat
+          </span>
+          <div
+            ref={chatScrollRef}
+            className="mt-2 h-44 space-y-1.5 overflow-y-auto rounded-xl border border-[#30363d] bg-[#0d1117] p-2.5"
+          >
+            {chatMessages.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
+                Nobody's said anything yet.
+              </p>
+            ) : (
+              chatMessages.map((message) => (
+                <p key={message.id} className="break-words font-['Space_Grotesk'] text-xs leading-relaxed">
+                  <span className="font-bold" style={{ color: chatNameColor(message.authorId) }}>
+                    {message.authorName.split(' ')[0]}
+                  </span>
+                  <span className="text-[#86948a]">: </span>
+                  <span className="text-[#dfe2eb]">{message.text}</span>
+                </p>
+              ))
+            )}
+          </div>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <input
+              value={chatInput}
+              onChange={(event) => setChatInput(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && sendChat()}
+              placeholder="Say something…"
+              maxLength={280}
+              className="min-w-0 flex-1 rounded-full border border-[#30363d] bg-[#161b22] px-3.5 py-2 text-xs text-white outline-none focus:border-[#10b981]"
+            />
+            <button
+              type="button"
+              disabled={!chatInput.trim()}
+              onClick={sendChat}
+              className="shrink-0 rounded-full bg-[#10b981] p-2 text-[#002113] disabled:opacity-40"
+              aria-label="Send"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

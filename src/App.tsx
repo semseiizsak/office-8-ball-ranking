@@ -540,6 +540,16 @@ export default function App() {
     });
   };
 
+  const handleSendChatMessage = async (challengeId: string, text: string) => {
+    if (!currentPlayer) return;
+    await poolService.sendChatMessage({
+      challengeId,
+      authorId: currentPlayer.id,
+      authorName: currentPlayer.name,
+      text,
+    });
+  };
+
   const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
     if (!currentPlayer) return;
     const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
@@ -815,6 +825,8 @@ export default function App() {
               }}
               onCheer={(emoji) => void handleCheer(liveChallenge.id, emoji)}
               onSubscribeCheers={poolService.subscribeToCheers}
+              onSendChatMessage={handleSendChatMessage}
+              onSubscribeChat={poolService.subscribeToChatMessages}
               onClose={() => setActiveLiveChallengeId(null)}
             />
           );
