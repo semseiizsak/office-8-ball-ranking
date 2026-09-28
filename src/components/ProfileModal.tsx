@@ -74,14 +74,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
       }
     >
       <div className="flex items-center gap-4">
-        <label className="relative cursor-pointer" aria-label="Choose a profile picture">
+        <label className="relative block h-[84px] w-[84px] flex-none cursor-pointer" aria-label="Choose a profile picture">
           <PlayerAvatar player={{ id: player.id, name: name || player.name, avatarUrl, ball }} size={84} />
           <span className="absolute -bottom-1 -left-1 grid h-9 w-9 place-items-center rounded-full bg-white text-bg">
             <ImagePlus className="h-4 w-4" strokeWidth={2.5} />
           </span>
           <input type="file" accept="image/*" onChange={handleImage} className="sr-only" />
         </label>
-        <p className="text-sm text-white/70">Tap the photo to pick a new one. Everyone in the office sees your changes.</p>
+        <p className="min-w-0 text-sm text-white/70">Tap the photo to pick a new one. Everyone in the office sees your changes.</p>
       </div>
       <label className={labelClass}>Name<input value={name} onChange={(event) => setName(event.target.value)} className={fieldClass} /></label>
       <label className={labelClass}>Team<input value={department} onChange={(event) => setDepartment(event.target.value)} className={fieldClass} /></label>

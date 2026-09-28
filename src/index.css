@@ -67,7 +67,7 @@ input, textarea, select { font-size: 16px; }
 }
 .ball.bare .n { display: none; }
 
-.pavatar { --av: 44px; --c: #F2B705; position: relative; width: var(--av); height: var(--av); flex: none; }
+.pavatar { --av: 44px; --c: #F2B705; position: relative; display: inline-block; vertical-align: middle; width: var(--av); height: var(--av); flex: none; }
 .pavatar .ring { position: absolute; inset: 0; border-radius: 50%; background: var(--c); }
 .pavatar.striped .ring { background: repeating-conic-gradient(var(--c) 0 36deg, #F4F1E8 36deg 54deg); }
 .pavatar.eight .ring { background: #0A0A0A; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.4); }
