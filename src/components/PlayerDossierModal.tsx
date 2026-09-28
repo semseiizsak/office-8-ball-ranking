@@ -166,6 +166,10 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
     return { n: played.length, w, l: played.length - w, rate: played.length ? Math.round((w / played.length) * 100) : 0 };
   };
   const solids = groupStat('solids');
+  // The pair of the player's own ball: same colour, solid and striped. The 8 has no pair.
+  const own = playerBall(player);
+  const solidBall = own === 8 ? 8 : own > 8 ? own - 8 : own;
+  const stripeBall = own === 8 ? 8 : solidBall + 8;
   const stripes = groupStat('stripes');
   const withBall = matches.filter((match) => match.winnerBall);
   const stripeShare = withBall.length ? Math.round((withBall.filter((match) => match.winnerBall === 'stripes').length / withBall.length) * 100) : 0;
@@ -358,7 +362,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
             <span className="text-xs font-semibold text-white/55">Win rate</span>
           </div>
           <div className="grid grid-cols-2 gap-0.5">
-            {([['Solids', 1, solids], ['Stripes', 9, stripes]] as const).map(([label, n, stat]) => (
+            {([['Solids', solidBall, solids], ['Stripes', stripeBall, stripes]] as const).map(([label, n, stat]) => (
               <div key={label} className="grid justify-items-center gap-1.5 rounded-[10px] bg-surface px-2 py-3.5">
                 <Ball n={n} size={44} />
                 <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">{label}</span>

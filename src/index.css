@@ -76,7 +76,8 @@ input, textarea, select { font-size: 16px; }
   background: linear-gradient(160deg, #3a3a3a, #1b1b1b); display: grid; place-items: center;
   font: 800 calc(var(--av) * .34)/1 var(--font-display); color: #fff; text-transform: uppercase;
 }
-.pavatar .face img { width: 100%; height: 100%; object-fit: cover; }
+/* Faces sit in the upper part of most photos; centring crops the top of the head. */
+.pavatar .face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
 .pavatar > .ball { --size: calc(var(--av) * .42); position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px #0A0A0A; }
 .pavatar.small > .ball .n { display: none; }
 
