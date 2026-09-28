@@ -35,6 +35,7 @@ import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { addBonus, leftToday } from './utils/chips';
 import { SHAME_STREAK } from './utils/shame';
+import { FightPoster, posterReason } from './components/FightPoster';
 import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { buildMatchRecap, MatchRecap } from './utils/recap';
@@ -117,6 +118,8 @@ export default function App() {
   } | null>(null);
   /** Badges and tiers the current player just unlocked, shown one at a time. */
   const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
+  /** The fight poster on screen, if any. */
+  const [posterId, setPosterId] = useState<string | null>(null);
 
   // Everything is scoped to the running season, so closing one genuinely
   // starts the table over instead of just relabelling it.
@@ -338,6 +341,28 @@ export default function App() {
   useEffect(() => {
     if (currentPlayer && !selectedPlayerAId) setSelectedPlayerAId(currentPlayer.id);
   }, [currentPlayer, selectedPlayerAId]);
+
+  // A big match going live puts its poster up by itself, once per phone.
+  useEffect(() => {
+    if (!currentPlayer || posterId) return;
+    let seen: string[] = [];
+    try {
+      seen = JSON.parse(localStorage.getItem('office_8ball_posters_seen') ?? '[]');
+    } catch {
+      seen = [];
+    }
+    const big = challenges.find(
+      (challenge) => challenge.status === 'live' && !seen.includes(challenge.id) && posterReason(challenge, players, seasonMatches, league.crown)
+    );
+    if (!big) return;
+    try {
+      localStorage.setItem('office_8ball_posters_seen', JSON.stringify([...seen, big.id].slice(-50)));
+    } catch {
+      // Remembering is a nicety; worst case the poster shows twice.
+    }
+    setPosterId(big.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenges, currentPlayer]);
 
   // The day's pairing is drawn by whichever phone opens the app first that day.
   const today = dayKeyOf(clock);
@@ -1066,6 +1091,22 @@ export default function App() {
               onSendChatMessage={handleSendChatMessage}
               onSubscribeChat={poolService.subscribeToChatMessages}
               onClose={() => setActiveLiveChallengeId(null)}
+              onPoster={() => setPosterId(liveChallenge.id)}
+            />
+          );
+        })()}
+
+        {posterId && !acceptedDuel && (() => {
+          const challenge = challenges.find((entry) => entry.id === posterId);
+          if (!challenge) return null;
+          return (
+            <FightPoster
+              challenge={challenge}
+              players={players}
+              matches={seasonMatches}
+              crown={league.crown}
+              pot={chips.pools.get(challenge.id) ?? 0}
+              onClose={() => setPosterId(null)}
             />
           );
         })()}

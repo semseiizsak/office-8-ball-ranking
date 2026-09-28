@@ -19,6 +19,7 @@ import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { Header } from './components/Header';
+import { FightPoster } from './components/FightPoster';
 import { Season } from './types';
 
 const NAMES = ['Ármin Kovács', 'Sarah Jenkins', 'Dave Bell', 'Priya Nair', 'Tom Oakes'];
@@ -173,6 +174,7 @@ const Harness: React.FC = () => {
   const [showDuel, setShowDuel] = useState(false);
   const [showSent, setShowSent] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
+  const [showPoster, setShowPoster] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -240,6 +242,8 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">activity</button>
           <button id="demo-toast" onClick={() => setShowToast(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">toast</button>
+          <button id="demo-poster" onClick={() => setShowPoster(true)}
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">poster</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
@@ -302,6 +306,9 @@ const Harness: React.FC = () => {
               onClose={() => setShowRecap(false)} onViewLeaderboard={() => setShowRecap(false)} />
           );
         })()}
+        {showPoster && (
+          <FightPoster challenge={liveChallenge} players={players} matches={seasonMatches} crown={league.crown} pot={140} onClose={() => setShowPoster(false)} />
+        )}
         {showSent && (
           <CalloutSentOverlay opponent={players[1]} winDelta={41} crownBounty={24}
             onComplete={() => setShowSent(false)} />

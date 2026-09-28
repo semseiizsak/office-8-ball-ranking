@@ -270,6 +270,8 @@ export const LiveMatchScreen: React.FC<{
   onSendChatMessage: (challengeId: string, text: string) => Promise<void>;
   onSubscribeChat: (challengeId: string, onChange: (messages: ChatMessage[]) => void) => () => void;
   onClose: () => void;
+  /** Opens the fight poster for this match. */
+  onPoster?: () => void;
 }> = ({
   challenge,
   players,
@@ -292,6 +294,7 @@ export const LiveMatchScreen: React.FC<{
   onSendChatMessage,
   onSubscribeChat,
   onClose,
+  onPoster,
 }) => {
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -406,6 +409,11 @@ export const LiveMatchScreen: React.FC<{
               </span>
             )}
             {pot > 0 && <span className="justify-self-center text-xs font-semibold tabular-nums text-white/70">🪙 {pot} chips in the pot</span>}
+            {onPoster && (
+              <button type="button" onClick={onPoster} className="press h-9 justify-self-center rounded-full bg-surface-alt px-4 text-[11px] font-extrabold uppercase tracking-[0.08em]">
+                🥊 Fight poster
+              </button>
+            )}
 
             <div className="grid gap-2">
               <CallSplit
