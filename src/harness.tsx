@@ -269,7 +269,10 @@ const Harness: React.FC = () => {
               seasons={[currentSeason, pastSeason]} currentPlayer={me} onEditWinner={async () => {}}
               onDelete={async () => {}} onEndSeason={async () => {}} onScheduleSeasonEnd={async () => {}} now={now}
               onReact={async () => {}} onOpenComments={() => () => {}}
-              onSubmitComment={async () => {}} onDeleteComment={async () => {}} />
+              onSubmitComment={async () => {}} onDeleteComment={async () => {}}
+              detail={{ challenges: [liveChallenge, ...challengesList], payouts: league.chips.payouts, dailies: [], tournaments: [harnessCup],
+                subscribeChat: (_id, cb) => { cb([{ id: 'c1', authorId: players[1].id, authorName: players[1].name, text: 'That 8 ball was filthy', createdAt: Date.now() - 600000 }, { id: 'c2', authorId: players[2].id, authorName: players[2].name, text: 'Rematch. Now.', createdAt: Date.now() - 300000 }]); return () => {}; },
+                subscribeCheers: (_id, cb) => { cb([{ id: 'h1', playerId: 'x', playerName: 'x', emoji: '🔥', createdAt: 0 }, { id: 'h2', playerId: 'y', playerName: 'y', emoji: '🔥', createdAt: 0 }, { id: 'h3', playerId: 'z', playerName: 'z', emoji: '😱', createdAt: 0 }]); return () => {}; } }} />
           ) : tab === 'leaderboard' ? (
             <LeaderboardView players={players} matches={seasonMatches} league={league}
               season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />

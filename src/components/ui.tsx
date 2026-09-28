@@ -216,3 +216,28 @@ export const BallPicker: React.FC<{ value: number; onChange: (n: number) => void
 export const fieldClass =
   'h-12 w-full rounded-xl bg-surface px-4 text-white outline-none placeholder:text-white/55 focus-visible:shadow-[inset_0_0_0_2px_#fff]';
 export const labelClass = 'grid gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55';
+
+/** Counts up from `from` to `to` once, ease-in-out, starting after `delay` ms. */
+export const CountUp: React.FC<{ to: number; from?: number; delay?: number }> = ({ to, from = 0, delay = 0 }) => {
+  const [value, setValue] = React.useState(from);
+  React.useEffect(() => {
+    // A hidden tab never paints a frame, so land on the number straight away.
+    if (document.hidden) {
+      setValue(to);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now() + delay;
+    const step = (now: number) => {
+      const k = Math.min(1, Math.max(0, (now - start) / 900));
+      const eased = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+      setValue(Math.round(from + (to - from) * eased));
+      if (k < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [to, from, delay]);
+  return <>{value}</>;
+};
+
+

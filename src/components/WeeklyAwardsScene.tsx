@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Player } from '../types';
 import { Award, WeekAwards } from '../utils/awards';
 import { ballColor, playerBall } from '../utils/balls';
-import { Ball, BallBurst, PlayerAvatar } from './ui';
+import { Ball, BallBurst, CountUp, PlayerAvatar } from './ui';
 
 const weekLabel = (from: number) => new Date(from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const first = (player?: Player | null) => player?.name.split(' ')[0] ?? '?';
@@ -19,24 +19,6 @@ type Page =
   | { kind: 'award'; award: Award; index: number }
   | { kind: 'podium' }
   | { kind: 'outro' };
-
-/** Counts up from zero once, for the numbers page. */
-const CountUp: React.FC<{ to: number; delay?: number }> = ({ to, delay = 0 }) => {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    let frame = 0;
-    const start = performance.now() + delay;
-    const step = (now: number) => {
-      const k = Math.min(1, Math.max(0, (now - start) / 900));
-      const eased = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
-      setValue(Math.round(to * eased));
-      if (k < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [to, delay]);
-  return <>{value}</>;
-};
 
 /** Emoji falling down the screen behind a funny award. */
 const Rain: React.FC<{ e: string }> = ({ e }) => {

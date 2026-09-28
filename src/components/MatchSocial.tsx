@@ -125,7 +125,7 @@ export const CommentsThread: React.FC<{
   };
 
   return (
-    <div className="anim-fade mt-3 grid gap-3 border-t border-white/10 pt-3">
+    <div className="anim-fade mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 border-t border-white/10 pt-3">
       {comments === null ? (
         <p className="text-center font-sans text-xs text-white/55">Loading comments…</p>
       ) : comments.length === 0 ? (

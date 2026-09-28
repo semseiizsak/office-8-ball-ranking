@@ -1119,6 +1119,14 @@ export default function App() {
                 onDeleteComment={(matchId, commentId) => poolService.deleteMatchComment(matchId, commentId)}
                 awards={awards}
                 onOpenAwards={setAwardsShown}
+                detail={{
+                  challenges,
+                  payouts: chips.payouts,
+                  dailies,
+                  tournaments,
+                  subscribeChat: poolService.subscribeToChatMessages,
+                  subscribeCheers: poolService.subscribeToCheers,
+                }}
               />
             </div>
           )}
