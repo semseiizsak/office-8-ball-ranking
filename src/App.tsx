@@ -33,7 +33,7 @@ import {
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { addBonus, leftToday } from './utils/chips';
+import { GRANTS, addBonus, leftToday } from './utils/chips';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { Tournament, deriveCups, resolveCup, weekTournament } from './utils/tournament';
@@ -158,8 +158,9 @@ export default function App() {
     const merged = { ...league.chips, records: new Map([...league.chips.records].map(([id, record]) => [id, { ...record }])) };
     for (const [id, record] of dailyRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const [id, record] of cupRecords) if (record.bonus) addBonus(merged, id, record.bonus);
+    for (const grant of GRANTS) for (const player of players) addBonus(merged, player.id, grant.amount);
     return merged;
-  }, [league.chips, dailyRecords, cupRecords]);
+  }, [league.chips, dailyRecords, cupRecords, players]);
 
   useEffect(() => {
     let cancelled = false;

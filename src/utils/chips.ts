@@ -21,6 +21,9 @@ export const DAILY_CHIPS = 100;
 export const STAKES = [10, 25, 50, 100] as const;
 export const BALL_TIP_COST = 10;
 
+/** One-off gifts to everyone on the roster, added to their stack. */
+export const GRANTS: Array<{ day: string; amount: number }> = [{ day: '2026-09-28', amount: 100 }];
+
 const dayKey = (at: number) => new Date(at).toDateString();
 
 /** What a prediction took out of the day's allowance. */
