@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
-import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
+import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
+import { BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
 import { ballColor, playerBall } from '../utils/balls';
 import { Ball, CallSplit, PlayerAvatar } from './ui';
 
@@ -15,7 +16,7 @@ interface ArenaViewProps {
   onIssueChallenge: () => void;
   onRespond: (challenge: Challenge, status: 'accepted' | 'declined') => Promise<void>;
   onCancel: (challenge: Challenge) => Promise<void>;
-  onPredict: (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => Promise<void>;
+  onPredict: (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
   /** Calls the match on: either player, no agreement step. */
   onStartChallenge: (challenge: Challenge) => Promise<void>;
@@ -24,8 +25,8 @@ interface ArenaViewProps {
   /** Puts a match on the table right now — the way most games actually start. */
   onInstantMatch: () => void;
   onSelectPlayer?: (player: Player) => void;
-  /** Calling records, rebuilt from every settled challenge. */
-  nerve: Map<string, NerveRecord>;
+  /** Office chips: wealth, pools and the jackpot. */
+  chips: ChipsState;
   /** Opens the full-screen live view — also driven from outside when a
    * match involving the current player goes live, not just from a tap. */
   onOpenLiveMatch: (challengeId: string) => void;
@@ -154,65 +155,79 @@ export const deriveChallengeView = (challenge: Challenge, players: Player[], cur
 const ghost = (id: string, name: string) => ({ id, name, avatarUrl: '' });
 
 /**
- * The two call buttons and the lock of the day, or what you called once you
- * have. Shared by the board cards and the live screen.
+ * Staking a call: pick how many chips, optionally tip the winner's balls for
+ * the jackpot, then tap who wins. Once cast it cannot be changed.
  */
 const CallControls: React.FC<{
   challenge: Challenge;
   myCall?: Prediction;
-  lockArmed: boolean;
-  lockUsedToday: boolean;
-  onToggleLock: () => void;
-  onCall: (playerId: string) => void;
+  /** Chips still available today. */
+  left: number;
+  onCall: (playerId: string, stake: number, ball?: 'solids' | 'stripes') => void;
   /** The two players' balls, for the colour dot on each button. */
   balls: [number, number];
   prefix?: string;
-}> = ({ challenge, myCall, lockArmed, lockUsedToday, onToggleLock, onCall, balls, prefix = '' }) => {
+}> = ({ challenge, myCall, left, onCall, balls, prefix = '' }) => {
+  const [stake, setStake] = useState<number>(Math.min(25, left) >= 10 ? (left >= 25 ? 25 : 10) : 0);
+  const [ball, setBall] = useState<'solids' | 'stripes' | null>(null);
   if (myCall) {
     const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
     return (
       <p className="text-[13px] text-white/70">
-        You called <b className="text-white">{first(pickedName)}</b>
-        {myCall.isLock ? ' as your lock 🔒' : ''}. Calls can't be switched.
+        You put <b className="text-white">{myCall.stake ?? 0} chips</b> on <b className="text-white">{first(pickedName)}</b>
+        {myCall.ball ? `, on ${myCall.ball} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );
   }
+  const cost = stake + (ball ? BALL_TIP_COST : 0);
+  const canAfford = cost <= left;
   const sides = [
     { id: challenge.challengerId, name: challenge.challengerName, ball: balls[0] },
     { id: challenge.opponentId, name: challenge.opponentName, ball: balls[1] },
   ];
+  const pill = (on: boolean, disabled?: boolean) =>
+    `press h-9 min-w-0 rounded-full px-3 text-xs font-extrabold tabular-nums transition-colors ${
+      on ? 'bg-white text-bg' : disabled ? 'bg-surface-alt text-white/30' : 'bg-surface-alt text-white hover:bg-[#2C2C2C]'
+    }`;
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2" onClick={(event) => event.stopPropagation()}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Stake</span>
+        <span className="text-xs font-semibold tabular-nums text-white/55">{left} of {DAILY_CHIPS} left today</span>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {STAKES.map((value) => (
+          <button key={value} type="button" aria-pressed={stake === value} disabled={value > left} onClick={() => setStake(value)} className={pill(stake === value, value > left)}>
+            {value}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Ball tip, +{BALL_TIP_COST} for the jackpot</span>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {([null, 'solids', 'stripes'] as const).map((value) => (
+          <button key={value ?? 'none'} type="button" aria-pressed={ball === value} onClick={() => setBall(value)} className={`${pill(ball === value)} flex items-center justify-center gap-1.5`}>
+            {value && <Ball n={value === 'solids' ? 1 : 9} size={16} />}
+            {value ?? 'No tip'}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {sides.map((side) => (
           <button
             key={side.id}
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onCall(side.id);
-            }}
-            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-surface-alt px-3 text-xs font-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[#2C2C2C]"
+            disabled={!canAfford || stake === 0}
+            onClick={() => onCall(side.id, stake, ball ?? undefined)}
+            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-3 text-xs font-extrabold uppercase tracking-[0.06em] text-bg disabled:bg-surface-alt disabled:text-white/40"
           >
             <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: ballColor(side.ball).c, boxShadow: side.ball === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }} />
             <span className="truncate">{prefix}{first(side.name)}</span>
           </button>
         ))}
       </div>
-      <button
-        type="button"
-        disabled={lockUsedToday}
-        aria-pressed={lockArmed}
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggleLock();
-        }}
-        className={`press h-11 justify-self-start rounded-full px-4 text-[11px] font-extrabold uppercase tracking-[0.1em] transition-colors ${
-          lockUsedToday ? 'bg-surface-alt text-white/40' : lockArmed ? 'bg-white text-bg' : 'bg-surface-alt text-white hover:bg-[#2C2C2C]'
-        }`}
-      >
-        {lockUsedToday ? '🔒 Lock used today' : lockArmed ? '🔒 Lock armed, counts double' : '🔒 Make this call my lock'}
-      </button>
+      {left < 10 && <p className="text-center text-xs font-semibold text-white/55">No chips left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>}
     </div>
   );
 };
@@ -237,8 +252,11 @@ export const LiveMatchScreen: React.FC<{
   challengerShare: number;
   challengerVoters: VoterInfo[];
   opponentVoters: VoterInfo[];
-  lockUsedToday: boolean;
-  onPredict: (predictedWinnerId: string, isLock: boolean) => void;
+  /** Chips still available today. */
+  chipsLeft: number;
+  /** Stakes riding on this match. */
+  pot?: number;
+  onPredict: (predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => void;
   onSelectPlayer?: (player: Player) => void;
   onPlayChallenge: () => void;
   onCancelLive: () => void;
@@ -258,7 +276,8 @@ export const LiveMatchScreen: React.FC<{
   forOpponent,
   challengerVoters,
   opponentVoters,
-  lockUsedToday,
+  chipsLeft,
+  pot = 0,
   onPredict,
   onSelectPlayer,
   onPlayChallenge,
@@ -269,7 +288,6 @@ export const LiveMatchScreen: React.FC<{
   onSubscribeChat,
   onClose,
 }) => {
-  const [lockArmed, setLockArmed] = useState(false);
   const [, setTick] = useState(0);
   useEffect(() => {
     const timer = window.setInterval(() => setTick((value) => value + 1), 1000);
@@ -382,6 +400,7 @@ export const LiveMatchScreen: React.FC<{
                 👑 {challenge.stakes.crownBounty} bounty riding
               </span>
             )}
+            {pot > 0 && <span className="justify-self-center text-xs font-semibold tabular-nums text-white/70">🪙 {pot} chips in the pot</span>}
 
             <div className="grid gap-2">
               <CallSplit
@@ -403,13 +422,8 @@ export const LiveMatchScreen: React.FC<{
               <CallControls
                 challenge={challenge}
                 myCall={myCall}
-                lockArmed={lockArmed}
-                lockUsedToday={lockUsedToday}
-                onToggleLock={() => setLockArmed((value) => !value)}
-                onCall={(id) => {
-                  onPredict(id, lockArmed && !lockUsedToday);
-                  setLockArmed(false);
-                }}
+                left={chipsLeft}
+                onCall={(id, stake, ball) => onPredict(id, stake, ball)}
                 prefix="Call "
                 balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
               />
@@ -527,11 +541,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onLogMatch,
   onInstantMatch,
   onSelectPlayer,
-  nerve,
+  chips,
   onOpenLiveMatch,
 }) => {
   const now = Date.now();
-  const [armedLockId, setArmedLockId] = useState<string | null>(null);
   /**
    * Starting writes to the server before the card can move to "live", so
    * there is a gap where the start button is still showing. Tracking it
@@ -553,15 +566,14 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     .sort((left, right) => right.createdAt - left.createdAt);
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
-  // Prediction standings: the second ladder, ranked on nerve, not accuracy.
-  const oracles = players
-    .map((player) => ({ player, record: nerve.get(player.id) }))
-    .filter((entry): entry is { player: Player; record: NerveRecord } => entry.record !== undefined && entry.record.total > 0)
-    .map((entry) => ({ ...entry, accuracy: Math.round((entry.record.correct / entry.record.total) * 100) }))
-    .sort((left, right) => right.record.nerve - left.record.nerve || right.record.total - left.record.total)
+  // The second ladder: who has won the most chips calling matches.
+  const richest = players
+    .map((player) => ({ player, record: chips.records.get(player.id) }))
+    .filter((entry): entry is { player: Player; record: NonNullable<typeof entry.record> } => !!entry.record && entry.record.bets + entry.record.jackpots > 0)
+    .sort((left, right) => right.record.chips - left.record.chips || right.record.wins - left.record.wins)
     .slice(0, 8);
 
-  const lockUsedToday = hasLockOnDay(challenges, currentPlayer.id, now);
+  const chipsLeft = leftToday(challenges, currentPlayer.id, now);
 
   const handleStart = async (challenge: Challenge) => {
     if (startingId) return;
@@ -581,9 +593,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     return () => window.clearInterval(timer);
   }, [live.length]);
 
-  const call = (challenge: Challenge, playerId: string) => {
-    void onPredict(challenge, playerId, armedLockId === challenge.id && !lockUsedToday);
-    setArmedLockId(null);
+  const call = (challenge: Challenge, playerId: string, stake: number, ball?: 'solids' | 'stripes') => {
+    void onPredict(challenge, playerId, stake, ball);
   };
 
   const matchLine = (challenge: Challenge, challenger?: Player, opponent?: Player) => (
@@ -614,7 +625,6 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   );
 
   const renderCard = (challenge: Challenge) => {
-    const lockArmed = armedLockId === challenge.id;
     const callsClosed = voteWindowRemaining(challenge, now) <= 0;
     const view = deriveChallengeView(challenge, players, currentPlayer);
     const { challenger, opponent, isPlayer, myCall } = view;
@@ -641,6 +651,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </div>
         )}
 
+        {(chips.pools.get(challenge.id) ?? 0) > 0 && (
+          <span className="text-xs font-semibold tabular-nums text-white/55">🪙 {chips.pools.get(challenge.id)} chips in the pot</span>
+        )}
+
         {challenge.status === 'pending' && (
           <span className="text-xs font-semibold text-white/55">
             {mine ? `Waiting for ${first(other)}. ${timeLeft(challenge.expiresAt, now)}` : `Waiting on ${first(challenge.opponentName)}. ${timeLeft(challenge.expiresAt, now)}`}
@@ -651,10 +665,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           <CallControls
             challenge={challenge}
             myCall={myCall}
-            lockArmed={lockArmed}
-            lockUsedToday={lockUsedToday}
-            onToggleLock={() => setArmedLockId(lockArmed ? null : challenge.id)}
-            onCall={(id) => call(challenge, id)}
+            left={chipsLeft}
+            onCall={(id, stake, ball) => call(challenge, id, stake, ball)}
             balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
           />
         )}
@@ -716,6 +728,18 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           Call out
         </button>
       </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
+        <span className="grid min-w-0 gap-0.5">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Jackpot</span>
+          <span className="text-xs font-semibold text-white/70">Call the winner and their balls to take it.</span>
+        </span>
+        <span className="flex flex-none items-center gap-2">
+          <Ball n={8} size={28} />
+          <span className="font-display text-[28px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
+        </span>
+      </div>
+      <span className="-mt-1 px-1 text-xs font-semibold text-white/55">You have {chipsLeft} of {DAILY_CHIPS} chips left to play today.</span>
 
       {forMe.length > 0 && (
         <section className="mt-2 grid gap-2">
@@ -830,15 +854,15 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
       )}
 
       <section className="mt-2 grid gap-2">
-        {sectionHead('Calling table', 'Nerve')}
-        {oracles.length === 0 ? (
+        {sectionHead('Richest', 'Chips won calling')}
+        {richest.length === 0 ? (
           <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">
-            Nobody has called a match yet. Everyone starts on {NERVE_BASE} nerve. Backing an underdog that comes in is worth far more than
-            backing the favourite. {NERVE_MIN_CALLS} calls earns you a shot at 🔮 The Oracle.
+            Nobody has won a chip yet. Everyone gets {DAILY_CHIPS} a day to put on matches. Back the underdog when nobody else does and the
+            whole pot is yours. {NERVE_MIN_CALLS} bets earns you a shot at 🔮 The Oracle.
           </p>
         ) : (
           <div className="stagger-rows grid gap-0.5">
-            {oracles.map((entry, index) => (
+            {richest.map((entry, index) => (
               <button
                 key={entry.player.id}
                 type="button"
@@ -853,10 +877,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                 <span className="grid min-w-0 gap-0.5">
                   <span className="truncate text-sm font-bold">{entry.player.name}</span>
                   <span className="text-xs font-semibold text-white/55">
-                    {entry.record.correct} of {entry.record.total} right, {entry.accuracy}%
+                    {entry.record.wins} of {entry.record.bets} bets won{entry.record.jackpots ? `, ${entry.record.jackpots} jackpot${entry.record.jackpots === 1 ? '' : 's'}` : ''}
                   </span>
                 </span>
-                <span className="text-[17px] font-black tabular-nums">{entry.record.nerve}</span>
+                <span className="text-[17px] font-black tabular-nums">{entry.record.chips}</span>
               </button>
             ))}
           </div>

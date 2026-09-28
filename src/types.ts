@@ -133,8 +133,12 @@ export interface Prediction {
   predictorName: string;
   predictedWinnerId: string;
   createdAt: number;
-  /** A call staked as the day's lock, settling for double either way. */
+  /** A call staked as the day's lock, settling for double either way. No longer offered. */
   isLock?: boolean;
+  /** Chips put on this call, out of the day's allowance. */
+  stake?: number;
+  /** Optional tip on the winner's group, which buys into the jackpot. */
+  ball?: 'solids' | 'stripes';
 }
 
 export interface Challenge {

@@ -369,18 +369,18 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
         <div className="flex justify-between text-sm font-black tabular-nums"><span>{wonMatches.length}</span><span>{lostMatches.length}</span></div>
       </div>
 
-      <Section title="Calling" aside="Predictions on other matches">
+      <Section title="Betting" aside="Chips on other matches">
         {nerve && nerve.total > 0 ? (
           <div className="grid grid-cols-3 gap-0.5 overflow-hidden rounded-2xl bg-card">
-            <Tile value={nerve.nerve} label="Nerve" />
-            <Tile value={nerve.total} label="Calls" />
+            <Tile value={context.chips.chips} label="Chips won" />
+            <Tile value={context.chips.bets} label="Bets" />
             <Tile value={Math.round((nerve.correct / nerve.total) * 100)} label="Hit rate" post="%" />
-            <Tile value={context.calls.lockHits} label={`Locks hit of ${context.calls.locks}`} />
-            <Tile value={context.calls.against} label="Against the room" />
-            <Tile value={nerve.bestStreak} label="Best run" />
+            <Tile value={context.chips.biggest} label="Biggest win" />
+            <Tile value={context.chips.jackpots} label="Jackpots" />
+            <Tile value={context.chips.lost} label="Chips lost" />
           </div>
         ) : (
-          <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">No calls yet. Call a live match from the arena and the numbers start here.</p>
+          <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">No bets yet. Put some chips on a match in the arena and the numbers start here.</p>
         )}
       </Section>
     </>

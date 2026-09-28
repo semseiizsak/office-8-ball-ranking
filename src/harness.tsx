@@ -197,7 +197,7 @@ const Harness: React.FC = () => {
   const league = deriveLeagueInsights(players, seasonMatches, challengesList, now);
   const me = players[2];
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => {
     setChallengesList((prev) =>
       prev.map((c) => {
         if (c.id !== challenge.id) return c;
@@ -211,7 +211,8 @@ const Harness: React.FC = () => {
               predictorId: me.id,
               predictorName: me.name,
               predictedWinnerId,
-              isLock,
+              stake,
+              ball,
               createdAt: Date.now(),
             },
           ],
@@ -254,7 +255,7 @@ const Harness: React.FC = () => {
               season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
-              nerve={nerveFixture} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
+              chips={league.chips} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}

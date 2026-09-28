@@ -1,4 +1,5 @@
 import { Challenge, MatchRecord, Player } from '../types';
+import { ChipRecord, deriveChips } from './chips';
 
 /**
  * Badges and tiered achievements, all derived from what is already stored:
@@ -29,7 +30,8 @@ export interface MatchEntry {
 export interface BadgeContext {
   player: Player;
   my: MatchEntry[];
-  calls: { total: number; hits: number; locks: number; lockHits: number; against: number };
+  calls: { total: number; hits: number; locks: number; lockHits: number; against: number; bigBet: number; worstDay: number };
+  chips: ChipRecord;
   ducks: number;
   startElo: number;
 }
@@ -89,7 +91,8 @@ export function buildBadgeContext(
       };
     });
 
-  const calls = { total: 0, hits: 0, locks: 0, lockHits: 0, against: 0 };
+  const calls = { total: 0, hits: 0, locks: 0, lockHits: 0, against: 0, bigBet: 0, worstDay: 0 };
+  const lostByDay: Record<string, number> = {};
   for (const challenge of challenges) {
     if (challenge.status !== 'played' || !challenge.resolvedWinnerId) continue;
     const mine = challenge.predictions.find((prediction) => prediction.predictorId === player.id);
@@ -100,10 +103,17 @@ export function buildBadgeContext(
     if (right) calls.hits++;
     if (mine.isLock) { calls.locks++; if (right) calls.lockHits++; }
     if (same < challenge.predictions.length - same) calls.against++;
+    calls.bigBet = Math.max(calls.bigBet, mine.stake ?? 0);
+    if (!right && mine.stake) {
+      const day = new Date(mine.createdAt).toDateString();
+      lostByDay[day] = (lostByDay[day] ?? 0) + mine.stake;
+      calls.worstDay = Math.max(calls.worstDay, lostByDay[day]);
+    }
   }
+  const chips = deriveChips(challenges, matches).records.get(player.id) ?? { chips: 0, lost: 0, bets: 0, wins: 0, jackpots: 0, biggest: 0 };
 
   const ducks = challenges.filter((challenge) => challenge.status === 'declined' && challenge.opponentId === player.id).length;
-  return { player, my, calls, ducks, startElo };
+  return { player, my, calls, chips, ducks, startElo };
 }
 
 const runOf = <T,>(items: T[], test: (item: T) => boolean) => {
@@ -177,7 +187,9 @@ export const BADGES: Badge[] = [
   { id: 'biggame', e: '💎', name: 'Big Game', desc: 'Collect a maxed out 60 point bounty.', test: (c) => c.my.some((x) => x.won && x.m.bountyCollected >= BOUNTY_CAP) },
   { id: 'herd', e: '🐑', name: 'Follow the Herd', desc: 'Make 10 calls with the majority.', test: (c) => c.calls.total - c.calls.against >= 10 },
   { id: 'lonewolf', e: '🐺', name: 'Lone Wolf', desc: 'Make 5 calls against the room.', test: (c) => c.calls.against >= 5 },
-  { id: 'lockstar', e: '🔒', name: 'Lock Star', desc: 'Hit 3 locks.', test: (c) => c.calls.lockHits >= 3 },
+  { id: 'highroller', e: '🎰', name: 'High Roller', desc: 'Put 100 chips on a single match.', test: (c) => c.calls.bigBet >= 100 },
+  { id: 'jackpot1', e: '💎', name: 'Jackpot!', desc: 'Call the winner and their balls, and take the jackpot.', test: (c) => c.chips.jackpots > 0 },
+  { id: 'payday', e: '🤑', name: 'Payday', desc: 'Win 200 chips on a single match.', test: (c) => c.chips.biggest >= 200 },
   { id: 'lucky8', e: '🎱', name: 'Lucky Eight', desc: 'Win for exactly +8.', secret: true, test: (c) => c.my.some((x) => x.won && x.gain === 8) },
   { id: 'textbook', e: '📐', name: 'Textbook', desc: 'Win for exactly +16 three times. The most average win there is.', secret: true, test: (c) => c.my.filter((x) => x.won && x.gain === 16).length >= 3 },
   { id: 'dejavu', e: '🔁', name: 'Déjà Vu', desc: 'Play the same person 3 times in one day.', secret: true, test: (c) => Object.values(c.my.reduce<Record<string, number>>((acc, x) => { const key = x.opp + x.d.toDateString(); acc[key] = (acc[key] ?? 0) + 1; return acc; }, {})).some((n) => n >= 3) },
@@ -189,7 +201,7 @@ export const BADGES: Badge[] = [
   { id: 'round', e: '🧮', name: 'Perfectionist', desc: 'Land on a round hundred, like exactly 1100.', secret: true, test: (c) => c.my.some((x) => x.eloAfter % 100 === 0) },
   { id: 'sabotage', e: '🙈', name: 'Self Sabotage', desc: 'Hit a new peak, then lose the next four straight.', secret: true, test: (c) => { let peak = c.startElo; return c.my.some((x, i) => { const top = x.eloAfter > peak; peak = Math.max(peak, x.eloAfter); return top && c.my.length > i + 4 && c.my.slice(i + 1, i + 5).every((y) => !y.won); }); } },
   { id: 'balanced', e: '⚖️', name: 'Perfectly Balanced', desc: 'Exactly as many wins as losses, after 10 or more matches.', secret: true, test: (c) => c.my.length >= 10 && c.my.filter((x) => x.won).length * 2 === c.my.length },
-  { id: 'clown', e: '🤡', name: 'Clown Call', desc: 'Lose a lock. Bold. Wrong.', secret: true, test: (c) => c.calls.locks - c.calls.lockHits > 0 },
+  { id: 'broke', e: '💸', name: 'Broke', desc: 'Lose the whole 100 in one day. Bold. Wrong.', secret: true, test: (c) => c.calls.worstDay >= 100 },
   { id: 'underdogday', e: '🐕', name: 'Underdog Day', desc: 'Win 3 upsets in one day.', secret: true, test: (c) => Object.values(byDay(c.my)).some((d) => d.up >= 3) },
 ];
 export const BADGE = Object.fromEntries(BADGES.map((badge) => [badge.id, badge]));
@@ -228,6 +240,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'losses', e: '🩹', name: 'Character Building', unit: 'losses', at: [5, 25, 75, 200, 500], names: ['Bruised', 'Humbled', 'Seasoned', 'Battle Scarred', 'Unbreakable Spirit'], v: (c) => c.my.filter((x) => !x.won).length },
   { id: 'days', e: '📅', name: 'Showing Up', unit: 'days played', at: [3, 10, 25, 60, 150], names: ['Drop In', 'Familiar Face', 'Fixture', 'Furniture', 'Load Bearing Wall'], v: (c) => new Set(c.my.map((x) => x.d.toDateString())).size },
   { id: 'opps', e: '🧭', name: 'Social Butterfly', unit: 'different opponents', at: [3, 6, 9, 15, 25], names: ['Small Circle', 'Networker', 'Mingler', 'Office Celebrity', "Everyone's Nemesis"], v: (c) => new Set(c.my.map((x) => x.opp)).size },
+  { id: 'chips', e: '🪙', name: 'Chip Stack', unit: 'chips won', at: [100, 500, 2000, 5000, 20000], names: ['Pocket Change', 'Stack Builder', 'High Roller', 'Casino Whale', 'The House'], v: (c) => c.chips.chips },
   { id: 'calls', e: '🔮', name: 'Crystal Ball', unit: 'correct calls', at: [3, 15, 50, 120, 300], names: ['Lucky Guess', 'Hunch Haver', 'Tea Leaf Reader', 'Seer', 'Nostradamus'], v: (c) => c.calls.hits },
 ];
 export const ACHIEVEMENT = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

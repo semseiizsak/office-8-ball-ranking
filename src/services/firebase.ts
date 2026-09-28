@@ -48,6 +48,7 @@ import {
   seasonDocId,
   callsOpen,
 } from '../utils/league';
+import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -552,6 +553,8 @@ const toPredictions = (data: Record<string, unknown> | undefined): Prediction[] 
       // Written since the lock shipped, but never read back — so the lock paid
       // single and never counted as used.
       isLock: entry?.isLock === true,
+      stake: Number(entry?.stake ?? 0) || undefined,
+      ball: entry?.ball === 'solids' || entry?.ball === 'stripes' ? (entry.ball as 'solids' | 'stripes') : undefined,
     }))
     .filter((prediction) => prediction.predictedWinnerId !== '')
     .sort((left, right) => left.createdAt - right.createdAt);
@@ -909,6 +912,8 @@ export async function addPrediction(params: {
   predictorName: string;
   predictedWinnerId: string;
   isLock?: boolean;
+  stake?: number;
+  ball?: 'solids' | 'stripes';
 }): Promise<void> {
   const challengeRef = doc(db, 'challenges', params.challengeId);
   const snap = await getDoc(challengeRef);
@@ -922,11 +927,21 @@ export async function addPrediction(params: {
   if (!callsOpen({ status: String(data?.status ?? ''), startedAt: timestampToMillis(data?.startedAt) }, Date.now())) {
     throw new Error('Calls are closed on this match.');
   }
+  // The day's allowance is checked against every call already cast today.
+  const stake = Math.max(0, Math.round(params.stake ?? 0));
+  const cost = stake + (params.ball ? BALL_TIP_COST : 0);
+  if (cost > 0) {
+    const all = await getDocs(challengesCollection);
+    const spent = spentOnDay(all.docs.map((entry) => toChallenge(entry.id, entry.data(), Date.now())), params.predictorId, Date.now());
+    if (spent + cost > DAILY_CHIPS) throw new Error(`Only ${Math.max(0, DAILY_CHIPS - spent)} chips left today.`);
+  }
   await updateDoc(challengeRef, {
     [`predictions.${params.predictorId}`]: {
       predictorName: params.predictorName,
       predictedWinnerId: params.predictedWinnerId,
-      isLock: params.isLock === true,
+      isLock: false,
+      ...(stake > 0 ? { stake } : {}),
+      ...(params.ball ? { ball: params.ball } : {}),
       createdAt: Date.now(),
     },
   });

@@ -1,5 +1,6 @@
 import { Challenge, MatchRecord, Player, Season } from '../types';
 import { calculateMatchElo } from './elo';
+import { ChipsState, deriveChips } from './chips';
 
 export const DAY_MS = 86_400_000;
 
@@ -329,6 +330,8 @@ export interface LeagueInsights {
   crown: CrownState;
   /** Calling records, rebuilt from every settled challenge. */
   nerve: Map<string, NerveRecord>;
+  /** Office chips: wealth, the jackpot and every payout, rebuilt from the calls. */
+  chips: ChipsState;
   titles: LeagueTitle[];
   titlesByPlayer: Map<string, LeagueTitle[]>;
   insights: Map<string, PlayerInsight>;
@@ -429,6 +432,7 @@ export function deriveLeagueInsights(
   };
 
   const nerve = deriveNerve(challenges, matches);
+  const chips = deriveChips(challenges, matches);
 
   // Going against the room only counts when the room was actually wrong.
   const contrarianCounts = new Map<string, number>();
@@ -536,15 +540,13 @@ export function deriveLeagueInsights(
       'the-oracle',
       'The Oracle',
       '🔮',
-      `Highest nerve rating over at least ${NERVE_MIN_CALLS} calls.`,
+      `Most office chips won calling matches, over at least ${NERVE_MIN_CALLS} bets.`,
       score((player) => {
-        // Only a rating built above the baseline counts, so nobody takes the
-        // title for sitting on the 1000 everyone starts with.
-        const record = nerve.get(player.id) ?? emptyNerve();
-        const eligible = record.total >= NERVE_MIN_CALLS && record.nerve > NERVE_BASE;
+        const record = chips.records.get(player.id);
+        const eligible = !!record && record.bets >= NERVE_MIN_CALLS;
         return {
-          value: eligible ? record.nerve : 0,
-          valueLabel: `${record.nerve} nerve`,
+          value: eligible ? record.chips : 0,
+          valueLabel: `${record?.chips ?? 0} chips`,
         };
       }),
       1
@@ -578,7 +580,7 @@ export function deriveLeagueInsights(
     titlesByPlayer.set(title.holderId, [...(titlesByPlayer.get(title.holderId) ?? []), title]);
   }
 
-  return { crown, nerve, titles, titlesByPlayer, insights };
+  return { crown, nerve, chips, titles, titlesByPlayer, insights };
 }
 
 export interface Rivalry {

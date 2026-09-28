@@ -87,7 +87,7 @@ export function earnedNotifications(params: {
         'prediction_result',
         right ? 'You called it' : 'Wrong call',
         `${winnerFirst} beat ${loserFirst}.` +
-          (prediction.isLock ? (right ? ' Your lock paid double.' : ' That was your lock.') : '')
+          (prediction.stake ? (right ? ' Your chips came in.' : ` ${prediction.stake} chips gone.`) : '')
       );
     }
   }

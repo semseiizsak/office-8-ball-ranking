@@ -33,7 +33,8 @@ import {
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
+import { leftToday } from './utils/chips';
+import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
@@ -714,7 +715,7 @@ export default function App() {
     });
   };
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => {
     if (!currentPlayer) return;
     const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
     if (alreadyVoted) return;
@@ -723,8 +724,9 @@ export default function App() {
       predictorId: currentPlayer.id,
       predictorName: currentPlayer.name,
       predictedWinnerId,
-      isLock,
-    });
+      stake,
+      ball,
+    }).catch((error) => alert(error instanceof Error ? error.message : 'Could not place that call.'));
   };
 
   const handlePlayChallenge = (challenge: Challenge) => {
@@ -865,7 +867,7 @@ export default function App() {
                 onStartChallenge={handleStartChallenge}
                 onLogMatch={() => openMatchLogger()}
                 onInstantMatch={() => setChallengeTarget({ mode: 'instant' })}
-                nerve={league.nerve}
+                chips={league.chips}
                 onOpenLiveMatch={setActiveLiveChallengeId}
               />
             </div>
@@ -989,8 +991,9 @@ export default function App() {
               challengerShare={view.challengerShare}
               challengerVoters={view.challengerVoters}
               opponentVoters={view.opponentVoters}
-              lockUsedToday={hasLockOnDay(challenges, currentPlayer.id, Date.now())}
-              onPredict={(predictedWinnerId, isLock) => void handlePredict(liveChallenge, predictedWinnerId, isLock)}
+              chipsLeft={leftToday(challenges, currentPlayer.id, Date.now())}
+              pot={league.chips.pools.get(liveChallenge.id) ?? 0}
+              onPredict={(predictedWinnerId, stake, ball) => void handlePredict(liveChallenge, predictedWinnerId, stake, ball)}
               onSelectPlayer={(player) => setDossierPlayer(player)}
               onPlayChallenge={() => handlePlayChallenge(liveChallenge)}
               onCancelLive={() => {

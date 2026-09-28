@@ -8,6 +8,7 @@ import { buildSeasonFinale, FINALE_WINDOW_MS } from '../src/utils/finale';
 import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
+import { deriveChips, spentOnDay } from '../src/utils/chips';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -371,6 +372,47 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const lastDay = buildSeasonFinale({ players: roster, crown, endsAt: T0 + 5 * 3_600_000, now: T0 + 3_600_000, viewerId: null });
   eq('finale: final day heading', [lastDay?.heading, lastDay?.finalDay], ['Final day', true]);
   eq('finale: no reader line without a viewer', lastDay?.lines.some((l) => l.kind === 'you'), false);
+}
+
+// --- office chips: every match is its own pool, the jackpot rolls ---
+{
+  const base = Date.UTC(2026, 8, 1, 10);
+  const mkMatch = (id: string, winnerId: string, loserId: string, at: number, winnerBall?: 'solids' | 'stripes') => ({
+    id, timestamp: at, playerAId: winnerId, playerAName: winnerId, playerBId: loserId, playerBName: loserId,
+    winnerId, loserId, playerAEloBefore: 1000, playerAEloAfter: 1016, playerBEloBefore: 1000, playerBEloAfter: 984,
+    eloDelta: 16, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false }, winnerBall,
+  });
+  const mkChallenge = (id: string, matchId: string, winnerId: string, at: number, bets: Array<[string, string, number, ('solids' | 'stripes')?]>) => ({
+    id, challengerId: 'A', challengerName: 'A', opponentId: 'B', opponentName: 'B', status: 'played' as const,
+    createdAt: at, expiresAt: at + 1, respondedAt: at, startedAt: at,
+    stakes: { challengerElo: 1000, opponentElo: 1000, challengerRank: 1, opponentRank: 2, challengerWinDelta: 16, opponentWinDelta: 16, challengerIsUnderdog: false, crownBounty: 0 },
+    matchId, resolvedWinnerId: winnerId,
+    predictions: bets.map(([who, pick, stake, ball]) => ({ id: who, predictorId: who, predictorName: who, predictedWinnerId: pick, createdAt: at, stake, ball })),
+  });
+  // x and y back A for 20 and 60, z backs B for 40. A wins: x gets 20 + 10, y gets 60 + 30.
+  const one = deriveChips(
+    [mkChallenge('c1', 'm1', 'A', base, [['x', 'A', 20], ['y', 'A', 60], ['z', 'B', 40]])],
+    [mkMatch('m1', 'A', 'B', base)]
+  );
+  eq('chips: winners share the losing stakes by what they put in', [one.records.get('x')!.chips, one.records.get('y')!.chips], [30, 90]);
+  eq('chips: a losing stake is gone', [one.records.get('z')!.chips, one.records.get('z')!.lost], [0, 40]);
+  // Nobody backs the winner: the pool feeds the jackpot.
+  const none = deriveChips([mkChallenge('c2', 'm2', 'B', base, [['x', 'A', 50]])], [mkMatch('m2', 'B', 'A', base)]);
+  eq('chips: a pool nobody won goes to the jackpot', none.jackpot, 50);
+  // Ball tips: two misses roll the jackpot on, then an exact call takes it all.
+  const rolled = deriveChips(
+    [
+      mkChallenge('c3', 'm3', 'A', base, [['x', 'A', 10, 'stripes'], ['y', 'B', 10, 'solids']]),
+      mkChallenge('c4', 'm4', 'A', base + 60_000, [['x', 'A', 10, 'solids'], ['y', 'A', 10, 'solids']]),
+    ],
+    [mkMatch('m3', 'A', 'B', base, 'solids'), mkMatch('m4', 'A', 'B', base + 60_000, 'solids')]
+  );
+  eq('chips: an exact call splits the rolled jackpot evenly', [rolled.records.get('x')!.jackpots, rolled.records.get('y')!.jackpots, rolled.jackpot], [1, 1, 0]);
+  eq('chips: every tip paid into the jackpot', rolled.payouts.get('c4')!.reduce((sum, p) => sum + p.jackpot, 0), 40);
+  // The daily allowance counts stakes and tips placed that day.
+  const today = [mkChallenge('c5', 'm5', 'A', base, [['x', 'A', 50, 'solids']])];
+  eq('chips: stake plus tip comes out of the day', spentOnDay(today, 'x', base + 3_600_000), 60);
+  eq('chips: tomorrow starts clean', spentOnDay(today, 'x', base + 86_400_000), 0);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);
