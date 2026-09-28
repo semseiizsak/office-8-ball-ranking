@@ -834,6 +834,7 @@ export default function App() {
                 league={league}
                 season={currentSeason}
                 currentPlayer={currentPlayer}
+                now={clock}
                 leaderboardChanges={leaderboardChanges}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}

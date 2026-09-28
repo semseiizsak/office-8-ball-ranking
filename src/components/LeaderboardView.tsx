@@ -3,6 +3,8 @@ import { ChevronRight, Moon, Search, UserPlus } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS, describeTimeLeft, isFinalDay } from '../utils/league';
 import { CollapsibleSection } from './CollapsibleSection';
+import { SeasonFinaleBanner } from './SeasonFinaleBanner';
+import { buildSeasonFinale } from '../utils/finale';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
 
@@ -12,6 +14,8 @@ interface LeaderboardViewProps {
   league: LeagueInsights;
   season: Season;
   currentPlayer: Player | null;
+  /** Ticks from the app clock so countdowns move without a re-render trigger. */
+  now: number;
   leaderboardChanges: Record<string, 'reordered' | 'woke'>;
   onSelectPlayer: (player: Player) => void;
   onChallenge: (player: Player) => void;
@@ -24,6 +28,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   league,
   season,
   currentPlayer,
+  now,
   leaderboardChanges,
   onSelectPlayer,
   onChallenge,
@@ -182,6 +187,14 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     );
   };
 
+  const finale = buildSeasonFinale({
+    players,
+    crown: league.crown,
+    endsAt: season.endsAt,
+    now,
+    viewerId: currentPlayer?.id ?? null,
+  });
+
   const visibleActive = active.filter(matchesQuery);
   const visibleDormant = dormant.filter(matchesQuery);
 
@@ -195,8 +208,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
             {season.name} • {active.length} active • {matches.length} played
             {season.endsAt && (
-              <span className={isFinalDay(season.endsAt, Date.now()) ? 'font-bold text-[#f59e0b]' : 'text-[#f59e0b]/80'}>
-                {' '}• {isFinalDay(season.endsAt, Date.now()) ? 'final day' : `ends in ${describeTimeLeft(season.endsAt, Date.now())}`}
+              <span className={isFinalDay(season.endsAt, now) ? 'font-bold text-[#f59e0b]' : 'text-[#f59e0b]/80'}>
+                {' '}• {isFinalDay(season.endsAt, now) ? 'final day' : `ends in ${describeTimeLeft(season.endsAt, now)}`}
               </span>
             )}
           </p>
@@ -211,6 +224,12 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           Add
         </button>
       </div>
+
+      {finale && (
+        <div className="px-1">
+          <SeasonFinaleBanner finale={finale} />
+        </div>
+      )}
 
       <div className="px-1">
         <CollapsibleSection

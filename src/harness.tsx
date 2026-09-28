@@ -117,7 +117,7 @@ const pastSeason: Season = {
 };
 const currentSeason: Season = {
   id: 's2', number: 2, name: 'Season 2',
-  startedAt: now - 60 * DAY_MS, endedAt: null, endsAt: now + 3 * DAY_MS + 4 * 3600_000,
+  startedAt: now - 60 * DAY_MS, endedAt: null, endsAt: now + DAY_MS + 5 * 3600_000 + 12 * 60_000,
   startingElo: {}, standings: [], titles: [],
 };
 
@@ -251,7 +251,7 @@ const Harness: React.FC = () => {
               onSubmitComment={async () => {}} onDeleteComment={async () => {}} />
           ) : tab === 'leaderboard' ? (
             <LeaderboardView players={players} matches={seasonMatches} league={league}
-              season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
+              season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
               nerve={nerveFixture} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}

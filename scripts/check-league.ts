@@ -4,6 +4,7 @@ import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
 import { buildMatchRecap } from '../src/utils/recap';
 import { earnedNotifications } from '../src/utils/earned';
+import { buildSeasonFinale, FINALE_WINDOW_MS } from '../src/utils/finale';
 import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
@@ -342,6 +343,34 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('earned: crown change reaches the uninvolved (minus the logger)', loud.map((n) => n.recipientPlayerId).sort(), ['low', 'mid', 'top']);
   eq('earned: winner hears it when someone else logged', loudById.get('low')?.title, 'Logged: you beat top');
   eq('earned: the personal reason beats the crown headline', loudById.get('top')?.type, 'match_result');
+}
+
+// --- the last two days, told forward ---
+{
+  const roster = ['king', 'close', 'third', 'fourth', 'far'].map(mkPlayer);
+  roster[0].elo = 1100; roster[1].elo = 1090; roster[2].elo = 1060; roster[3].elo = 1057; roster[4].elo = 950;
+  roster.forEach((p) => { p.wins = 8; p.losses = 4; });
+  const crown = { holderId: 'king', heldSince: T0, heldDays: 3, bounty: 9, defences: 1, idleDays: 3 };
+  const endsAt = T0 + 30 * 3_600_000;
+
+  eq('finale: silent with more than 48h left', buildSeasonFinale({ players: roster, crown, endsAt: T0 + FINALE_WINDOW_MS + 1, now: T0, viewerId: 'third' }), null);
+  eq('finale: silent once the season has ended', buildSeasonFinale({ players: roster, crown, endsAt: T0 - 1, now: T0, viewerId: 'third' }), null);
+  eq('finale: silent with no deadline', buildSeasonFinale({ players: roster, crown, endsAt: null, now: T0, viewerId: 'third' }), null);
+
+  const f = buildSeasonFinale({ players: roster, crown, endsAt, now: T0, viewerId: 'third' });
+  eq('finale: heading inside the window', f?.heading, 'Final 48 hours');
+  eq('finale: names who is one win from the crown', f?.contenderIds, ['close']);
+  eq('finale: crown line', f?.lines[0].text, "close can still take king's crown with one win and the 9 point bounty.");
+  eq('finale: reader line says what one win does', f?.lines[1].text?.startsWith('One win over close puts you at #2.'), true);
+  eq('finale: reader line warns about the player below', f?.lines[1].text?.endsWith('Lose to fourth and they finish above you.'), true);
+
+  const asKing = buildSeasonFinale({ players: roster, crown, endsAt, now: T0, viewerId: 'king' });
+  eq('finale: holder is told who can end it', asKing?.lines[1].text, 'You hold it. Lose to close and the season is theirs.');
+  eq('finale: tightest race skips the reader and the crown pair', asKing?.lines[2]?.text, '#3 is 3 points: third over fourth. One match settles it.');
+
+  const lastDay = buildSeasonFinale({ players: roster, crown, endsAt: T0 + 5 * 3_600_000, now: T0 + 3_600_000, viewerId: null });
+  eq('finale: final day heading', [lastDay?.heading, lastDay?.finalDay], ['Final day', true]);
+  eq('finale: no reader line without a viewer', lastDay?.lines.some((l) => l.kind === 'you'), false);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);
