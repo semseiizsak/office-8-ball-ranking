@@ -37,7 +37,9 @@ import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, D
 import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
-import { EightBallIcon } from './components/EightBallIcon';
+import { Ball } from './components/ui';
+import { buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
+import { BadgePop } from './components/BadgePop';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
 const LEADERBOARD_SNAPSHOT_KEY = 'office_8ball_leaderboard_snapshot_v1';
@@ -106,7 +108,10 @@ export default function App() {
     isUpset: boolean;
     crownChangedHands: boolean;
     recap?: MatchRecap;
+    unlockRows?: Array<[string, React.ReactNode]>;
   } | null>(null);
+  /** Badges and tiers the current player just unlocked, shown one at a time. */
+  const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
 
   // Everything is scoped to the running season, so closing one genuinely
   // starts the table over instead of just relabelling it.
@@ -368,9 +373,28 @@ export default function App() {
         leagueAfter,
       });
 
+      // What the result unlocked, for both players: badges and achievement tiers.
+      const unlockRows: Array<[string, React.ReactNode]> = [];
+      const myUnlocks: string[] = [];
+      for (const id of [result.match.winnerId, result.match.loserId]) {
+        const before = players.find((player) => player.id === id);
+        const after = result.players.find((player) => player.id === id);
+        if (!before || !after) continue;
+        const start = currentSeason.startingElo[id] ?? 1000;
+        const had = unlockKeys(buildBadgeContext(before, matches, challenges, start));
+        const fresh = [...unlockKeys(buildBadgeContext(after, matchesAfter, challenges, start))].filter((key) => !had.has(key));
+        for (const key of fresh) {
+          const unlock = describeUnlock(key);
+          if (!unlock) continue;
+          unlockRows.push([unlock.label, `${unlock.e} ${unlock.name}  ${after.name.split(' ')[0]}`]);
+          if (id === currentPlayer?.id) myUnlocks.push(key);
+        }
+      }
+
       setPlayers(result.players);
       setMatches((prev) => [result.match, ...prev]);
-      setMatchResult({ ...result, recap });
+      setMatchResult({ ...result, recap, unlockRows });
+      if (myUnlocks.length) setUnlockQueue((prev) => [...prev, ...myUnlocks]);
       setIsLoggerOpen(false);
 
       // Told only to the people the result happened to. Best effort: a
@@ -412,6 +436,7 @@ export default function App() {
     department?: string;
     title?: string;
     ballPreference: BallPreference;
+    ball?: number;
   }): Promise<Player> => {
     const newPlayer = await poolService.addPlayer(params);
     setPlayers((prev) => [...prev, newPlayer]);
@@ -430,7 +455,7 @@ export default function App() {
   };
 
   const handleSaveProfile = async (
-    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>
+    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball'>
   ) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);
@@ -763,21 +788,12 @@ export default function App() {
 
   if (showSplash || isLoading) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#0A0A0A] flex flex-col items-center justify-center p-6 text-center select-none">
-        <div className="relative mb-6">
-          <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse"></div>
-          <EightBallIcon size={72} className="relative shadow-2xl" />
-        </div>
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-tight">
-          OFFICE 8-BALL
-        </h1>
-        <p className="font-sans tabular-nums text-xs font-bold tracking-widest text-white uppercase mt-1">
-          POWER RANKINGS & ELO
-        </p>
-
-        <div className="mt-8 flex items-center gap-2 text-[11px] font-sans text-white/55">
-          <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
-          <span>CALIBRATING LEAGUE MATRIX...</span>
+      <div className="fixed inset-0 z-50 grid place-items-center bg-bg p-6 text-center select-none">
+        <div className="grid justify-items-center gap-5">
+          <span className="anim-pop [&>span]:animate-spin [&>span]:[animation-duration:1.4s]">
+            <Ball n={8} size={88} />
+          </span>
+          <p className="anim-fade text-xs font-extrabold uppercase tracking-[0.14em] text-white/55">Racking up</p>
         </div>
       </div>
     );
@@ -785,24 +801,13 @@ export default function App() {
 
   if (loadError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6">
-        <div className="w-full max-w-md rounded-2xl border border-white/40 bg-[#111111] p-6 text-center shadow-2xl">
-          <EightBallIcon size={48} className="mx-auto" />
-          <h1 className="mt-4 font-display text-xl font-black tracking-tight text-white">
-            Can't reach the league
-          </h1>
-          <p className="mt-2 font-sans text-sm leading-relaxed text-white/70">
-            The app loaded, but the database did not answer. Check the Firebase project settings and
-            that Firestore is enabled.
-          </p>
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#0A0A0A] p-3 text-left font-sans tabular-nums text-[11px] text-[#FF6B7D]">
-            {loadError}
-          </pre>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-4 w-full rounded-xl bg-white px-4 py-2.5 font-display text-sm font-bold text-[#0A0A0A]"
-          >
+      <div className="grid min-h-screen place-items-center bg-bg p-6">
+        <div className="grid w-full max-w-md justify-items-center gap-3 rounded-2xl bg-card p-6 text-center">
+          <Ball n={8} size={64} />
+          <h1 className="text-2xl">Can't reach the league</h1>
+          <p className="text-sm text-white/70">The app loaded, but the database did not answer. Check the Firebase project settings and that Firestore is enabled.</p>
+          <pre className="w-full overflow-x-auto rounded-xl bg-surface p-3 text-left text-[11px] tabular-nums text-white/70">{loadError}</pre>
+          <button type="button" onClick={() => window.location.reload()} className="press h-12 w-full rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
             Try again
           </button>
         </div>
@@ -815,19 +820,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex justify-center selection:bg-white/30 selection:text-white">
-      <div className="w-full max-w-md min-h-screen bg-[#0A0A0A] border-x border-white/14 flex flex-col relative shadow-2xl">
+    <div className="flex min-h-screen justify-center bg-bg text-white">
+      <div className="relative flex min-h-screen w-full max-w-md flex-col bg-bg">
         <Header
           activeTab={activeTab}
           currentUser={currentPlayer}
           matchesCount={matches.length}
-          onOpenProfile={() => setShowProfile(true)}
+          onOpenProfile={() => setDossierPlayer(currentPlayer)}
           onQuickMatch={() => setShowQuickMatch(true)}
           activityBadge={activityBadge}
           onOpenActivity={openActivity}
         />
 
-        <main className="flex-1 overflow-x-hidden px-4 pt-3 pb-[var(--safe-bottom)]">
+        <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[var(--safe-bottom)]">
           {activeTab === 'leaderboard' && (
             <div className="anim-fade">
               <LeaderboardView
@@ -915,10 +920,21 @@ export default function App() {
           league={league}
           onClose={() => setDossierPlayer(null)}
           onChallenge={handleChallenge}
+          allMatches={matches}
+          challenges={challenges}
+          startingElo={currentSeason.startingElo}
+          currentPlayerId={currentPlayer.id}
+          onSelectPlayer={(player) => setDossierPlayer(player)}
+          onEditProfile={() => {
+            setDossierPlayer(null);
+            setShowProfile(true);
+          }}
         />
 
         <MatchSuccessModal
           result={matchResult}
+          winner={matchResult ? players.find((player) => player.id === matchResult.match.winnerId) ?? null : null}
+          extraRows={matchResult?.unlockRows}
           onClose={() => setMatchResult(null)}
           onViewLeaderboard={() => {
             setMatchResult(null);
@@ -989,6 +1005,10 @@ export default function App() {
             />
           );
         })()}
+
+        {!matchResult && unlockQueue.length > 0 && (
+          <BadgePop key={unlockQueue[0]} unlockKey={unlockQueue[0]} onDone={() => setUnlockQueue((prev) => prev.slice(1))} />
+        )}
 
         {showActivity && (
           <ActivitySheet

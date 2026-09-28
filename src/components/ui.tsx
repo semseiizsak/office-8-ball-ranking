@@ -191,3 +191,28 @@ export const StakeTiles: React.FC<{ win: number; lose: number; winNote?: string;
     </div>
   </div>
 );
+
+/** All fifteen balls to pick from. The player's colour everywhere comes from this. */
+export const BallPicker: React.FC<{ value: number; onChange: (n: number) => void }> = ({ value, onChange }) => (
+  <div className="grid grid-cols-5 justify-items-center gap-1.5" role="radiogroup" aria-label="Pick a ball">
+    {Array.from({ length: 15 }, (_, index) => index + 1).map((n) => (
+      <button
+        key={n}
+        type="button"
+        role="radio"
+        aria-checked={value === n}
+        aria-label={`Ball ${n}`}
+        onClick={() => onChange(n)}
+        className={`grid h-[50px] w-[50px] place-items-center rounded-full transition-shadow duration-300 ease-[var(--ease)] [&>span]:transition-transform [&>span]:duration-300 hover:[&>span]:-rotate-[25deg] ${
+          value === n ? 'shadow-[0_0_0_2px_#fff]' : ''
+        }`}
+      >
+        <Ball n={n} size={40} />
+      </button>
+    ))}
+  </div>
+);
+
+export const fieldClass =
+  'h-12 w-full rounded-xl bg-surface px-4 text-white outline-none placeholder:text-white/55 focus-visible:shadow-[inset_0_0_0_2px_#fff]';
+export const labelClass = 'grid gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55';

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Plus, Check, UserRound } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { BallPreference, Player } from '../types';
+import { Ball, BallPicker, PlayerAvatar, fieldClass, labelClass } from './ui';
 
 interface IdentityPickerProps {
   players: Player[];
   onSelect: (player: Player) => void;
-  onAdd: (params: { name: string; ballPreference: BallPreference }) => Promise<Player>;
+  onAdd: (params: { name: string; ballPreference: BallPreference; ball?: number }) => Promise<Player>;
 }
 
+/** The first screen on a new phone: pick yourself once. No password, the office trusts you. */
 export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelect, onAdd }) => {
   const [showAdd, setShowAdd] = useState(players.length === 0);
   const [name, setName] = useState('');
-  const [ballPreference, setBallPreference] = useState<BallPreference>('solids');
+  const [ball, setBall] = useState(9);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,7 +23,7 @@ export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelec
     try {
       setIsSaving(true);
       setError('');
-      const player = await onAdd({ name: name.trim(), ballPreference });
+      const player = await onAdd({ name: name.trim(), ball, ballPreference: ball > 8 ? 'stripes' : 'solids' });
       onSelect(player);
     } catch {
       setError('Could not create your player. Please try again.');
@@ -30,84 +32,64 @@ export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelec
     }
   };
 
+  const sorted = [...players].sort((a, b) => b.elo - a.elo);
+  const button = 'press flex h-12 w-full items-center justify-center gap-2 rounded-full text-[13px] font-extrabold uppercase tracking-[0.06em] disabled:opacity-50';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A0A0A] px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0A0A0A] p-5 shadow-2xl">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-white">
-            <UserRound className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-display text-xl font-black text-white">Who are you?</h2>
-            <p className="text-xs text-white/55">Choose your league profile for this device.</p>
-          </div>
+    <div className="min-h-screen bg-bg">
+      <div className="mx-auto grid w-full max-w-md gap-4 px-3 pb-[calc(var(--safe-bottom)+1.5rem)] pt-[calc(var(--safe-top)+2.5rem)]">
+        <div className="flex justify-center gap-1" aria-hidden="true">
+          {[1, 9, 8, 3, 11].map((n, index) => (
+            <Ball key={n} n={n} size={40} className="callout-throw" style={{ animationDuration: '640ms', animationDelay: `${index * 70}ms` }} />
+          ))}
         </div>
+        <h1 className="anim-rise text-center text-[52px] [animation-delay:260ms]">{showAdd ? "You're new" : "Who's playing?"}</h1>
+        <p className="anim-rise text-center text-white/70 [animation-delay:340ms]">
+          {showAdd ? 'A name and a ball. Everyone starts on 1000.' : 'Pick yourself once on this phone. No password, the office trusts you.'}
+        </p>
 
-        {!showAdd && (
-          <div className="space-y-2">
-            {players.map((player) => (
-              <button
-                key={player.id}
-                type="button"
-                onClick={() => onSelect(player)}
-                className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-[#111111] p-3 text-left transition-colors hover:border-white hover:bg-[#171717]"
-              >
-                {player.avatarUrl ? (
-                  <img src={player.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#222222] font-display font-bold text-white">
-                    {player.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <span className="flex-1">
-                  <span className="block font-display text-sm font-bold text-white">{player.name}</span>
-                  <span className="block font-sans tabular-nums text-[10px] text-white/55">{player.elo} ELO</span>
-                </span>
-                <Check className="h-4 w-4 text-white/55" />
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setShowAdd(true)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/60 p-3 font-display text-sm font-bold text-white hover:bg-white/10"
-            >
-              <Plus className="h-4 w-4" /> Add a new player
-            </button>
-          </div>
-        )}
-
-        {showAdd && (
-          <form onSubmit={handleAdd} className="space-y-3">
-            <label className="block text-xs font-medium text-white/55">
-              Your name
-              <input
-                autoFocus
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-[#111111] px-3 py-3 text-sm text-white outline-none focus:border-white"
-                placeholder="e.g. Roland Varga"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['solids', 'stripes'] as const).map((preference) => (
+        {!showAdd ? (
+          <>
+            <div className="stagger-rows grid gap-0.5">
+              {sorted.map((player, index) => (
                 <button
-                  key={preference}
+                  key={player.id}
                   type="button"
-                  onClick={() => setBallPreference(preference)}
-                  className={`rounded-xl border px-3 py-2 text-xs font-bold capitalize ${ballPreference === preference ? 'border-white bg-white/15 text-white' : 'border-white/10 bg-[#111111] text-white/55'}`}
+                  onClick={() => onSelect(player)}
+                  style={{ ['--j' as string]: Math.min(index, 12) }}
+                  className="press grid min-h-[54px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-left hover:bg-[#161616]"
                 >
-                  {preference}
+                  <PlayerAvatar player={player} size={34} />
+                  <span className="grid min-w-0">
+                    <span className="truncate text-sm font-bold">{player.name}</span>
+                    {player.department && <span className="truncate text-xs font-semibold text-white/55">{player.department}</span>}
+                  </span>
+                  <span className="text-[17px] font-black tabular-nums">{player.elo}</span>
                 </button>
               ))}
             </div>
-            {error && <p className="text-xs text-[#FF6B7D]">{error}</p>}
-            <button disabled={isSaving || !name.trim()} className="w-full rounded-xl bg-white px-4 py-3 font-display text-sm font-bold text-[#0A0A0A] disabled:opacity-50">
-              {isSaving ? 'Creating...' : 'Create and continue'}
+            <button type="button" onClick={() => setShowAdd(true)} className={`${button} bg-surface-alt`}>
+              <UserPlus className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              I'm new here
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleAdd} className="anim-rise grid gap-4">
+            <label className={labelClass}>
+              Your name
+              <input autoFocus required value={name} onChange={(event) => setName(event.target.value)} placeholder="First name" className={fieldClass} />
+            </label>
+            <div className={labelClass}>
+              Pick a ball
+              <BallPicker value={ball} onChange={setBall} />
+            </div>
+            {error && <p role="alert" className="text-sm font-bold">{error}</p>}
+            <button type="submit" disabled={isSaving || !name.trim()} className={`${button} bg-white text-bg`}>
+              {isSaving ? 'Creating' : "Let's play"}
             </button>
             {players.length > 0 && (
-              <button type="button" onClick={() => setShowAdd(false)} className="w-full py-2 text-xs text-white/55 hover:text-white">
-                Back to player list
+              <button type="button" onClick={() => setShowAdd(false)} className={`${button} bg-surface-alt`}>
+                Back to the list
               </button>
             )}
           </form>

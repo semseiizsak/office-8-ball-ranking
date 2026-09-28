@@ -90,4 +90,5 @@ export type AddPlayerParams = {
   department?: string;
   title?: string;
   ballPreference: BallPreference;
+  ball?: number;
 };
