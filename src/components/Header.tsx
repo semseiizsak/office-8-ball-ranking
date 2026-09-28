@@ -10,8 +10,9 @@ interface HeaderProps {
   matchesCount: number;
   onOpenProfile: () => void;
   onQuickMatch: () => void;
-  challengeBadge?: number;
-  onOpenChallengeInbox: () => void;
+  /** Unread messages plus callouts still waiting on an answer. */
+  activityBadge?: number;
+  onOpenActivity: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,8 +21,8 @@ export const Header: React.FC<HeaderProps> = ({
   matchesCount,
   onOpenProfile,
   onQuickMatch,
-  challengeBadge = 0,
-  onOpenChallengeInbox,
+  activityBadge = 0,
+  onOpenActivity,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -81,13 +82,13 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Activity / Notification Bell */}
           <div className="relative">
             <button
-              onClick={onOpenChallengeInbox}
-              title="Challenge invitations"
+              onClick={onOpenActivity}
+              title="Activity"
               className="w-9 h-9 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center text-[#86948a] hover:text-white transition-colors relative"
             >
               <Bell className="w-4 h-4" />
-              {challengeBadge > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ffb95f] px-1 font-['JetBrains_Mono'] text-[9px] font-black text-[#2a1700] ring-2 ring-[#10141a]">{challengeBadge}</span>
+              {activityBadge > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ffb95f] px-1 font-['JetBrains_Mono'] text-[9px] font-black text-[#2a1700] ring-2 ring-[#10141a]">{activityBadge > 9 ? '9+' : activityBadge}</span>
               )}
             </button>
 

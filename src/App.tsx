@@ -22,7 +22,17 @@ import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
 import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
-import { notifyMany, registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
+import {
+  LeagueNotification,
+  markInboxRead,
+  notifyMany,
+  registerForPushNotifications,
+  sendEarnedNotifications,
+  sendNotification,
+  subscribeToInbox,
+} from './services/notifications';
+import { earnedNotifications } from './utils/earned';
+import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
@@ -69,6 +79,9 @@ export default function App() {
   const [sentCallout, setSentCallout] = useState<{ opponent: Player; winDelta: number; crownBounty: number } | null>(null);
   const [acceptedCallout, setAcceptedCallout] = useState<Challenge | null>(null);
   const [showChallengeInbox, setShowChallengeInbox] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
+  const [inbox, setInbox] = useState<LeagueNotification[]>([]);
+  const [toast, setToast] = useState<LeagueNotification | null>(null);
   const [leaderboardChanges, setLeaderboardChanges] = useState<Record<string, 'reordered' | 'woke'>>({});
   /** Incoming challenges the user chose to answer later, this session. */
   const [snoozedChallengeIds, setSnoozedChallengeIds] = useState<string[]>([]);
@@ -254,11 +267,51 @@ export default function App() {
   useEffect(() => {
     if (!currentPlayer) return;
     void registerForPushNotifications(currentPlayer.id).catch(() => undefined);
-    if (typeof Notification === 'undefined') return;
-    return subscribeToSparkNotifications(currentPlayer.id, (title, body) => {
-      if (Notification.permission === 'granted') new Notification(title, { body });
+    return subscribeToInbox(currentPlayer.id, (items, arrived) => {
+      setInbox(items);
+      const latest = arrived[0];
+      if (!latest) return;
+      // Eyes on the app: land it in the app. Eyes elsewhere: the phone can say it.
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        setToast(latest);
+      } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(latest.title, { body: latest.body });
+      }
     });
   }, [currentPlayer]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 5_000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const openActivity = () => {
+    setToast(null);
+    setShowActivity(true);
+  };
+
+  const closeActivity = () => {
+    setShowActivity(false);
+    // Seen is seen. Reading a note does not need a tap per line.
+    void markInboxRead(inbox.filter((item) => !item.read).map((item) => item.id)).catch(() => undefined);
+  };
+
+  const handleSelectActivity = (item: LeagueNotification) => {
+    closeActivity();
+    if (item.challengeId) {
+      const challenge = challenges.find((entry) => entry.id === item.challengeId);
+      if (challenge && (challenge.status === 'live' || challenge.status === 'accepted')) {
+        setActiveTab('arena');
+        return;
+      }
+      if (challenge && challenge.status === 'pending') {
+        setShowChallengeInbox(true);
+        return;
+      }
+    }
+    setActiveTab(item.type === 'prediction_result' || item.type === 'match_live' ? 'arena' : 'leaderboard');
+  };
 
   // You are almost always one of the two people in a match you are logging.
   // Defaulting to the top of the table instead made a stray tap credit a result
@@ -317,6 +370,20 @@ export default function App() {
       setMatches((prev) => [result.match, ...prev]);
       setMatchResult({ ...result, recap });
       setIsLoggerOpen(false);
+
+      // Told only to the people the result happened to. Best effort: a
+      // missed message is not a reason to fail the log.
+      void sendEarnedNotifications(
+        earnedNotifications({
+          match: result.match,
+          recap,
+          players: result.players,
+          challenge: challenges.find((challenge) => challenge.id === activeChallengeId) ?? null,
+          crownChangedHands: result.crownChangedHands,
+          loggedBy: currentPlayer.id,
+        }),
+        result.match.id
+      ).catch((error) => console.warn('Result notifications not delivered:', error));
 
       if (activeChallengeId) {
         // Settling the challenge books every spectator's call, so the player
@@ -689,6 +756,8 @@ export default function App() {
           (challenge.opponentId === currentPlayer.id || challenge.challengerId === currentPlayer.id)
       ).length
     : 0;
+  const unreadCount = inbox.filter((item) => !item.read).length;
+  const activityBadge = unreadCount + (incomingChallenge ? 1 : 0);
 
   if (showSplash || isLoading) {
     return (
@@ -752,8 +821,8 @@ export default function App() {
           matchesCount={matches.length}
           onOpenProfile={() => setShowProfile(true)}
           onQuickMatch={() => setShowQuickMatch(true)}
-          challengeBadge={arenaBadge}
-          onOpenChallengeInbox={() => setShowChallengeInbox(true)}
+          activityBadge={activityBadge}
+          onOpenActivity={openActivity}
         />
 
         <main className="flex-1 overflow-x-hidden px-4 pt-3 pb-[var(--safe-bottom)]">
@@ -917,6 +986,24 @@ export default function App() {
             />
           );
         })()}
+
+        {showActivity && (
+          <ActivitySheet
+            items={inbox}
+            pendingChallenge={incomingChallenge}
+            now={clock}
+            onOpenChallenge={() => {
+              closeActivity();
+              setShowChallengeInbox(true);
+            }}
+            onSelect={handleSelectActivity}
+            onClose={closeActivity}
+          />
+        )}
+
+        {toast && !showActivity && (
+          <ActivityToast item={toast} onOpen={openActivity} onDismiss={() => setToast(null)} />
+        )}
 
         {showChallengeInbox && challengeInbox && !acceptedDuel && !declinedDuel && (
           <IncomingChallengeModal

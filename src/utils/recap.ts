@@ -7,8 +7,10 @@ export interface RankMove {
   after: number;
   /** First names of the people this player moved past. */
   passed: string[];
+  passedIds: string[];
   /** First names of the people who moved past this player. */
   passedBy: string[];
+  passedByIds: string[];
 }
 
 export interface RecapSide {
@@ -76,15 +78,20 @@ export function buildMatchRecap(params: {
     const beforeRank = hadPlayed(id) && wasAt >= 0 ? wasAt + 1 : null;
     const afterRank = isAt + 1;
     // Anyone above you before and below you now, you went past — and the other way round.
-    const passed = after
+    const passedIds = after
       .slice(isAt + 1)
-      .filter((other) => other !== id && before.indexOf(other) >= 0 && before.indexOf(other) < wasAt)
-      .map(nameOf);
-    const passedBy = after
+      .filter((other) => other !== id && before.indexOf(other) >= 0 && before.indexOf(other) < wasAt);
+    const passedByIds = after
       .slice(0, isAt)
-      .filter((other) => other !== id && before.indexOf(other) > wasAt)
-      .map(nameOf);
-    return { before: beforeRank, after: afterRank, passed, passedBy };
+      .filter((other) => other !== id && before.indexOf(other) > wasAt);
+    return {
+      before: beforeRank,
+      after: afterRank,
+      passed: passedIds.map(nameOf),
+      passedIds,
+      passedBy: passedByIds.map(nameOf),
+      passedByIds,
+    };
   };
 
   const side = (id: string, delta: number): RecapSide => {

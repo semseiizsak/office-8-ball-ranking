@@ -1,6 +1,16 @@
 import { getToken, isSupported, onMessage } from 'firebase/messaging';
-import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
 import { db, getMessagingOrNull } from './firebase';
+import { EarnedNotification } from '../utils/earned';
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
@@ -9,9 +19,40 @@ export type LeagueNotificationType =
   | 'challenge_answered'
   /** A match just went on the table; calls are open. */
   | 'match_live'
+  | 'match_result'
   | 'crown_taken'
   | 'rank_change'
   | 'prediction_result';
+
+/** One addressed message as the inbox shows it. */
+export interface LeagueNotification {
+  id: string;
+  type: LeagueNotificationType;
+  title: string;
+  body: string;
+  challengeId?: string;
+  matchId?: string;
+  createdAt: number;
+  read: boolean;
+}
+
+/** How many the bell keeps; older ones stay in Firestore but nobody scrolls that far. */
+export const INBOX_LIMIT = 40;
+
+const toNotification = (id: string, data: Record<string, unknown>): LeagueNotification => {
+  const created = data.createdAt as { toMillis?: () => number } | null | undefined;
+  return {
+    id,
+    type: (data.type as LeagueNotificationType) ?? 'match_result',
+    title: String(data.title ?? 'Office 8-Ball'),
+    body: String(data.body ?? ''),
+    ...(typeof data.challengeId === 'string' ? { challengeId: data.challengeId } : {}),
+    ...(typeof data.matchId === 'string' ? { matchId: data.matchId } : {}),
+    // A locally pending write has no server time yet; it is by definition "now".
+    createdAt: created?.toMillis ? created.toMillis() : Date.now(),
+    read: data.read === true,
+  };
+};
 
 export async function registerForPushNotifications(playerId: string): Promise<boolean> {
   if (!vapidKey || !(await isSupported())) return false;
@@ -50,36 +91,62 @@ export function subscribeToForegroundNotifications(onNotification: (title: strin
 }
 
 /**
- * Listens only for notifications addressed to this player.
+ * The inbox: everything addressed to this player, newest first, plus the
+ * messages that arrived while the app was open so they can be surfaced as
+ * they land.
  *
  * Deliberately does not watch the matches collection: every logged match firing
  * a notification at everybody is how an office mutes an app in week two. What
  * reaches a phone now is only what someone decided was worth sending.
  */
-export function subscribeToSparkNotifications(
+export function subscribeToInbox(
   playerId: string,
-  onNotification: (title: string, body: string) => void
+  onChange: (inbox: LeagueNotification[], arrived: LeagueNotification[]) => void
 ) {
   let ready = false;
 
   return onSnapshot(
     query(collection(db, 'notifications'), where('recipientPlayerId', '==', playerId)),
     (snapshot) => {
-      if (!ready) {
-        ready = true;
-        return;
-      }
-      snapshot.docChanges()
-        .filter((change) => change.type === 'added')
-        .forEach((change) => {
-          const data = change.doc.data();
-          onNotification(
-            String(data.title ?? 'Office 8-Ball'),
-            String(data.body ?? 'You have a new league update.')
-          );
-        });
+      const inbox = snapshot.docs
+        .map((entry) => toNotification(entry.id, entry.data()))
+        .sort((left, right) => right.createdAt - left.createdAt)
+        .slice(0, INBOX_LIMIT);
+      const arrived = ready
+        ? snapshot.docChanges()
+            .filter((change) => change.type === 'added')
+            .map((change) => toNotification(change.doc.id, change.doc.data()))
+        : [];
+      ready = true;
+      onChange(inbox, arrived);
     }
   );
+}
+
+/** Marks what the reader has now seen; a no-op when everything already is. */
+export async function markInboxRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const batch = writeBatch(db);
+  ids.forEach((id) => batch.update(doc(db, 'notifications', id), { read: true }));
+  await batch.commit();
+}
+
+/** Writes the whole set a result earned in one commit, so nobody hears half of it. */
+export async function sendEarnedNotifications(items: EarnedNotification[], matchId: string): Promise<void> {
+  if (items.length === 0) return;
+  const batch = writeBatch(db);
+  for (const item of items) {
+    batch.set(doc(collection(db, 'notifications')), {
+      type: item.type,
+      recipientPlayerId: item.recipientPlayerId,
+      title: item.title,
+      body: item.body,
+      matchId,
+      createdAt: serverTimestamp(),
+      read: false,
+    });
+  }
+  await batch.commit();
 }
 
 /** Writes one addressed notification. Cloud Functions relays it to devices. */

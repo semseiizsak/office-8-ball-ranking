@@ -3,6 +3,7 @@ import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
 import { buildMatchRecap } from '../src/utils/recap';
+import { earnedNotifications } from '../src/utils/earned';
 import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
@@ -308,6 +309,39 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
     matchesAfter: [recapMatch], challenge: called, leagueBefore: leagueEmpty, leagueAfter: leagueEmpty, now: T0 + 50 * DAY_MS,
   });
   eq('recap: splits callers by whether they were right', [withCalls.calls?.right, withCalls.calls?.wrong], [['a', 'c'], ['b']]);
+}
+
+// --- who a result is worth telling ---
+{
+  const roster = ['top', 'mid', 'low', 'idle'].map(mkPlayer);
+  roster[0].elo = 1030; roster[1].elo = 1010; roster[2].elo = 1000; roster[3].elo = 990;
+  roster.forEach((p) => { p.wins = 5; });
+  const afterRoster = roster.map((p) =>
+    p.id === 'low' ? { ...p, elo: 1040, wins: 6 } : p.id === 'top' ? { ...p, elo: 990, losses: 1 } : p);
+  const m = mkMatch('low', 'top', 'low', T0 + 60 * DAY_MS); m.eloDelta = 40; m.bountyCollected = 9;
+  const leagueEmpty = deriveLeagueInsights(roster, [], [], T0);
+  const rec = buildMatchRecap({ match: m, playersBefore: roster, playersAfter: afterRoster, matchesAfter: [m],
+    challenge: null, leagueBefore: leagueEmpty, leagueAfter: leagueEmpty, now: T0 + 60 * DAY_MS });
+  const called = { ...settledChallenge(1000, 1030, 'challenger', [['a', 'challenger'], ['b', 'opponent']], T0),
+    challengerId: 'low', opponentId: 'top' };
+  called.predictions = called.predictions.map((p) => ({ ...p, predictedWinnerId: p.predictedWinnerId === 'A' ? 'low' : 'top' }));
+
+  const quiet = earnedNotifications({ match: m, recap: rec, players: afterRoster, challenge: called, crownChangedHands: false, loggedBy: 'low' });
+  const byId = new Map(quiet.map((n) => [n.recipientPlayerId, n]));
+  eq('earned: the logger hears nothing', byId.has('low'), false);
+  eq('earned: loser is told', byId.get('top')?.type, 'match_result');
+  // top lands level with idle on 990 and the tie goes by id, so idle edges above too.
+  eq('earned: loser body names the drop and who went by', byId.get('top')?.body, '−49, now #4 · low, mid and idle went by.');
+  eq('earned: the player climbed over hears it as a ladder move', byId.get('mid')?.type, 'rank_change');
+  eq('earned: predictors hear their verdict', [byId.get('a')?.title, byId.get('b')?.title], ['You called it', 'Wrong call']);
+  eq('earned: nobody uninvolved is told', byId.has('idle'), false);
+  eq('earned: one message per person', quiet.length, new Set(quiet.map((n) => n.recipientPlayerId)).size);
+
+  const loud = earnedNotifications({ match: m, recap: rec, players: afterRoster, challenge: null, crownChangedHands: true, loggedBy: 'idle' });
+  const loudById = new Map(loud.map((n) => [n.recipientPlayerId, n]));
+  eq('earned: crown change reaches the uninvolved (minus the logger)', loud.map((n) => n.recipientPlayerId).sort(), ['low', 'mid', 'top']);
+  eq('earned: winner hears it when someone else logged', loudById.get('low')?.title, 'Logged: you beat top');
+  eq('earned: the personal reason beats the crown headline', loudById.get('top')?.type, 'match_result');
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

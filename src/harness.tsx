@@ -6,6 +6,8 @@ import { deriveLeagueInsights, runLeagueReplay, DAY_MS } from './utils/league';
 import { LeaderboardView } from './components/LeaderboardView';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
 import { buildMatchRecap } from './utils/recap';
+import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
+import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
@@ -153,6 +155,14 @@ const callableChallenge: Challenge = {
   matchId: null, resolvedWinnerId: null, predictions: [],
 };
 
+const inboxFixture: LeagueNotification[] = [
+  { id: 'n1', type: 'match_result', title: 'Sarah beat you', body: '−22, now #3 · Dave went by.', createdAt: now - 4 * 60_000, read: false },
+  { id: 'n2', type: 'rank_change', title: 'Dave went past you', body: "Beat Sarah and climbed to #1. You're #2 now.", createdAt: now - 50 * 60_000, read: false },
+  { id: 'n3', type: 'prediction_result', title: 'You called it', body: 'Dave beat Sarah. Your lock paid double.', createdAt: now - 3 * 3600_000, read: false },
+  { id: 'n4', type: 'crown_taken', title: 'New #1: Dave', body: 'Took the crown off Sarah with an 18 point bounty.', createdAt: now - 26 * 3600_000, read: true },
+  { id: 'n5', type: 'challenge_answered', title: 'Priya accepted', body: 'Your callout is on. Get to the table.', createdAt: now - 3 * 86400_000, read: true, challengeId: 'c2' },
+];
+
 const Harness: React.FC = () => {
   const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
   // Mirrors the app's submission lock so the double-tap guard is exercised.
@@ -164,6 +174,8 @@ const Harness: React.FC = () => {
   const [showSent, setShowSent] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [aId, setAId] = useState<string | undefined>('p2');
   const [bId, setBId] = useState<string | undefined>('p1');
 
@@ -213,7 +225,7 @@ const Harness: React.FC = () => {
       <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
         <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
-          onOpenProfile={() => {}} onQuickMatch={() => {}} onOpenChallengeInbox={() => {}} />
+          onOpenProfile={() => {}} onQuickMatch={() => {}} activityBadge={3} onOpenActivity={() => setShowActivity(true)} />
         <div className="flex gap-2 p-2">
           <button id="demo-incoming" onClick={() => setShowIncoming(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">incoming</button>
@@ -223,6 +235,10 @@ const Harness: React.FC = () => {
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">sent</button>
           <button id="demo-recap" onClick={() => setShowRecap(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">recap</button>
+          <button id="demo-activity" onClick={() => setShowActivity(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">activity</button>
+          <button id="demo-toast" onClick={() => setShowToast(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">toast</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
@@ -256,6 +272,15 @@ const Harness: React.FC = () => {
             onAccept={async () => { setShowIncoming(false); setShowDuel(true); }}
             onDecline={async () => setShowIncoming(false)}
             onDismiss={() => setShowIncoming(false)} />
+        )}
+        {showActivity && (
+          <ActivitySheet items={inboxFixture} pendingChallenge={challenges[0]} now={now}
+            onOpenChallenge={() => { setShowActivity(false); setShowIncoming(true); }}
+            onSelect={() => setShowActivity(false)} onClose={() => setShowActivity(false)} />
+        )}
+        {showToast && (
+          <ActivityToast item={inboxFixture[0]} onOpen={() => { setShowToast(false); setShowActivity(true); }}
+            onDismiss={() => setShowToast(false)} />
         )}
         {showRecap && (() => {
           // Dave (rank 2) beats Sarah (rank 1): passes her, collects the crown.
