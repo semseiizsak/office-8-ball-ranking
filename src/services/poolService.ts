@@ -25,6 +25,7 @@ import {
   joinTournament,
   drawTournament,
   advanceTournament,
+  claimWalkover,
   claimAwardsAnnouncement,
   getChallenges,
   reconcileChallengesWithMatches,
@@ -65,6 +66,7 @@ export const poolService = {
   joinTournament,
   drawTournament,
   advanceTournament,
+  claimWalkover,
   claimAwardsAnnouncement,
   scheduleSeasonEnd,
   startNewSeason: (params: { current: Season; standings: SeasonStanding[]; titles: SeasonTitle[] }) =>

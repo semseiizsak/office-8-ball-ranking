@@ -92,7 +92,10 @@ export const CupMyMatch: React.FC<{
   names: Map<string, string>;
   delay: number;
   onPlay: (opponentId: string) => void;
-}> = ({ state, steps, me, byId, names, delay, onPlay }) => {
+  /** Says the player is ready; if the opponent never plays, the point is theirs. */
+  onClaimWalkover?: (round: number) => Promise<void>;
+}> = ({ state, steps, me, byId, names, delay, onPlay, onClaimWalkover }) => {
+  const [claiming, setClaiming] = React.useState(false);
   const step = steps[Math.min(state.current, FINAL_ROUND)];
   const standing = state.standings.find((entry) => entry.id === me.id);
   const nameOf = (id: string | null) => (id ? names.get(id) ?? 'Former player' : '');
@@ -106,6 +109,8 @@ export const CupMyMatch: React.FC<{
   if (step.status === 'bye') line = `You sit ${round.toLowerCase()} out. The bye counts as a point.`;
   else if (step.status === 'won') line = `You beat ${nameOf(opponentId)}.${next ? ` ${roundName(step.round + 1)} pairs up when ${round.toLowerCase()} is done.` : ''}`;
   else if (step.status === 'lost') line = `${nameOf(opponentId)} beat you.${next ? ` ${roundName(step.round + 1)} pairs up when ${round.toLowerCase()} is done.` : ''}`;
+  if (step.game?.walkover && step.status === 'won') line = `${nameOf(opponentId)} never showed. The point is yours as a walkover.`;
+  if (step.game?.walkover && step.status === 'lost') line = `${nameOf(opponentId)} was ready and you were not. The point went to them as a walkover.`;
   else if (step.status === 'missed') line = `Not played by ${deadline ? `${weekday(deadline)} ${hm(deadline)}` : 'the deadline'}. No point this round.`;
   else if (step.status === 'waiting') line = "You're in the final. Your opponent lands any moment.";
   else if (step.status === 'out') line = `You finish ${ordinal(standing?.rank ?? 0)} with ${standing?.points ?? 0} ${standing?.points === 1 ? 'point' : 'points'}. The top 2 play the final.`;
@@ -149,6 +154,48 @@ export const CupMyMatch: React.FC<{
             </button>
             {deadline && <span className="text-center text-xs font-semibold text-white/55">Counts until {weekday(deadline)} {hm(deadline)}</span>}
           </div>
+          {(() => {
+            const ready = step.game?.ready ?? [];
+            const iAmReady = ready.includes(me.id);
+            const theyAreReady = ready.includes(opponentId);
+            const when = deadline ? `${weekday(deadline)} ${hm(deadline)}` : 'the deadline';
+            if (iAmReady && theyAreReady) {
+              return <p className="text-center text-xs font-semibold text-white/70">You both said you are ready. Find a slot before {when}, or nobody gets the point.</p>;
+            }
+            if (iAmReady) {
+              return (
+                <p className="cup-in rounded-2xl bg-surface p-3 text-center text-xs font-semibold text-white/70" style={cupIn('anim-pop', 0, 280)}>
+                  ✋ You are ready. If {nameOf(opponentId)} does not play you by {when}, the point is yours as a walkover. No Elo either way.
+                </p>
+              );
+            }
+            return (
+              <div className="grid gap-1.5">
+                {theyAreReady && (
+                  <p className="rounded-2xl bg-surface p-3 text-center text-xs font-semibold text-white">
+                    ✋ {nameOf(opponentId)} is ready to play. If you do not play by {when}, they take the point.
+                  </p>
+                )}
+                {onClaimWalkover && (
+                  <button
+                    type="button"
+                    disabled={claiming}
+                    onClick={async () => {
+                      setClaiming(true);
+                      try {
+                        await onClaimWalkover(step.round);
+                      } finally {
+                        setClaiming(false);
+                      }
+                    }}
+                    className="press h-10 rounded-full bg-surface-alt text-[11px] font-extrabold uppercase tracking-[0.08em] disabled:opacity-50"
+                  >
+                    {theyAreReady ? "I'm ready too" : "I'm ready, they can't make it"}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </>
       ) : (
         <div className="flex items-center gap-3">

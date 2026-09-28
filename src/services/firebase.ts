@@ -50,7 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
-import { Pairing, Tournament, drawField, firstRound, withCloseOverride, withRedraw } from '../utils/tournament';
+import { Pairing, Tournament, drawField, firstRound, roundDeadline, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1253,6 +1253,9 @@ const toTournament = (id: string, data: Record<string, unknown>): Tournament => 
         at: Number(entry.at ?? 0),
       }))
     : [],
+  claims: Array.isArray(data.claims)
+    ? (data.claims as Array<Record<string, unknown>>).map((entry) => ({ round: Number(entry.round ?? 0), id: String(entry.id ?? ''), at: Number(entry.at ?? 0) }))
+    : [],
 }));
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -1300,6 +1303,26 @@ export async function drawTournament(week: string): Promise<Tournament> {
     const pairings = firstRound(field, drawnAt);
     transaction.update(ref, { field, drawnAt, pairings, bracket: null });
     return { ...tournament, field, drawnAt, pairings };
+  });
+}
+
+/**
+ * Records that a player is ready to play their game in a round. Only before
+ * the round's deadline, only for a game of theirs that has an opponent.
+ */
+export async function claimWalkover(week: string, round: number, playerId: string): Promise<Tournament> {
+  const ref = doc(tournamentsCollection, week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (!existing.exists()) throw new Error('There is no cup this week.');
+    const tournament = toTournament(existing.id, existing.data());
+    const pairing = tournament.pairings.find((entry) => entry.round === round && entry.b && [entry.a, entry.b].includes(playerId));
+    if (!pairing) throw new Error('No game to claim.');
+    if (Date.now() > roundDeadline(tournament, round)) throw new Error('This round is over.');
+    if (tournament.claims.some((claim) => claim.round === round && claim.id === playerId)) return tournament;
+    const claims = [...tournament.claims, { round, id: playerId, at: Date.now() }];
+    transaction.update(ref, { claims });
+    return { ...tournament, claims };
   });
 }
 

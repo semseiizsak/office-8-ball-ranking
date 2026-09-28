@@ -498,6 +498,25 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextKey]);
 
+  const handleClaimWalkover = async (round: number) => {
+    if (!currentPlayer || !thisCup) return;
+    try {
+      const cup = await poolService.claimWalkover(thisCup.week, round, currentPlayer.id);
+      upsertCup(cup);
+      const pairing = cup.pairings.find((entry) => entry.round === round && [entry.a, entry.b].includes(currentPlayer.id));
+      const opponent = pairing ? (pairing.a === currentPlayer.id ? pairing.b : pairing.a) : '';
+      if (opponent) {
+        void notifyMany([opponent], {
+          type: 'tournament',
+          title: `✋ ${currentPlayer.name.split(' ')[0]} is ready for your cup game`,
+          body: 'Play before the deadline, or they take the point as a walkover.',
+        });
+      }
+    } catch (error) {
+      console.warn('Could not claim the walkover:', error);
+    }
+  };
+
   const handleJoinCup = async () => {
     if (!currentPlayer || !thisCup) return;
     try {
@@ -1116,6 +1135,7 @@ export default function App() {
                 currentPlayer={currentPlayer}
                 now={clock}
                 onJoin={handleJoinCup}
+                onClaimWalkover={handleClaimWalkover}
                 onPlay={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
               />

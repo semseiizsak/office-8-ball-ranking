@@ -15,7 +15,9 @@ import { dayKeyOf } from './daily';
  * previous round finished (every game played, or its deadline passed), so a
  * corrected result later cannot reshuffle games already played. Results are
  * read off the matches: the first match between the pair inside the round's
- * window decides it; a game not played by its deadline scores nothing.
+ * window decides it. A game not played by its deadline scores nothing, unless
+ * exactly one of the two said they were ready before it: they take the point
+ * as a walkover (no match, so no Elo).
  */
 
 export const CUP_OPENS_HOUR = 8;
@@ -64,9 +66,11 @@ export interface Tournament {
   field: string[] | null;
   drawnAt: number | null;
   pairings: Pairing[];
+  /** Players who said they were ready to play their game in a round. */
+  claims: Array<{ round: number; id: string; at: number }>;
 }
 
-const undrawn = { field: null, drawnAt: null, pairings: [] as Pairing[] };
+const undrawn = { field: null, drawnAt: null, pairings: [] as Pairing[], claims: [] as Tournament['claims'] };
 
 /**
  * Applies a later closing hour to a week's cup. A cup already drawn before the
@@ -168,6 +172,10 @@ export interface CupGame {
   winnerId: string | null;
   matchId: string | null;
   bye: boolean;
+  /** Decided because only one of them turned up ready: a point, no match, no Elo. */
+  walkover: boolean;
+  /** Who of the two has said they are ready to play. */
+  ready: string[];
   /** When this game stops counting. */
   deadline: number;
 }
@@ -238,7 +246,8 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
   const used = new Set<string>();
   const game = (pairing: Pairing): CupGame => {
     const deadline = roundDeadline(tournament, pairing.round);
-    if (!pairing.b) return { round: pairing.round, a: pairing.a, b: null, winnerId: pairing.a, matchId: null, bye: true, deadline };
+    if (!pairing.b) return { round: pairing.round, a: pairing.a, b: null, winnerId: pairing.a, matchId: null, bye: true, walkover: false, ready: [], deadline };
+    const ready = [...new Set((tournament.claims ?? []).filter((claim) => claim.round === pairing.round && claim.at <= deadline && [pairing.a, pairing.b].includes(claim.id)).map((claim) => claim.id))];
     const match = sorted.find(
       (entry) =>
         !used.has(entry.id) &&
@@ -248,7 +257,18 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
         [entry.playerAId, entry.playerBId].includes(pairing.b)
     );
     if (match) used.add(match.id);
-    return { round: pairing.round, a: pairing.a, b: pairing.b, winnerId: match?.winnerId ?? null, matchId: match?.id ?? null, bye: false, deadline };
+    const walkover = !match && now > deadline && ready.length === 1;
+    return {
+      round: pairing.round,
+      a: pairing.a,
+      b: pairing.b,
+      winnerId: match?.winnerId ?? (walkover ? ready[0] : null),
+      matchId: match?.id ?? null,
+      bye: false,
+      walkover,
+      ready,
+      deadline,
+    };
   };
 
   const rounds: CupGame[][] = [];
@@ -273,6 +293,7 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
     stats.get(g.b!)?.opponents.push(g.a);
     if (!g.winnerId) continue;
     points.set(g.winnerId, (points.get(g.winnerId) ?? 0) + 1);
+    if (g.walkover) continue;
     stats.get(g.a)!.played++;
     stats.get(g.b!)!.played++;
     stats.get(g.winnerId)!.wins++;
@@ -333,8 +354,8 @@ export function deriveCups(tournaments: Tournament[], matches: MatchRecord[], no
     const state = resolveCup(tournament, matches, now);
     if (!state || !tournament.field) continue;
     for (const id of tournament.field) get(id).entered++;
-    // A bye is not a win.
-    for (const g of [...state.rounds.flat(), ...(state.final ? [state.final] : [])]) if (g.winnerId && !g.bye) get(g.winnerId).matchWins++;
+    // Byes and walkovers are points, not wins.
+    for (const g of [...state.rounds.flat(), ...(state.final ? [state.final] : [])]) if (g.winnerId && !g.bye && !g.walkover) get(g.winnerId).matchWins++;
     if (state.champion) {
       const champ = get(state.champion);
       champ.titles++;
@@ -344,7 +365,8 @@ export function deriveCups(tournaments: Tournament[], matches: MatchRecord[], no
     if (state.runnerUp) {
       const second = get(state.runnerUp);
       second.finals++;
-      second.bonus += FINALIST_CHIPS;
+      // Not turning up for the final forfeits the runner-up chips.
+      if (!state.final?.walkover) second.bonus += FINALIST_CHIPS;
     }
   }
   return records;

@@ -131,7 +131,7 @@ const cupMonday = (() => {
 const cupFixture = (demo: CupDemo, joined: boolean): { current: Tournament | null; played: MatchRecord[]; at: number } => {
   const signup: Tournament = {
     week: `harness-${demo}`, opensAt: now - 2 * HOUR, closesAt: now + 2 * HOUR + 40 * 60_000,
-    deadline: now + 4 * DAY_MS, entrants: [], field: null, drawnAt: null, pairings: [],
+    deadline: now + 4 * DAY_MS, entrants: [], field: null, drawnAt: null, pairings: [], claims: [],
   };
   const entrants = ['p0', 'c0', 'p1', 'c1', 'p3', 'c2', 'c7'].map((id, i) => ({ id, at: now - (10 - i) * 600_000 }));
   const withMe = joined ? [...entrants, { id: 'p2', at: now - 60_000 }] : entrants;

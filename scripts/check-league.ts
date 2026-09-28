@@ -548,5 +548,17 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('achievements: award shelf counts awards', achievementProgress(ctx).find((row) => row.a.id === 'awards')!.v, 3);
 }
 
+{
+  const cup = weekTournament(new Date(2026, 8, 28, 9).getTime());
+  const field = ['a', 'b', 'c', 'd'];
+  const base = { ...cup, field, drawnAt: cup.closesAt, pairings: firstRound(field, cup.closesAt), claims: [{ round: 0, id: 'a', at: cup.closesAt + 1000 }, { round: 0, id: 'c', at: cup.closesAt + 1000 }, { round: 0, id: 'd', at: cup.closesAt + 1000 }] };
+  const before = resolveCup(base, [], cup.closesAt + 2000)!;
+  eq('walkover: nothing is decided before the deadline', before.rounds[0][0].winnerId, null);
+  const after = resolveCup(base, [], cup.deadline - 1)!;
+  eq('walkover: the only ready player takes the point', [after.rounds[0][0].winnerId, after.rounds[0][0].walkover], ['a', true]);
+  eq('walkover: both ready means nobody scores', after.rounds[0][1].winnerId, null);
+  eq('walkover: a point but not a cup win', [after.standings.find((s) => s.id === 'a')!.points, deriveCups([base], [], cup.deadline - 1).get('a')?.matchWins ?? 0], [1, 0]);
+}
+
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -35,8 +35,9 @@ export const CupView: React.FC<{
   now: number;
   onJoin: () => void;
   onPlay: (opponentId: string) => void;
+  onClaimWalkover?: (round: number) => Promise<void>;
   onSelectPlayer: (player: Player) => void;
-}> = ({ tournaments, current, currentState, records, matches, players, currentPlayer, now, onJoin, onPlay, onSelectPlayer }) => {
+}> = ({ tournaments, current, currentState, records, matches, players, currentPlayer, now, onJoin, onPlay, onClaimWalkover, onSelectPlayer }) => {
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const motion = !usePrefersReducedMotion();
   const [replayKey, setReplayKey] = useState(0);
@@ -211,7 +212,7 @@ export const CupView: React.FC<{
         )}
 
         {phase === 'live' && currentState && road && (
-          <CupMyMatch state={currentState} steps={road} me={currentPlayer} byId={byId} names={names} delay={640} onPlay={onPlay} />
+          <CupMyMatch state={currentState} steps={road} me={currentPlayer} byId={byId} names={names} delay={640} onPlay={onPlay} onClaimWalkover={onClaimWalkover} />
         )}
 
         {rounds && (

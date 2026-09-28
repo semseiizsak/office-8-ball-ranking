@@ -46,6 +46,14 @@ const ScoreTile: React.FC<{ game: CupGame; missed: boolean; reveal?: number }> =
   if (game.bye) {
     return <span className="grid h-8 w-16 place-items-center rounded-lg bg-felt text-[13px] font-extrabold text-white">+1</span>;
   }
+  if (game.walkover) {
+    const cellW = (side: 'a' | 'b') => (
+      <span className={`grid h-8 place-items-center rounded-lg text-[11px] font-extrabold ${game.winnerId === game[side] ? 'bg-felt text-white' : 'bg-surface-alt text-white/40'}`}>
+        {game.winnerId === game[side] ? 'W/O' : 'NS'}
+      </span>
+    );
+    return <span className="grid w-16 grid-cols-2 gap-1">{cellW('a')}{cellW('b')}</span>;
+  }
   const decided = !!game.winnerId || missed;
   const cell = (side: 'a' | 'b') => {
     const win = game.winnerId === game[side];
