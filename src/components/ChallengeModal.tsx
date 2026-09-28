@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { Swords } from 'lucide-react';
-import { ChallengeStakes, Player } from '../types';
+import { ChallengeStakes, MatchRecord, Player } from '../types';
 import { CrownState } from '../utils/league';
 import { previewStakes } from '../utils/stakes';
-import { PlayerAvatar, Sheet, StakeTiles } from './ui';
+import { PlayerAvatar, Sheet } from './ui';
+import { MatchupCards } from './MatchupCards';
 
 interface ChallengeModalProps {
   currentPlayer: Player;
@@ -17,6 +18,8 @@ interface ChallengeModalProps {
   mode?: 'challenge' | 'instant';
   onSend: (opponent: Player, stakes: ChallengeStakes) => Promise<void>;
   onClose: () => void;
+  /** This season's matches, for the rating lines on the cards. */
+  matches?: MatchRecord[];
 }
 
 /**
@@ -31,6 +34,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   mode = 'challenge',
   onSend,
   onClose,
+  matches = [],
 }) => {
   const instant = mode === 'instant';
   const opponents = [...players]
@@ -136,11 +140,13 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
 
       {stakes && (
         <>
-          <StakeTiles
-            win={stakes.winDelta}
-            lose={stakes.loseDelta}
-            winNote={stakes.bounty > 0 ? `incl. 👑 ${stakes.bounty} bounty` : undefined}
-            loseNote={bountyOnMe > 0 ? `incl. your 👑 ${bountyOnMe} bounty` : undefined}
+          <MatchupCards
+            playerA={currentPlayer}
+            playerB={opponent}
+            players={players}
+            matches={matches}
+            crown={crown}
+            labelFor={(player) => (player.id === currentPlayer.id ? 'You' : undefined)}
           />
           <p className="text-sm text-white/70">
             {stakes.headline}

@@ -1073,6 +1073,7 @@ export default function App() {
             crown={league.crown}
             preselectedOpponentId={challengeTarget.opponentId}
             mode={challengeTarget.mode ?? 'challenge'}
+            matches={seasonMatches}
             onSend={challengeTarget.mode === 'instant' ? handleStartInstantMatch : handleSendChallenge}
             onClose={() => setChallengeTarget(null)}
           />

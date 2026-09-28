@@ -191,6 +191,19 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
           ))}
         </span>
       </div>
+      {isMe ? (
+        onEditProfile && (
+          <button type="button" onClick={onEditProfile} className="press flex h-12 items-center justify-center gap-2 rounded-full bg-surface-alt text-[13px] font-extrabold uppercase tracking-[0.06em]">
+            <Pencil className="h-[18px] w-[18px]" strokeWidth={2.25} />
+            Edit profile and ball
+          </button>
+        )
+      ) : (
+        <button type="button" onClick={() => onChallenge(player)} className="press flex h-12 items-center justify-center gap-2 rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
+          <Swords className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          Call {player.name.split(' ')[0]} out
+        </button>
+      )}
       <div role="tablist" className="relative grid grid-cols-4 gap-1 rounded-full bg-surface p-1">
         <span
           aria-hidden="true"
@@ -259,19 +272,6 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
         <Tile value={insight?.bestRankDefence ?? 0} label="Rank defended" />
       </div>
 
-      {isMe ? (
-        onEditProfile && (
-          <button type="button" onClick={onEditProfile} className="press flex h-12 items-center justify-center gap-2 rounded-full bg-surface-alt text-[13px] font-extrabold uppercase tracking-[0.06em]">
-            <Pencil className="h-[18px] w-[18px]" strokeWidth={2.25} />
-            Edit profile and ball
-          </button>
-        )
-      ) : (
-        <button type="button" onClick={() => onChallenge(player)} className="press flex h-12 items-center justify-center gap-2 rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
-          <Swords className="h-[18px] w-[18px]" strokeWidth={2.25} />
-          Call {player.name.split(' ')[0]} out
-        </button>
-      )}
     </>
   );
 
