@@ -686,6 +686,75 @@ export async function respondToChallenge(
 }
 
 /**
+ * Puts a match on the table right now, with no challenge, no acceptance and
+ * no start step in between.
+ *
+ * This is how most office games actually begin: two people agree in a
+ * sentence and walk to the table. Everything social in the app used to hang
+ * off a challenge issued in advance, so those games got none of it. A standing
+ * challenge between the same two people is promoted rather than duplicated, and
+ * anyone already in a live match is refused — one table, one game.
+ */
+export async function startInstantMatch(params: {
+  challenger: Player;
+  opponent: Player;
+  stakes: ChallengeStakes;
+}): Promise<Challenge> {
+  if (params.challenger.id === params.opponent.id) throw new Error('Pick somebody else to play.');
+  const now = Date.now();
+  const snapshot = await getDocs(query(challengesCollection, orderBy('createdAt', 'desc')));
+  const all = snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now));
+  const pair = new Set([params.challenger.id, params.opponent.id]);
+
+  const busy = all.find(
+    (challenge) =>
+      challenge.status === 'live' &&
+      (pair.has(challenge.challengerId) || pair.has(challenge.opponentId))
+  );
+  if (busy) {
+    const who = pair.has(busy.challengerId) && pair.has(busy.opponentId)
+      ? 'This match is'
+      : `${pair.has(busy.challengerId) ? busy.challengerName : busy.opponentName} is`;
+    throw new Error(`${who} already on the table.`);
+  }
+
+  const standing = all.find(
+    (challenge) =>
+      (challenge.status === 'pending' || challenge.status === 'accepted') &&
+      pair.has(challenge.challengerId) &&
+      pair.has(challenge.opponentId)
+  );
+  if (standing) {
+    const respondedAt = standing.respondedAt ?? now;
+    await updateDoc(doc(db, 'challenges', standing.id), {
+      status: 'live' satisfies ChallengeStatus,
+      respondedAt,
+      startedAt: now,
+    });
+    return { ...standing, status: 'live', respondedAt, startedAt: now };
+  }
+
+  const challengeRef = doc(challengesCollection);
+  const data = {
+    challengerId: params.challenger.id,
+    challengerName: params.challenger.name,
+    opponentId: params.opponent.id,
+    opponentName: params.opponent.name,
+    status: 'live' as ChallengeStatus,
+    createdAt: now,
+    expiresAt: now + CHALLENGE_EXPIRY_HOURS * 3_600_000,
+    respondedAt: now,
+    startedAt: now,
+    stakes: params.stakes,
+    matchId: null,
+    resolvedWinnerId: null,
+    predictions: {},
+  };
+  await setDoc(challengeRef, data);
+  return toChallenge(challengeRef.id, data, now);
+}
+
+/**
  * Marks a match as being played. Either player can call it on — deliberately no
  * agreement step, because a match that needs both people to tap before it counts
  * is a match that gets stranded when one of them does not.

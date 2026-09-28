@@ -25,6 +25,8 @@ interface ArenaViewProps {
   onStartChallenge: (challenge: Challenge) => Promise<void>;
   /** Opens the logger for a game that was never challenged. */
   onLogMatch: () => void;
+  /** Puts a match on the table right now — the way most games actually start. */
+  onInstantMatch: () => void;
   onSelectPlayer?: (player: Player) => void;
   /** Calling records, rebuilt from every settled challenge. */
   nerve: Map<string, NerveRecord>;
@@ -759,6 +761,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onPlayChallenge,
   onStartChallenge,
   onLogMatch,
+  onInstantMatch,
   onSelectPlayer,
   nerve,
   onOpenLiveMatch,
@@ -1129,25 +1132,39 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </p>
       </div>
 
-      {/* The two things you come here to do. Logging lives here now because a
-          result is the end of a match, and the matches are on this screen. */}
-      <div className="grid grid-cols-2 gap-2 px-1">
+      {/* The primary action is the one that matches how games actually start:
+          two people at the table, now. Logging a result you never announced and
+          challenging someone for later are both still here, one step down. */}
+      <div className="space-y-2 px-1">
         <button
           type="button"
-          onClick={onLogMatch}
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#10b981] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#002113] shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]"
+          onClick={onInstantMatch}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-3.5 font-['Chivo'] text-base font-black text-white shadow-[0_0_18px_rgba(239,68,68,0.35)] transition-all active:scale-[0.98]"
         >
-          <ClipboardCheck className="h-4 w-4" />
-          Log a match
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
+          </span>
+          We're on the table
         </button>
-        <button
-          type="button"
-          onClick={onIssueChallenge}
-          className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#4edea3] transition-all hover:border-[#10b981] active:scale-[0.98]"
-        >
-          <Swords className="h-4 w-4" />
-          Challenge
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onLogMatch}
+            className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#bbcabf] transition-all hover:border-[#10b981] hover:text-[#4edea3] active:scale-[0.98]"
+          >
+            <ClipboardCheck className="h-4 w-4" />
+            Log a result
+          </button>
+          <button
+            type="button"
+            onClick={onIssueChallenge}
+            className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#bbcabf] transition-all hover:border-[#10b981] hover:text-[#4edea3] active:scale-[0.98]"
+          >
+            <Swords className="h-4 w-4" />
+            Call someone out
+          </button>
+        </div>
       </div>
 
       {live.length > 0 && (

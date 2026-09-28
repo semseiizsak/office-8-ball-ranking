@@ -9,6 +9,11 @@ interface ChallengeModalProps {
   players: Player[];
   crown: CrownState;
   preselectedOpponentId?: string;
+  /**
+   * `challenge` sends a callout to answer later. `instant` puts the match on
+   * the table now, for the game that was agreed in a sentence at the machine.
+   */
+  mode?: 'challenge' | 'instant';
   onSend: (opponent: Player, stakes: ChallengeStakes) => Promise<void>;
   onClose: () => void;
 }
@@ -22,9 +27,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   players,
   crown,
   preselectedOpponentId,
+  mode = 'challenge',
   onSend,
   onClose,
 }) => {
+  const instant = mode === 'instant';
   const opponents = [...players]
     .filter((player) => player.id !== currentPlayer.id)
     .sort((left, right) => right.elo - left.elo);
@@ -67,7 +74,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
       });
     } catch {
       sendingRef.current = false;
-      setError('Could not send that challenge. Try again.');
+      setError(instant ? 'Could not start the match. Try again.' : 'Could not send that challenge. Try again.');
       setIsSending(false);
     }
   };
@@ -78,7 +85,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
         <div className="flex items-center justify-between border-b border-[#30363d] px-5 py-4">
           <h3 className="flex items-center gap-2 font-['Chivo'] text-base font-bold text-white">
             <Swords className="h-4 w-4 text-[#4edea3]" />
-            Call someone out
+            {instant ? "We're on the table" : 'Call someone out'}
           </h3>
           <button
             type="button"
@@ -92,7 +99,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <span className="font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
-            Opponent
+            {instant ? 'Who are you playing?' : 'Opponent'}
           </span>
           <div className="mt-2 space-y-1.5">
             {opponents.map((player) => {
@@ -169,10 +176,16 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] shadow-[0_0_16px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-50"
           >
             <Swords className="h-4 w-4" />
-            {isSending ? 'Sending...' : `Challenge ${opponent?.name.split(' ')[0] ?? ''}`}
+            {isSending
+              ? instant ? 'Starting...' : 'Sending...'
+              : instant
+              ? `Start vs ${opponent?.name.split(' ')[0] ?? ''}`
+              : `Challenge ${opponent?.name.split(' ')[0] ?? ''}`}
           </button>
           <p className="mt-2 text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-            The office can call the winner until you log the result.
+            {instant
+              ? 'The office gets pinged and has four minutes to call it. Log the result from the same card.'
+              : 'The office can call the winner until you log the result.'}
           </p>
         </div>
       </div>

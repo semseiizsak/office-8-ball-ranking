@@ -7,6 +7,8 @@ const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 export type LeagueNotificationType =
   | 'challenge'
   | 'challenge_answered'
+  /** A match just went on the table; calls are open. */
+  | 'match_live'
   | 'crown_taken'
   | 'rank_change'
   | 'prediction_result';

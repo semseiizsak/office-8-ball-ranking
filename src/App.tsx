@@ -22,8 +22,8 @@ import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 import { DuckChallengeOverlay } from './components/DuckChallengeOverlay';
 import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
-import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
-import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
+import { notifyMany, registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
+import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
@@ -48,7 +48,7 @@ export default function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickMatch, setShowQuickMatch] = useState(false);
-  const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string } | null>(null);
+  const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string; mode?: 'challenge' | 'instant' } | null>(null);
   const [isLoggingMatch, setIsLoggingMatch] = useState(false);
   /** The log sheet, opened over the arena rather than living in the tab bar. */
   const [isLoggerOpen, setIsLoggerOpen] = useState(false);
@@ -425,8 +425,9 @@ export default function App() {
     if (options) {
       if (options.playerAId) setSelectedPlayerAId(options.playerAId);
       if (options.playerBId) setSelectedPlayerBId(options.playerBId);
-      setActiveChallengeId(options.challengeId);
     }
+    // Only a logger opened from a specific challenge settles that challenge.
+    setActiveChallengeId(options?.challengeId);
     setActiveTab('arena');
     setIsLoggerOpen(true);
   };
@@ -485,6 +486,41 @@ export default function App() {
       body: theirStakes.headline,
       challengeId: challenge.id,
     }).catch((error) => console.warn('Challenge notification not delivered:', error));
+  };
+
+  /**
+   * The game is starting now. One tap creates the live match, plays the clash,
+   * pings the room that calls are open, and leaves the result to be logged from
+   * the same card when it is over.
+   */
+  const handleStartInstantMatch = async (opponent: Player, stakes: ChallengeStakes) => {
+    if (!currentPlayer || sendingChallengeRef.current) return;
+    sendingChallengeRef.current = true;
+    let challenge: Challenge;
+    try {
+      challenge = await poolService.startInstantMatch({ challenger: currentPlayer, opponent, stakes });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Could not start the match.');
+      return;
+    } finally {
+      sendingChallengeRef.current = false;
+    }
+    setChallengeTarget(null);
+    setSelectedPlayerAId(currentPlayer.id);
+    setSelectedPlayerBId(opponent.id);
+    setActiveChallengeId(challenge.id);
+    setActiveTab('arena');
+    setAcceptedDuel(challenge);
+
+    const room = players
+      .filter((player) => player.id !== currentPlayer.id && player.id !== opponent.id)
+      .map((player) => player.id);
+    await notifyMany(room, {
+      type: 'match_live',
+      title: `${currentPlayer.name.split(' ')[0]} vs ${opponent.name.split(' ')[0]} — on the table now`,
+      body: `Calls are open for the next ${Math.round(VOTE_WINDOW_MS / 60_000)} minutes.`,
+      challengeId: challenge.id,
+    }).catch((error) => console.warn('Live match ping not delivered:', error));
   };
 
   const handleRespondToChallenge = async (challenge: Challenge, status: 'accepted' | 'declined') => {
@@ -730,6 +766,7 @@ export default function App() {
                 onPlayChallenge={handlePlayChallenge}
                 onStartChallenge={handleStartChallenge}
                 onLogMatch={() => openMatchLogger()}
+                onInstantMatch={() => setChallengeTarget({ mode: 'instant' })}
                 nerve={league.nerve}
                 onOpenLiveMatch={setActiveLiveChallengeId}
               />
@@ -904,7 +941,8 @@ export default function App() {
             players={players}
             crown={league.crown}
             preselectedOpponentId={challengeTarget.opponentId}
-            onSend={handleSendChallenge}
+            mode={challengeTarget.mode ?? 'challenge'}
+            onSend={challengeTarget.mode === 'instant' ? handleStartInstantMatch : handleSendChallenge}
             onClose={() => setChallengeTarget(null)}
           />
         )}

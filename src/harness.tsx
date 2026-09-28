@@ -233,7 +233,7 @@ const Harness: React.FC = () => {
               season={currentSeason} currentPlayer={me} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
-              nerve={nerveFixture} onLogMatch={() => setTab('log')} onSelectPlayer={setDossier}
+              nerve={nerveFixture} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}
