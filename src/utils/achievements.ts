@@ -1,5 +1,6 @@
 import { Challenge, MatchRecord, Player } from '../types';
 import { ChipRecord, deriveChips } from './chips';
+import { DailyRecord } from './daily';
 
 /**
  * Badges and tiered achievements, all derived from what is already stored:
@@ -32,6 +33,7 @@ export interface BadgeContext {
   my: MatchEntry[];
   calls: { total: number; hits: number; locks: number; lockHits: number; against: number; bigBet: number; worstDay: number };
   chips: ChipRecord;
+  daily: DailyRecord;
   ducks: number;
   startElo: number;
 }
@@ -66,7 +68,8 @@ export function buildBadgeContext(
   matches: MatchRecord[],
   challenges: Challenge[],
   startElo = 1000,
-  flags = crownFlags(matches)
+  flags = crownFlags(matches),
+  daily?: DailyRecord
 ): BadgeContext {
   const my = matches
     .filter((match) => match.playerAId === player.id || match.playerBId === player.id)
@@ -113,7 +116,8 @@ export function buildBadgeContext(
   const chips = deriveChips(challenges, matches).records.get(player.id) ?? { chips: 0, lost: 0, bets: 0, wins: 0, jackpots: 0, biggest: 0 };
 
   const ducks = challenges.filter((challenge) => challenge.status === 'declined' && challenge.opponentId === player.id).length;
-  return { player, my, calls, chips, ducks, startElo };
+  const noDaily: DailyRecord = { completed: 0, wins: 0, upsets: 0, skipped: 0, byes: 0, streak: 0, bestStreak: 0, bonus: 0, doubleDuty: 0, history: [] };
+  return { player, my, calls, chips, daily: daily ?? noDaily, ducks, startElo };
 }
 
 const runOf = <T,>(items: T[], test: (item: T) => boolean) => {
@@ -190,6 +194,13 @@ export const BADGES: Badge[] = [
   { id: 'highroller', e: '🎰', name: 'High Roller', desc: 'Put 100 chips on a single match.', test: (c) => c.calls.bigBet >= 100 },
   { id: 'jackpot1', e: '💎', name: 'Jackpot!', desc: 'Call the winner and their balls, and take the jackpot.', test: (c) => c.chips.jackpots > 0 },
   { id: 'payday', e: '🤑', name: 'Payday', desc: 'Win 200 chips on a single match.', test: (c) => c.chips.biggest >= 200 },
+  { id: 'fixture1', e: '📨', name: 'First Fixture', desc: 'Play your first match of the day.', test: (c) => c.daily.completed >= 1 },
+  { id: 'dailywins', e: '🥇', name: 'Daily Double', desc: 'Win 5 matches of the day.', test: (c) => c.daily.wins >= 5 },
+  { id: 'dailyupset', e: '🎲', name: 'Upset of the Day', desc: 'Win your match of the day as the underdog.', test: (c) => c.daily.upsets >= 1 },
+  { id: 'perfectweek', e: '🗓️', name: 'Perfect Week', desc: 'Play the match of the day 5 days in a row.', test: (c) => c.daily.bestStreak >= 5 },
+  { id: 'doubleduty', e: '🧃', name: 'Double Duty', desc: 'Play your daily and three more matches the same day.', test: (c) => c.daily.doubleDuty >= 1 },
+  { id: 'byebye', e: '🏖️', name: 'Bye Bye', desc: 'Sit out the daily draw 3 times.', secret: true, test: (c) => c.daily.byes >= 3 },
+  { id: 'leftonread', e: '📵', name: 'Left on Read', desc: 'Skip 5 matches of the day.', secret: true, test: (c) => c.daily.skipped >= 5 },
   { id: 'lucky8', e: '🎱', name: 'Lucky Eight', desc: 'Win for exactly +8.', secret: true, test: (c) => c.my.some((x) => x.won && x.gain === 8) },
   { id: 'textbook', e: '📐', name: 'Textbook', desc: 'Win for exactly +16 three times. The most average win there is.', secret: true, test: (c) => c.my.filter((x) => x.won && x.gain === 16).length >= 3 },
   { id: 'dejavu', e: '🔁', name: 'Déjà Vu', desc: 'Play the same person 3 times in one day.', secret: true, test: (c) => Object.values(c.my.reduce<Record<string, number>>((acc, x) => { const key = x.opp + x.d.toDateString(); acc[key] = (acc[key] ?? 0) + 1; return acc; }, {})).some((n) => n >= 3) },
@@ -240,6 +251,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'losses', e: '🩹', name: 'Character Building', unit: 'losses', at: [5, 25, 75, 200, 500], names: ['Bruised', 'Humbled', 'Seasoned', 'Battle Scarred', 'Unbreakable Spirit'], v: (c) => c.my.filter((x) => !x.won).length },
   { id: 'days', e: '📅', name: 'Showing Up', unit: 'days played', at: [3, 10, 25, 60, 150], names: ['Drop In', 'Familiar Face', 'Fixture', 'Furniture', 'Load Bearing Wall'], v: (c) => new Set(c.my.map((x) => x.d.toDateString())).size },
   { id: 'opps', e: '🧭', name: 'Social Butterfly', unit: 'different opponents', at: [3, 6, 9, 15, 25], names: ['Small Circle', 'Networker', 'Mingler', 'Office Celebrity', "Everyone's Nemesis"], v: (c) => new Set(c.my.map((x) => x.opp)).size },
+  { id: 'daily', e: '📆', name: 'Daily Grind', unit: 'matches of the day', at: [1, 5, 20, 50, 150], names: ['Clocked In', 'Regular Shift', 'Overtime', 'Employee of the Month', 'Lifer'], v: (c) => c.daily.completed },
+  { id: 'dstreak', e: '⏱️', name: 'Punch Card', unit: 'days in a row', at: [2, 5, 10, 20, 50], names: ['Warming Up', 'On Schedule', 'Clockwork', 'Unbreakable', 'Metronome'], v: (c) => c.daily.bestStreak },
   { id: 'chips', e: '🪙', name: 'Chip Stack', unit: 'chips won', at: [100, 500, 2000, 5000, 20000], names: ['Pocket Change', 'Stack Builder', 'High Roller', 'Casino Whale', 'The House'], v: (c) => c.chips.chips },
   { id: 'calls', e: '🔮', name: 'Crystal Ball', unit: 'correct calls', at: [3, 15, 50, 120, 300], names: ['Lucky Guess', 'Hunch Haver', 'Tea Leaf Reader', 'Seer', 'Nostradamus'], v: (c) => c.calls.hits },
 ];

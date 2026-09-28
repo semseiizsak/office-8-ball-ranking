@@ -18,6 +18,8 @@ import {
   startInstantMatch,
   deleteMatch,
   deleteMatchComment,
+  ensureDaily,
+  getDailies,
   getChallenges,
   reconcileChallengesWithMatches,
   getLeaderboard,
@@ -50,6 +52,8 @@ export const poolService = {
     updateMatchWinner(matchId, season, winnerId),
   deleteMatch: (matchId: string, season: Season) => deleteMatch(matchId, season),
   getSeasons,
+  getDailies,
+  ensureDaily,
   scheduleSeasonEnd,
   startNewSeason: (params: { current: Season; standings: SeasonStanding[]; titles: SeasonTitle[] }) =>
     startNewSeason(params),

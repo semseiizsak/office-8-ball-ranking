@@ -3,6 +3,7 @@ import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucid
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
 import { BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
+import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { ballColor, playerBall } from '../utils/balls';
 import { Ball, CallSplit, PlayerAvatar } from './ui';
 
@@ -30,6 +31,9 @@ interface ArenaViewProps {
   /** Opens the full-screen live view — also driven from outside when a
    * match involving the current player goes live, not just from a tap. */
   onOpenLiveMatch: (challengeId: string) => void;
+  /** Today's match of the day for the current player, if the draw has run. */
+  daily?: { bye: boolean; opponent: Player | null; played: boolean; won: boolean; streak: number } | null;
+  onPlayDaily?: (opponentId: string) => void;
 }
 
 interface VoterInfo {
@@ -543,6 +547,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onSelectPlayer,
   chips,
   onOpenLiveMatch,
+  daily,
+  onPlayDaily,
 }) => {
   const now = Date.now();
   /**
@@ -728,6 +734,45 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           Call out
         </button>
       </div>
+
+      {daily && (
+        <div className={`card-drop grid gap-3 rounded-2xl p-3.5 ${daily.played ? 'bg-card' : 'bg-card shadow-[inset_0_0_0_1.5px_#fff]'}`}>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base">Match of the day</h3>
+            {daily.streak > 0 && <span className="text-xs font-bold tabular-nums">🔥 {daily.streak} day{daily.streak === 1 ? '' : 's'}</span>}
+          </div>
+          {daily.bye ? (
+            <p className="text-sm text-white/70">You drew the bye today. Odd numbers, somebody sits out. Your streak is safe.</p>
+          ) : daily.opponent ? (
+            <>
+              <div className="flex items-center gap-3">
+                <PlayerAvatar player={currentPlayer} size={44} />
+                <span className="font-display text-sm font-extrabold text-white/55">VS</span>
+                <PlayerAvatar player={daily.opponent} size={44} />
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <b className="truncate text-sm">You and {first(daily.opponent.name)}</b>
+                  <span className="text-xs font-semibold text-white/55">
+                    {daily.played
+                      ? daily.won ? `Done. You won it, +${DAILY_PLAY_BONUS + DAILY_WIN_BONUS} chips.` : `Done. +${DAILY_PLAY_BONUS} chips for turning up.`
+                      : `+${DAILY_PLAY_BONUS} chips each for playing, +${DAILY_WIN_BONUS} more to the winner.`}
+                  </span>
+                </span>
+                {daily.played && <span aria-label="Done" className="grid h-9 w-9 flex-none place-items-center rounded-full bg-felt text-sm font-black">✓</span>}
+              </div>
+              {!daily.played && (
+                <button
+                  type="button"
+                  onClick={() => daily.opponent && onPlayDaily?.(daily.opponent.id)}
+                  className="press flex h-11 items-center justify-center gap-2 rounded-full bg-white text-xs font-extrabold uppercase tracking-[0.06em] text-bg"
+                >
+                  <span className="live-dot text-live" />
+                  Play {first(daily.opponent.name)} now
+                </button>
+              )}
+            </>
+          ) : null}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
         <span className="grid min-w-0 gap-0.5">

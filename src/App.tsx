@@ -33,7 +33,8 @@ import {
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { leftToday } from './utils/chips';
+import { addBonus, leftToday } from './utils/chips';
+import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
@@ -53,6 +54,8 @@ export default function App() {
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
+  /** The match-of-the-day pairings, one document per day. */
+  const [dailies, setDailies] = useState<DailyPairing[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
   const [clock, setClock] = useState(() => Date.now());
   const closingSeasonRef = useRef(false);
@@ -132,6 +135,14 @@ export default function App() {
     [players, seasonMatches, challenges, currentSeason]
   );
 
+  // Matches of the day: who played theirs, streaks, and the chips it paid.
+  const dailyRecords = useMemo(() => deriveDaily(dailies, matches, clock), [dailies, matches, clock]);
+  const chips = useMemo(() => {
+    const merged = { ...league.chips, records: new Map([...league.chips.records].map(([id, record]) => [id, { ...record }])) };
+    for (const [id, record] of dailyRecords) if (record.bonus) addBonus(merged, id, record.bonus);
+    return merged;
+  }, [league.chips, dailyRecords]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -165,6 +176,7 @@ export default function App() {
         setMatches(loadedMatches);
         setChallenges(loadedChallenges);
         setSeasons(loadedSeasons);
+        poolService.getDailies().then((loaded) => !cancelled && setDailies(loaded)).catch((error) => console.warn('Daily pairings not loaded:', error));
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
 
@@ -326,6 +338,24 @@ export default function App() {
     if (currentPlayer && !selectedPlayerAId) setSelectedPlayerAId(currentPlayer.id);
   }, [currentPlayer, selectedPlayerAId]);
 
+  // The day's pairing is drawn by whichever phone opens the app first that day.
+  const today = dayKeyOf(clock);
+  useEffect(() => {
+    if (!currentPlayer || players.length < 2 || dailies.some((daily) => daily.day === today)) return;
+    const active = players.filter((player) => !league.insights.get(player.id)?.isDormant).map((player) => player.id);
+    if (active.length < 2) return;
+    let cancelled = false;
+    poolService
+      .ensureDaily(drawPairing(today, active))
+      .then((daily) => !cancelled && setDailies((prev) => [...prev.filter((entry) => entry.day !== daily.day), daily]))
+      .catch((error) => console.warn('Daily pairing not created:', error));
+    return () => {
+      cancelled = true;
+    };
+    // league changes with every match; the pairing only needs the roster once a day.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer, players.length, today, dailies.length]);
+
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -382,8 +412,10 @@ export default function App() {
         const after = result.players.find((player) => player.id === id);
         if (!before || !after) continue;
         const start = currentSeason.startingElo[id] ?? 1000;
-        const had = unlockKeys(buildBadgeContext(before, matches, challenges, start));
-        const fresh = [...unlockKeys(buildBadgeContext(after, matchesAfter, challenges, start))].filter((key) => !had.has(key));
+        const dailyBefore = deriveDaily(dailies, matches, Date.now()).get(id);
+        const dailyAfter = deriveDaily(dailies, matchesAfter, Date.now()).get(id);
+        const had = unlockKeys(buildBadgeContext(before, matches, challenges, start, undefined, dailyBefore));
+        const fresh = [...unlockKeys(buildBadgeContext(after, matchesAfter, challenges, start, undefined, dailyAfter))].filter((key) => !had.has(key));
         for (const key of fresh) {
           const unlock = describeUnlock(key);
           if (!unlock) continue;
@@ -867,7 +899,21 @@ export default function App() {
                 onStartChallenge={handleStartChallenge}
                 onLogMatch={() => openMatchLogger()}
                 onInstantMatch={() => setChallengeTarget({ mode: 'instant' })}
-                chips={league.chips}
+                chips={chips}
+                daily={(() => {
+                  const mine = todaysDaily(dailies, currentPlayer.id, clock);
+                  if (!mine) return null;
+                  const record = dailyRecords.get(currentPlayer.id);
+                  const result = record?.history.find((entry) => entry.day === today);
+                  return {
+                    bye: mine.bye,
+                    opponent: mine.opponentId ? players.find((player) => player.id === mine.opponentId) ?? null : null,
+                    played: !!result?.played,
+                    won: !!result?.won,
+                    streak: record?.streak ?? 0,
+                  };
+                })()}
+                onPlayDaily={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
                 onOpenLiveMatch={setActiveLiveChallengeId}
               />
             </div>
@@ -924,6 +970,7 @@ export default function App() {
           onChallenge={handleChallenge}
           allMatches={matches}
           challenges={challenges}
+          dailyRecords={dailyRecords}
           startingElo={currentSeason.startingElo}
           currentPlayerId={currentPlayer.id}
           onSelectPlayer={(player) => setDossierPlayer(player)}

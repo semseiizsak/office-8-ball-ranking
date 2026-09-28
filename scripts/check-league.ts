@@ -9,6 +9,7 @@ import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
+import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -413,6 +414,32 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const today = [mkChallenge('c5', 'm5', 'A', base, [['x', 'A', 50, 'solids']])];
   eq('chips: stake plus tip comes out of the day', spentOnDay(today, 'x', base + 3_600_000), 60);
   eq('chips: tomorrow starts clean', spentOnDay(today, 'x', base + 86_400_000), 0);
+}
+
+// --- match of the day: one draw per day, streaks and chips read off matches ---
+{
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const one = drawPairing('2026-09-28', ids);
+  const again = drawPairing('2026-09-28', [...ids].reverse());
+  eq('daily: the same day draws the same pairs on any phone', JSON.stringify(one), JSON.stringify(again));
+  const seen = [...one.pairs.flat(), one.bye].sort();
+  eq('daily: everyone gets exactly one opponent or the bye', seen, ids);
+  const day = (d: number) => new Date(2026, 8, d, 12).getTime();
+  const match = (id: string, w: string, l: string, at: number) => ({
+    id, timestamp: at, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
+    playerAEloBefore: 1000, playerAEloAfter: 1016, playerBEloBefore: 1000, playerBEloAfter: 984,
+    eloDelta: 16, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false },
+  });
+  const dailies = [
+    { day: dayKeyOf(day(1)), pairs: [['a', 'b']] as Array<[string, string]>, bye: null },
+    { day: dayKeyOf(day(2)), pairs: [['a', 'b']] as Array<[string, string]>, bye: null },
+    { day: dayKeyOf(day(3)), pairs: [['a', 'b']] as Array<[string, string]>, bye: null },
+  ];
+  const records = deriveDaily(dailies, [match('m1', 'a', 'b', day(1)), match('m2', 'b', 'a', day(2))], day(4));
+  eq('daily: a skipped day breaks the streak', [records.get('a')!.bestStreak, records.get('a')!.streak, records.get('a')!.skipped], [2, 0, 1]);
+  eq('daily: playing pays both, winning pays more', [records.get('a')!.bonus, records.get('b')!.bonus], [150, 150]);
+  const todayOpen = deriveDaily(dailies.slice(2), [], day(3));
+  eq('daily: today is not a skip until the day is over', todayOpen.get('a')!.skipped, 0);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

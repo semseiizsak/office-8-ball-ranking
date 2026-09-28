@@ -49,6 +49,7 @@ import {
   callsOpen,
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
+import { DailyPairing } from '../utils/daily';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1192,4 +1193,40 @@ export async function deleteMatchComment(matchId: string, commentId: string): Pr
   batch.delete(doc(db, 'matches', matchId, 'comments', commentId));
   batch.update(doc(db, 'matches', matchId), { commentCount: increment(-1) });
   await batch.commit();
+}
+
+const dailiesCollection = collection(db, 'dailies');
+
+const toDaily = (id: string, data: Record<string, unknown>): DailyPairing => ({
+  day: String(data.day ?? id),
+  pairs: Array.isArray(data.pairs)
+    ? (data.pairs as Array<{ a: string; b: string }>).map((pair) => [String(pair.a), String(pair.b)] as [string, string])
+    : [],
+  bye: data.bye ? String(data.bye) : null,
+});
+
+export async function getDailies(): Promise<DailyPairing[]> {
+  const snapshot = await getDocs(dailiesCollection);
+  return snapshot.docs.map((entry) => toDaily(entry.id, entry.data()));
+}
+
+/**
+ * Stores the day's pairing if nobody has yet. Run in a transaction under the
+ * day as the document id, so two phones opening at once draw it only once and
+ * both end up reading the same pairs.
+ */
+export async function ensureDaily(pairing: DailyPairing): Promise<DailyPairing> {
+  const ref = doc(dailiesCollection, pairing.day);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return toDaily(existing.id, existing.data());
+    transaction.set(ref, {
+      day: pairing.day,
+      // Firestore does not take nested arrays, so each pair is an object.
+      pairs: pairing.pairs.map(([a, b]) => ({ a, b })),
+      bye: pairing.bye,
+      createdAt: serverTimestamp(),
+    });
+    return pairing;
+  });
 }
