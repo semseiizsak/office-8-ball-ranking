@@ -41,10 +41,34 @@ export const IMPLICIT_SEASON: Season = {
   name: 'Season 1',
   startedAt: 0,
   endedAt: null,
+  endsAt: null,
   startingElo: {},
   standings: [],
   titles: [],
 };
+
+/** Deterministic document id for a season, so a close can never run twice. */
+export const seasonDocId = (number: number): string => `season-${number}`;
+
+/**
+ * Time left on a season, in the coarsest unit that still reads as a deadline.
+ * Under a day it switches to hours and minutes because that is when people
+ * start asking whether they can still get a match in.
+ */
+export function describeTimeLeft(endsAt: number, now: number): string {
+  const ms = endsAt - now;
+  if (ms <= 0) return 'now';
+  const minutes = Math.ceil(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+}
+
+/** The last calendar day of a season is worth calling out on its own. */
+export const isFinalDay = (endsAt: number, now: number): boolean =>
+  endsAt > now && calendarDaysBetween(now, endsAt) === 0;
 
 /** Matches belonging to a season's window. */
 export function matchesInSeason(matches: MatchRecord[], season: Season | null): MatchRecord[] {

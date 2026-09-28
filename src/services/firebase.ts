@@ -45,6 +45,7 @@ import {
   matchesInSeason,
   CHALLENGE_EXPIRY_HOURS,
   IMPLICIT_SEASON,
+  seasonDocId,
 } from '../utils/league';
 
 const app = initializeApp(firebaseConfig);
@@ -880,6 +881,7 @@ const toSeason = (id: string, data: Record<string, unknown>): Season => ({
   name: String(data.name ?? `Season ${Number(data.number ?? 1)}`),
   startedAt: timestampToMillis(data.startedAt) ?? 0,
   endedAt: timestampToMillis(data.endedAt),
+  endsAt: timestampToMillis(data.endsAt),
   startingElo: (data.startingElo as Record<string, number>) ?? {},
   standings: Array.isArray(data.standings) ? (data.standings as SeasonStanding[]) : [],
   titles: Array.isArray(data.titles) ? (data.titles as SeasonTitle[]) : [],
@@ -898,6 +900,47 @@ export async function getSeasons(): Promise<Season[]> {
  * the league learned. Wins, losses and streaks start clean; the hall of fame
  * keeps the record of what happened.
  */
+export const SEASON_ALREADY_CLOSED = 'This season has already been closed.';
+
+/**
+ * Sets, moves or clears the deadline on the running season.
+ *
+ * Scheduling the implicit first season gives it a document, under its
+ * deterministic id, so from then on it is an ordinary season.
+ */
+export async function scheduleSeasonEnd(current: Season, endsAt: number | null): Promise<Season[]> {
+  const ref = doc(db, 'seasons', current.id === IMPLICIT_SEASON.id ? seasonDocId(current.number) : current.id);
+  await setDoc(
+    ref,
+    {
+      number: current.number,
+      name: current.name,
+      startedAt: current.startedAt,
+      endedAt: null,
+      endsAt,
+      startingElo: current.startingElo,
+      standings: current.standings,
+      titles: current.titles,
+    },
+    { merge: true }
+  );
+  return getSeasons();
+}
+
+/**
+ * Closes the running season and opens the next one.
+ *
+ * Final standings and titles are archived first, then ratings are softly reset
+ * so the next season starts closer together without throwing away everything
+ * the league learned. Wins, losses and streaks start clean; the hall of fame
+ * keeps the record of what happened.
+ *
+ * Idempotent by construction. Season documents live under deterministic ids
+ * and the transaction re-reads the closing season before writing, so when a
+ * timed deadline is crossed by several open clients at once, exactly one of
+ * them closes it and the rest find it already closed. Without that, each would
+ * archive the season again and halve everyone's rating again.
+ */
 export async function startNewSeason(params: {
   current: Season;
   standings: SeasonStanding[];
@@ -905,14 +948,28 @@ export async function startNewSeason(params: {
 }): Promise<{ players: Player[]; seasons: Season[] }> {
   const playerIndex = await getDocs(playersCollection);
   const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
-  // An implicit season has no document yet, so it gets one now as it closes.
-  const closingRef = params.current.id === IMPLICIT_SEASON.id
-    ? doc(seasonsCollection)
-    : doc(db, 'seasons', params.current.id);
-  const nextRef = doc(seasonsCollection);
+  // Seasons opened before ids were deterministic still live under random ids;
+  // closing must hit the document that is actually open, not a sibling.
+  const closingRef = doc(
+    db,
+    'seasons',
+    params.current.id === IMPLICIT_SEASON.id ? seasonDocId(params.current.number) : params.current.id
+  );
+  const nextRef = doc(db, 'seasons', seasonDocId(params.current.number + 1));
 
   await runTransaction(db, async (transaction) => {
-    const playerDocs = await Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef)));
+    const [closingSnap, nextSnap, ...playerDocs] = await Promise.all([
+      transaction.get(closingRef),
+      transaction.get(nextRef),
+      ...playerRefs.map((playerRef) => transaction.get(playerRef)),
+    ]);
+    if (closingSnap.exists() && closingSnap.data().endedAt != null) {
+      throw new Error(SEASON_ALREADY_CLOSED);
+    }
+    if (nextSnap.exists()) {
+      throw new Error(SEASON_ALREADY_CLOSED);
+    }
+
     const roster = playerDocs.map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()));
     const endedAt = Date.now();
 
@@ -924,6 +981,7 @@ export async function startNewSeason(params: {
       name: params.current.name,
       startedAt: params.current.startedAt,
       endedAt,
+      endsAt: params.current.endsAt,
       startingElo: params.current.startingElo,
       standings: params.standings,
       titles: params.titles,
@@ -934,6 +992,7 @@ export async function startNewSeason(params: {
       name: `Season ${params.current.number + 1}`,
       startedAt: endedAt,
       endedAt: null,
+      endsAt: null,
       startingElo,
       standings: [],
       titles: [],

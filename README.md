@@ -174,6 +174,14 @@ sweep the collection, which keeps this working on the free tier.
 Before any season is closed there is no document: the app treats all history as
 season one, so no client has to race to write a bootstrap record.
 
+A season can be given an end date and time from the History tab. The close is
+lazy — the first client to notice the deadline has passed runs it — and
+idempotent: season documents live under deterministic ids and the closing
+transaction re-reads the season before writing, so when several open clients
+cross the deadline together exactly one of them closes it and the rest find it
+already closed. Without that, each would archive the season again and halve
+every rating again.
+
 ### `league/state`
 
 One document holding `crownHolderId` and `crownSince`. Logging a match reads the

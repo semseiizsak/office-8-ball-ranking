@@ -185,6 +185,11 @@ export interface Season {
   /** Null while the season is running. */
   endedAt: number | null;
   /**
+   * When the season is due to close, or null for open-ended. The close itself
+   * is lazy: the first client to notice the deadline has passed runs it.
+   */
+  endsAt: number | null;
+  /**
    * Rating each player carried into the season. Replaying a season starts from
    * here rather than 1000, so a soft reset survives a later match correction.
    */

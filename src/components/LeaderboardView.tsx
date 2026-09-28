@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, Moon, Search, UserPlus } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
-import { LeagueInsights, DORMANT_AFTER_DAYS } from '../utils/league';
+import { LeagueInsights, DORMANT_AFTER_DAYS, describeTimeLeft, isFinalDay } from '../utils/league';
 import { CollapsibleSection } from './CollapsibleSection';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
@@ -194,6 +194,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           </h2>
           <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
             {season.name} • {active.length} active • {matches.length} played
+            {season.endsAt && (
+              <span className={isFinalDay(season.endsAt, Date.now()) ? 'font-bold text-[#f59e0b]' : 'text-[#f59e0b]/80'}>
+                {' '}• {isFinalDay(season.endsAt, Date.now()) ? 'final day' : `ends in ${describeTimeLeft(season.endsAt, Date.now())}`}
+              </span>
+            )}
           </p>
         </div>
         <button

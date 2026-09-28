@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Crown, Lock, Medal, Pencil, Trash2, X } from 'lucide-react';
 import { MatchComment, MatchRecord, Player, Season } from '../types';
-import { matchesInSeason, softResetElo } from '../utils/league';
+import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
 import { CommentsThread, CommentsToggle, ReactionBar } from './MatchSocial';
 
 interface EventsViewProps {
@@ -20,6 +20,8 @@ interface EventsViewProps {
     params: { text: string; imageDataUrl?: string | null }
   ) => Promise<void>;
   onDeleteComment: (matchId: string, commentId: string) => Promise<void>;
+  onScheduleSeasonEnd: (endsAt: number | null) => Promise<void>;
+  now: number;
 }
 
 const formatDate = (value: number) =>
@@ -40,6 +42,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
   onEditWinner,
   onDelete,
   onEndSeason,
+  onScheduleSeasonEnd,
+  now,
   onReact,
   onOpenComments,
   onSubmitComment,
@@ -50,6 +54,44 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const [deadlineDraft, setDeadlineDraft] = useState('');
+  const [isScheduling, setIsScheduling] = useState(false);
+
+  // datetime-local wants local wall-clock time without a zone suffix.
+  const toLocalInput = (value: number): string => {
+    const date = new Date(value - new Date(value).getTimezoneOffset() * 60_000);
+    return date.toISOString().slice(0, 16);
+  };
+
+  const saveDeadline = async () => {
+    if (!deadlineDraft) return;
+    const endsAt = new Date(deadlineDraft).getTime();
+    if (Number.isNaN(endsAt) || endsAt <= now) {
+      setError('Pick a date and time in the future.');
+      return;
+    }
+    try {
+      setIsScheduling(true);
+      setError('');
+      await onScheduleSeasonEnd(endsAt);
+      setDeadlineDraft('');
+    } catch {
+      setError('Could not schedule the season end.');
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  const clearDeadline = async () => {
+    try {
+      setIsScheduling(true);
+      await onScheduleSeasonEnd(null);
+    } catch {
+      setError('Could not clear the season end.');
+    } finally {
+      setIsScheduling(false);
+    }
+  };
   const [isEnding, setIsEnding] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
@@ -246,6 +288,51 @@ export const EventsView: React.FC<EventsViewProps> = ({
       </div>
 
       {error && <p className="rounded-xl border border-[#ef4444]/40 bg-[#ef4444]/10 p-3 text-xs text-[#ffb4ab]">{error}</p>}
+
+      {/* A deadline turns the season into a story with an ending everybody can see coming. */}
+      <div className={`rounded-2xl border p-4 ${season.endsAt ? 'border-[#f59e0b]/40 bg-gradient-to-br from-[#241a07] to-[#161b22]' : 'border-[#30363d] bg-[#161b22]'}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-['Chivo'] text-sm font-bold text-white">
+              {season.endsAt ? 'Season ends' : 'Set a season end'}
+            </p>
+            {season.endsAt ? (
+              <>
+                <p className="mt-0.5 font-['JetBrains_Mono'] text-xs text-[#f59e0b]">
+                  {new Date(season.endsAt).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <p className="mt-1 font-['Space_Grotesk'] text-[11px] text-[#bbcabf]">
+                  {isFinalDay(season.endsAt, now)
+                    ? `Final day — ${describeTimeLeft(season.endsAt, now)} left.`
+                    : `${describeTimeLeft(season.endsAt, now)} left. It closes itself the moment the time passes.`}
+                </p>
+              </>
+            ) : (
+              <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
+                Pick a date and time and it closes itself, crowns a champion and starts the next one.
+              </p>
+            )}
+          </div>
+          {season.endsAt && (
+            <button type="button" onClick={clearDeadline} disabled={isScheduling} className="shrink-0 rounded-xl border border-[#30363d] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#86948a] hover:text-white disabled:opacity-50">
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="datetime-local"
+            aria-label="Season end date and time"
+            value={deadlineDraft || (season.endsAt ? toLocalInput(season.endsAt) : '')}
+            min={toLocalInput(now)}
+            onChange={(event) => setDeadlineDraft(event.target.value)}
+            className="min-w-0 flex-1 rounded-xl border border-[#30363d] bg-[#10141a] px-3 py-2 font-['JetBrains_Mono'] text-xs text-white outline-none focus:border-[#f59e0b] [color-scheme:dark]"
+          />
+          <button type="button" onClick={saveDeadline} disabled={isScheduling || !deadlineDraft} className="shrink-0 rounded-xl bg-[#f59e0b] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#2a1700] disabled:opacity-50">
+            {isScheduling ? 'Saving…' : season.endsAt ? 'Move' : 'Set'}
+          </button>
+        </div>
+      </div>
 
       {/* Closing a season is the one destructive action in the app, so it states
           exactly what it will do before it does it. */}

@@ -2,7 +2,7 @@ import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, 
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
-import { nerveDelta, deriveNerve, NERVE_BASE } from '../src/utils/league';
+import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 
@@ -162,7 +162,7 @@ eq('season: baseline rating is unchanged', softResetElo(1000), 1000);
 
 const seasonTwo: Season = {
   id: 's2', number: 2, name: 'Season 2',
-  startedAt: T0 + 3 * DAY_MS, endedAt: null,
+  startedAt: T0 + 3 * DAY_MS, endedAt: null, endsAt: null,
   startingElo: { A: 1100, B: 950, C: 1000 },
   standings: [], titles: [],
 };
@@ -255,6 +255,16 @@ const safeAcc = mixed.get('safe')!.correct / mixed.get('safe')!.total;
 eq('nerve: the braver caller outranks the more accurate one',
    braveAcc < safeAcc && mixed.get('brave')!.nerve > mixed.get('safe')!.nerve, true);
 console.log(`      brave ${Math.round(braveAcc*100)}% -> ${mixed.get('brave')!.nerve}; safe ${Math.round(safeAcc*100)}% -> ${mixed.get('safe')!.nerve}`);
+
+// --- season deadline ---
+const H = 3600_000, M = 60_000;
+eq('deadline: days and hours', describeTimeLeft(T0 + 3 * DAY_MS + 4 * H, T0), '3d 4h');
+eq('deadline: under a day drops to hours and minutes', describeTimeLeft(T0 + 6 * H + 12 * M, T0), '6h 12m');
+eq('deadline: under an hour is minutes only', describeTimeLeft(T0 + 42 * M, T0), '42m');
+eq('deadline: passed reads as now', describeTimeLeft(T0, T0 + 1), 'now');
+eq('deadline: final day is the same calendar day', isFinalDay(at('2026-09-15T22:00:00'), at('2026-09-15T09:00:00')), true);
+eq('deadline: tomorrow is not the final day', isFinalDay(at('2026-09-16T01:00:00'), at('2026-09-15T23:00:00')), false);
+eq('deadline: once passed it is no longer the final day', isFinalDay(at('2026-09-15T09:00:00'), at('2026-09-15T10:00:00')), false);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

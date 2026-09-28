@@ -99,7 +99,7 @@ const challenges: Challenge[] = [
 
 const pastSeason: Season = {
   id: 's1', number: 1, name: 'Season 1',
-  startedAt: now - 180 * DAY_MS, endedAt: now - 60 * DAY_MS,
+  startedAt: now - 180 * DAY_MS, endedAt: now - 60 * DAY_MS, endsAt: null,
   startingElo: {},
   standings: [
     { playerId: 'p1', name: NAMES[1], rank: 1, elo: 1212, wins: 24, losses: 6 },
@@ -113,7 +113,7 @@ const pastSeason: Season = {
 };
 const currentSeason: Season = {
   id: 's2', number: 2, name: 'Season 2',
-  startedAt: now - 60 * DAY_MS, endedAt: null,
+  startedAt: now - 60 * DAY_MS, endedAt: null, endsAt: now + 3 * DAY_MS + 4 * 3600_000,
   startingElo: {}, standings: [], titles: [],
 };
 
@@ -224,7 +224,7 @@ const Harness: React.FC = () => {
           {tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
               seasons={[currentSeason, pastSeason]} currentPlayer={me} onEditWinner={async () => {}}
-              onDelete={async () => {}} onEndSeason={async () => {}}
+              onDelete={async () => {}} onEndSeason={async () => {}} onScheduleSeasonEnd={async () => {}} now={now}
               onReact={async () => {}} onOpenComments={() => () => {}}
               onSubmitComment={async () => {}} onDeleteComment={async () => {}} />
           ) : tab === 'leaderboard' ? (

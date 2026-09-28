@@ -22,6 +22,7 @@ import {
   getLeaderboard,
   getMatches,
   getSeasons,
+  scheduleSeasonEnd,
   revertLiveChallenge,
   sendCheer,
   sendChatMessage,
@@ -48,6 +49,7 @@ export const poolService = {
     updateMatchWinner(matchId, season, winnerId),
   deleteMatch: (matchId: string, season: Season) => deleteMatch(matchId, season),
   getSeasons,
+  scheduleSeasonEnd,
   startNewSeason: (params: { current: Season; standings: SeasonStanding[]; titles: SeasonTitle[] }) =>
     startNewSeason(params),
   getChallenges,

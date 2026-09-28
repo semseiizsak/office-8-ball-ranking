@@ -24,6 +24,7 @@ import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
 import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS } from './utils/league';
+import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
 
@@ -38,6 +39,9 @@ export default function App() {
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
+  /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
+  const [clock, setClock] = useState(() => Date.now());
+  const closingSeasonRef = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState<boolean>(true);
@@ -261,6 +265,11 @@ export default function App() {
     if (currentPlayer && !selectedPlayerAId) setSelectedPlayerAId(currentPlayer.id);
   }, [currentPlayer, selectedPlayerAId]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const refreshPlayers = async () => {
     setPlayers(await poolService.getPlayers());
   };
@@ -375,6 +384,10 @@ export default function App() {
       authorName: currentPlayer.name,
       ...params,
     });
+  };
+
+  const handleScheduleSeasonEnd = async (endsAt: number | null) => {
+    setSeasons(await poolService.scheduleSeasonEnd(currentSeason, endsAt));
   };
 
   /** Archives the running season's standings and titles, then resets ratings. */
@@ -571,6 +584,25 @@ export default function App() {
     });
   };
 
+  useEffect(() => {
+    if (!currentSeason.endsAt || clock < currentSeason.endsAt) return;
+    if (closingSeasonRef.current || players.length === 0) return;
+    closingSeasonRef.current = true;
+    handleEndSeason()
+      .catch((error: unknown) => {
+        // Another client got there first. Just pick up the season it opened.
+        if (error instanceof Error && error.message === SEASON_ALREADY_CLOSED) return;
+        console.error('Timed season close failed:', error);
+      })
+      .then(async () => setSeasons(await poolService.getSeasons()))
+      .finally(() => {
+        closingSeasonRef.current = false;
+      });
+    // handleEndSeason reads the latest league state via closure; re-running on
+    // every player change would only re-check the same deadline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clock, currentSeason.endsAt, currentSeason.id]);
+
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
   const dossierRank = dossierPlayer
     ? sortedPlayers.findIndex((p) => p.id === dossierPlayer.id) + 1
@@ -721,6 +753,8 @@ export default function App() {
                 onEditWinner={handleEditMatch}
                 onDelete={handleDeleteMatch}
                 onEndSeason={handleEndSeason}
+                onScheduleSeasonEnd={handleScheduleSeasonEnd}
+                now={clock}
                 onReact={handleReactToMatch}
                 onOpenComments={poolService.subscribeToMatchComments}
                 onSubmitComment={handleSubmitComment}
