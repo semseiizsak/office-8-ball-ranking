@@ -1,4 +1,5 @@
 import { Challenge, MatchRecord, Player } from '../types';
+import { stakeOf } from './chips';
 import { MatchRecap } from './recap';
 
 export type EarnedNotificationType = 'match_result' | 'rank_change' | 'prediction_result' | 'crown_taken';
@@ -87,7 +88,7 @@ export function earnedNotifications(params: {
         'prediction_result',
         right ? 'You called it' : 'Wrong call',
         `${winnerFirst} beat ${loserFirst}.` +
-          (prediction.stake ? (right ? ' Your chips came in.' : ` ${prediction.stake} chips gone.`) : '')
+          (stakeOf(prediction) ? (right ? ' Your chips came in.' : ` ${stakeOf(prediction)} chips gone.`) : '')
       );
     }
   }

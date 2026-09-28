@@ -1,5 +1,5 @@
 import { Challenge, MatchRecord, Player } from '../types';
-import { ChipRecord, deriveChips } from './chips';
+import { stakeOf, ChipRecord, deriveChips } from './chips';
 import { DailyRecord } from './daily';
 import { CupRecord } from './tournament';
 
@@ -109,10 +109,10 @@ export function buildBadgeContext(
     if (right) calls.hits++;
     if (mine.isLock) { calls.locks++; if (right) calls.lockHits++; }
     if (same < challenge.predictions.length - same) calls.against++;
-    calls.bigBet = Math.max(calls.bigBet, mine.stake ?? 0);
-    if (!right && mine.stake) {
+    calls.bigBet = Math.max(calls.bigBet, stakeOf(mine));
+    if (!right && stakeOf(mine)) {
       const day = new Date(mine.createdAt).toDateString();
-      lostByDay[day] = (lostByDay[day] ?? 0) + mine.stake;
+      lostByDay[day] = (lostByDay[day] ?? 0) + stakeOf(mine);
       calls.worstDay = Math.max(calls.worstDay, lostByDay[day]);
     }
   }

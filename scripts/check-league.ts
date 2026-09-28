@@ -498,5 +498,16 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('cup override: an early draw is undone', [drawnAtNoon.bracket, drawnAtNoon.drawnAt], [null, null]);
 }
 
+{
+  const before = 1790597742000 - 1000;
+  const call = (id: string, pick: string, extra: Record<string, unknown> = {}) => ({ id, predictorId: id, predictorName: id, predictedWinnerId: pick, createdAt: before, ...extra });
+  const legacy = [{
+    id: 'old', status: 'played', resolvedWinnerId: 'x', matchId: null, createdAt: before,
+    predictions: [call('p', 'x'), call('q', 'y', { isLock: true }), call('r', 'y')],
+  }] as any;
+  const rec = deriveChips(legacy, []).records;
+  eq('legacy calls: 25 a call, 50 a lock, settled as a pool', [rec.get('p')!.chips, rec.get('q')!.chips, rec.get('r')!.chips], [100, 0, 0]);
+}
+
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

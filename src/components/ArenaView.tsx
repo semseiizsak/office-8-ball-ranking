@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
-import { BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
+import { stakeOf, BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
 import { CupState, Tournament } from '../utils/tournament';
 import { CupCard } from './CupCard';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
@@ -184,7 +184,7 @@ const CallControls: React.FC<{
     const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
     return (
       <p className="text-[13px] text-white/70">
-        You put <b className="text-white">{myCall.stake ?? 0} chips</b> on <b className="text-white">{first(pickedName)}</b>
+        You put <b className="text-white">{stakeOf(myCall)} chips</b> on <b className="text-white">{first(pickedName)}</b>
         {myCall.ball ? `, on ${myCall.ball} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );

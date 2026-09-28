@@ -21,6 +21,19 @@ export const DAILY_CHIPS = 100;
 export const STAKES = [10, 25, 50, 100] as const;
 export const BALL_TIP_COST = 10;
 
+/**
+ * Calls made before chips existed (2026-09-28 14:15 CEST) had no stake. They
+ * are settled as if they had one: a plain call 25, a lock 50, so the old
+ * calling record carries over into the stacks.
+ */
+export const CHIPS_LAUNCHED_AT = 1790597742000;
+export const LEGACY_STAKE = 25;
+export const LEGACY_LOCK_STAKE = 50;
+
+/** What a call has riding on it, old calls included. */
+export const stakeOf = (prediction: { stake?: number; isLock?: boolean; createdAt: number }) =>
+  prediction.stake ?? (prediction.createdAt < CHIPS_LAUNCHED_AT ? (prediction.isLock ? LEGACY_LOCK_STAKE : LEGACY_STAKE) : 0);
+
 /** One-off gifts to everyone on the roster, added to their stack. */
 export const GRANTS: Array<{ day: string; amount: number }> = [{ day: '2026-09-28', amount: 100 }];
 
@@ -91,7 +104,7 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
 
   for (const challenge of challenges) {
     if (['pending', 'accepted', 'live'].includes(challenge.status)) {
-      pools.set(challenge.id, challenge.predictions.reduce((sum, prediction) => sum + (prediction.stake ?? 0), 0));
+      pools.set(challenge.id, challenge.predictions.reduce((sum, prediction) => sum + stakeOf(prediction), 0));
     }
   }
 
@@ -105,11 +118,11 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
   for (const challenge of settled) {
     const winnerId = challenge.resolvedWinnerId!;
     const match = challenge.matchId ? matchById.get(challenge.matchId) : undefined;
-    const staked = challenge.predictions.filter((prediction) => (prediction.stake ?? 0) > 0);
+    const staked = challenge.predictions.filter((prediction) => stakeOf(prediction) > 0);
     const right = staked.filter((prediction) => prediction.predictedWinnerId === winnerId);
     const wrong = staked.filter((prediction) => prediction.predictedWinnerId !== winnerId);
-    const rightPool = right.reduce((sum, prediction) => sum + (prediction.stake ?? 0), 0);
-    const wrongPool = wrong.reduce((sum, prediction) => sum + (prediction.stake ?? 0), 0);
+    const rightPool = right.reduce((sum, prediction) => sum + stakeOf(prediction), 0);
+    const wrongPool = wrong.reduce((sum, prediction) => sum + stakeOf(prediction), 0);
 
     const paid = new Map<string, Payout>();
     const slot = (id: string, stake: number) => {
@@ -120,11 +133,11 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
     };
 
     for (const prediction of right) {
-      const stake = prediction.stake ?? 0;
+      const stake = stakeOf(prediction);
       const share = rightPool > 0 ? Math.floor((wrongPool * stake) / rightPool) : 0;
       slot(prediction.predictorId, stake).paid += stake + share;
     }
-    for (const prediction of wrong) slot(prediction.predictorId, prediction.stake ?? 0);
+    for (const prediction of wrong) slot(prediction.predictorId, stakeOf(prediction));
     // Nobody backed the winner: the pool has nowhere to go, so it feeds the jackpot.
     if (rightPool === 0) jackpot += wrongPool;
 
