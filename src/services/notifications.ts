@@ -22,7 +22,13 @@ export type LeagueNotificationType =
   | 'match_result'
   | 'crown_taken'
   | 'rank_change'
-  | 'prediction_result';
+  | 'prediction_result'
+  /** Somebody landed on the wall of shame. */
+  | 'shame'
+  /** Tournament sign-ups, draws and results. */
+  | 'tournament'
+  /** Friday's weekly awards are in. */
+  | 'weekly_awards';
 
 /** One addressed message as the inbox shows it. */
 export interface LeagueNotification {

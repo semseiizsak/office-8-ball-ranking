@@ -4,6 +4,7 @@ import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
 import { CommentsThread, CommentsToggle, ReactionBar } from './MatchSocial';
 import { Ball, PlayerAvatar } from './ui';
+import { shamed } from '../utils/shame';
 
 interface EventsViewProps {
   matches: MatchRecord[];
@@ -199,7 +200,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
           <div className="grid min-w-0 justify-items-center gap-1.5 text-center">
             <PlayerAvatar player={winner} size={44} />
-            <span className="max-w-full truncate text-[13px] font-bold">{winnerName.split(' ')[0]}</span>
+            <span className="max-w-full truncate text-[13px] font-bold">{shamed(winnerName.split(' ')[0], byId.get(match.winnerId))}</span>
             <span className="flex items-center gap-1">
               <span className="rounded-full bg-felt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-white">W</span>
               {match.winnerBall && <Ball n={match.winnerBall === 'solids' ? 1 : 9} size={20} />}
@@ -213,7 +214,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
           </div>
           <div className="grid min-w-0 justify-items-center gap-1.5 text-center">
             <PlayerAvatar player={loser} size={44} />
-            <span className="max-w-full truncate text-[13px] font-bold text-white/55">{loserName.split(' ')[0]}</span>
+            <span className="max-w-full truncate text-[13px] font-bold text-white/55">{shamed(loserName.split(' ')[0], byId.get(match.loserId))}</span>
             <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">L</span>
           </div>
         </div>

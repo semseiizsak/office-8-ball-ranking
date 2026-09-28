@@ -34,6 +34,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { addBonus, leftToday } from './utils/chips';
+import { SHAME_STREAK } from './utils/shame';
 import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
 import { buildMatchRecap, MatchRecap } from './utils/recap';
@@ -422,6 +423,19 @@ export default function App() {
           unlockRows.push([unlock.label, `${unlock.e} ${unlock.name}  ${after.name.split(' ')[0]}`]);
           if (id === currentPlayer?.id) myUnlocks.push(key);
         }
+      }
+
+      // Three losses in a row: the office hears about it, once, on the third.
+      const loserAfter = result.players.find((player) => player.id === result.match.loserId);
+      if (loserAfter && loserAfter.currentStreak === -SHAME_STREAK) {
+        void notifyMany(
+          result.players.map((player) => player.id).filter((id) => id !== currentPlayer?.id),
+          {
+            type: 'shame',
+            title: `🤡 ${loserAfter.name.split(' ')[0]} is on the wall of shame`,
+            body: `${SHAME_STREAK} losses in a row. One win takes the clown off.`,
+          }
+        ).catch((error) => console.warn('Shame not delivered:', error));
       }
 
       setPlayers(result.players);

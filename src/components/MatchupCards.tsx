@@ -4,6 +4,7 @@ import { calculateProjectedStakes } from '../utils/elo';
 import { CrownState } from '../utils/league';
 import { ballColor, playerBall } from '../utils/balls';
 import { PlayerAvatar } from './ui';
+import { shamed } from '../utils/shame';
 
 interface Outcome {
   elo: number;
@@ -141,7 +142,7 @@ export const MatchupCards: React.FC<MatchupCardsProps> = ({
     const head = (
       <>
         <PlayerAvatar player={player} size={56} />
-        <span className="max-w-full truncate text-sm font-bold">{label ?? player.name.split(' ')[0]}</span>
+        <span className="max-w-full truncate text-sm font-bold">{label ?? shamed(player.name.split(' ')[0], player)}</span>
         <span className={`text-xs font-semibold tabular-nums ${on ? 'text-white' : 'text-white/55'}`}>
           {player.elo} now, #{rankNow}
         </span>

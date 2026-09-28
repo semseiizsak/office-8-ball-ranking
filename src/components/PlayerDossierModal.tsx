@@ -11,6 +11,7 @@ import {
   earnedBadges,
 } from '../utils/achievements';
 import { DailyRecord } from '../utils/daily';
+import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
 import { TitleBadges } from './TitleBadges';
 import { Ball, PlayerAvatar } from './ui';
@@ -181,7 +182,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
       </div>
       <div className="grid justify-items-center gap-2.5 pb-1 pt-2 text-center">
         <PlayerAvatar player={player} size={112} />
-        <h1 className="text-[30px] [overflow-wrap:anywhere]">{player.name}</h1>
+        <h1 className="text-[30px] [overflow-wrap:anywhere]">{shamed(player.name, player)}</h1>
         <div className="flex flex-wrap justify-center gap-1.5">
           {player.department && <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">{player.department}</span>}
           <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">Ball {playerBall(player)}</span>

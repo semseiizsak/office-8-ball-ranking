@@ -4,6 +4,7 @@ import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
 import { BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
+import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
 import { Ball, CallSplit, PlayerAvatar } from './ui';
 
@@ -388,7 +389,7 @@ export const LiveMatchScreen: React.FC<{
                   >
                     <PlayerAvatar player={side.player ?? ghost(side.id, side.name)} size={68} />
                     <span className="font-display text-[clamp(16px,5.5vw,22px)] font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
-                      {first(side.name)}
+                      {shamed(first(side.name), side.player)}
                     </span>
                     <span className="text-xs font-bold tabular-nums text-white/55">{side.elo}</span>
                     <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
@@ -621,7 +622,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           >
             <PlayerAvatar player={side.player ?? ghost(side.id, side.name)} size={34} />
             <span className="grid min-w-0">
-              <span className="truncate text-sm font-bold">{first(side.name)}</span>
+              <span className="truncate text-sm font-bold">{shamed(first(side.name), side.player)}</span>
               <span className="text-[11px] font-semibold tabular-nums text-white/55">Win +{side.win}</span>
             </span>
           </button>
@@ -920,7 +921,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                 <span className="text-center text-[13px] font-black tabular-nums text-white/55">{index + 1}</span>
                 <PlayerAvatar player={entry.player} size={28} />
                 <span className="grid min-w-0 gap-0.5">
-                  <span className="truncate text-sm font-bold">{entry.player.name}</span>
+                  <span className="truncate text-sm font-bold">{shamed(entry.player.name, entry.player)}</span>
                   <span className="text-xs font-semibold text-white/55">
                     {entry.record.wins} of {entry.record.bets} bets won{entry.record.jackpots ? `, ${entry.record.jackpots} jackpot${entry.record.jackpots === 1 ? '' : 's'}` : ''}
                   </span>

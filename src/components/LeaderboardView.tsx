@@ -7,6 +7,7 @@ import { buildSeasonFinale } from '../utils/finale';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
 import { PlayerAvatar } from './ui';
+import { SHAME_STREAK, isShamed, shamed } from '../utils/shame';
 
 interface LeaderboardViewProps {
   players: Player[];
@@ -118,7 +119,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
         <span className="grid min-w-0 gap-[5px]">
           <span className={`flex min-w-0 items-center gap-1.5 text-sm font-bold leading-tight ${isDormantRow ? 'text-white/55' : ''}`}>
-            <span className="truncate">{first ? '👑 ' : ''}{player.name}</span>
+            <span className="truncate">{first ? '👑 ' : ''}{shamed(player.name, player)}</span>
             {isMe && (
               <span className={`flex-none rounded-md px-1.5 py-[3px] text-[10px] font-extrabold uppercase tracking-[0.1em] ${first ? 'bg-bg text-white' : 'bg-white text-bg'}`}>
                 You
@@ -194,6 +195,36 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           </div>
         )}
       </section>
+
+      {sortedPlayers.some(isShamed) && (
+        <section className="mt-2 grid gap-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-base">Wall of shame</h3>
+            <span className="text-xs font-semibold text-white/55">One win takes it off</span>
+          </div>
+          <div className="grid gap-0.5">
+            {sortedPlayers.filter(isShamed).map((player) => (
+              <button
+                key={player.id}
+                type="button"
+                onClick={() => onSelectPlayer(player)}
+                className="press card-drop grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-left hover:bg-[#161616]"
+              >
+                <span className="relative">
+                  <PlayerAvatar player={player} size={34} />
+                  <span aria-hidden="true" className="duck-waddle absolute -right-2 -top-2 text-lg leading-none">🤡</span>
+                </span>
+                <span className="grid min-w-0 gap-0.5">
+                  <span className="truncate text-sm font-bold">{player.name}</span>
+                  <span className="text-xs font-semibold text-white/55">{-player.currentStreak} losses in a row</span>
+                </span>
+                <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">L{-player.currentStreak}</span>
+              </button>
+            ))}
+          </div>
+          <p className="px-1 text-xs font-semibold text-white/55">{SHAME_STREAK} losses in a row puts you here. The clown follows your name everywhere until you win.</p>
+        </section>
+      )}
 
       {league.titles.length > 0 && (
         <section className="mt-2 grid gap-2">
