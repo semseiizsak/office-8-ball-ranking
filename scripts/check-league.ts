@@ -2,6 +2,7 @@ import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, 
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
+import { buildMatchRecap } from '../src/utils/recap';
 import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
@@ -273,6 +274,41 @@ eq('calls: open just after the match starts', callsOpen({ status: 'live', starte
 eq('calls: still open at the last second of the window', callsOpen({ status: 'live', startedAt: T0 }, T0 + VOTE_WINDOW_MS - 1), true);
 eq('calls: closed once the window is up', callsOpen({ status: 'live', startedAt: T0 }, T0 + VOTE_WINDOW_MS), false);
 eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: T0 }, T0 + 1000), false);
+
+// --- the payoff screen: what a result actually changed ---
+{
+  const roster = ['top', 'mid', 'low'].map(mkPlayer);
+  roster[0].elo = 1030; roster[1].elo = 1010; roster[2].elo = 1000;
+  roster.forEach((p, i) => { p.wins = 5; p.currentStreak = i === 0 ? 4 : 1; });
+  // low beats top: passes both, top drops to third and has a 4-match run ended.
+  const afterRoster = roster.map((p) =>
+    p.id === 'low' ? { ...p, elo: 1040, wins: 6, currentStreak: 2 }
+    : p.id === 'top' ? { ...p, elo: 990, losses: 1, currentStreak: -1 } : p);
+  const recapMatch = mkMatch('low', 'top', 'low', T0 + 50 * DAY_MS);
+  recapMatch.eloDelta = 40;
+  const leagueEmpty = deriveLeagueInsights(roster, [], [], T0);
+  const recap = buildMatchRecap({
+    match: recapMatch, playersBefore: roster, playersAfter: afterRoster,
+    matchesAfter: [recapMatch], challenge: null, leagueBefore: leagueEmpty, leagueAfter: leagueEmpty, now: T0 + 50 * DAY_MS,
+  });
+  eq('recap: winner rank before/after', [recap.winner.rank.before, recap.winner.rank.after], [3, 1]);
+  eq('recap: names who was passed', recap.winner.rank.passed.sort(), ['mid', 'top']);
+  eq('recap: loser rank before/after', [recap.loser.rank.before, recap.loser.rank.after], [1, 3]);
+  eq('recap: names who went past the loser', recap.loser.rank.passedBy.sort(), ['low', 'mid']);
+  eq('recap: remembers the run that was ended', recap.loser.streakBefore, 4);
+  eq('recap: winner streak after', recap.winner.streak, 2);
+  eq('recap: rivalry told from the winner side', [recap.rivalry?.wins, recap.rivalry?.losses], [1, 0]);
+  eq('recap: no calls when there was no challenge', recap.calls, null);
+
+  const called = { ...settledChallenge(1000, 1030, 'challenger', [['a', 'challenger'], ['b', 'opponent'], ['c', 'challenger']], T0),
+    challengerId: 'low', opponentId: 'top', resolvedWinnerId: 'low' };
+  called.predictions = called.predictions.map((p) => ({ ...p, predictedWinnerId: p.predictedWinnerId === 'A' ? 'low' : 'top' }));
+  const withCalls = buildMatchRecap({
+    match: recapMatch, playersBefore: roster, playersAfter: afterRoster,
+    matchesAfter: [recapMatch], challenge: called, leagueBefore: leagueEmpty, leagueAfter: leagueEmpty, now: T0 + 50 * DAY_MS,
+  });
+  eq('recap: splits callers by whether they were right', [withCalls.calls?.right, withCalls.calls?.wrong], [['a', 'c'], ['b']]);
+}
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

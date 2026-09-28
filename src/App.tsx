@@ -24,6 +24,7 @@ import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { notifyMany, registerForPushNotifications, sendNotification, subscribeToSparkNotifications } from './services/notifications';
 import { deriveLeagueInsights, hasLockOnDay, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_DAYS, VOTE_WINDOW_MS } from './utils/league';
+import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { EightBallIcon } from './components/EightBallIcon';
@@ -91,6 +92,7 @@ export default function App() {
     loserNewElo: number;
     isUpset: boolean;
     crownChangedHands: boolean;
+    recap?: MatchRecap;
   } | null>(null);
 
   // Everything is scoped to the running season, so closing one genuinely
@@ -292,9 +294,28 @@ export default function App() {
         challengeId: activeChallengeId,
       });
 
+      // Everything the payoff screen needs is derivable from before and after.
+      const matchesAfter = [result.match, ...matches];
+      const leagueAfter = deriveLeagueInsights(
+        result.players,
+        matchesInSeason(matchesAfter, currentSeason),
+        challenges,
+        Date.now(),
+        currentSeason.startingElo
+      );
+      const recap = buildMatchRecap({
+        match: result.match,
+        playersBefore: players,
+        playersAfter: result.players,
+        matchesAfter,
+        challenge: challenges.find((challenge) => challenge.id === activeChallengeId) ?? null,
+        leagueBefore: league,
+        leagueAfter,
+      });
+
       setPlayers(result.players);
       setMatches((prev) => [result.match, ...prev]);
-      setMatchResult(result);
+      setMatchResult({ ...result, recap });
       setIsLoggerOpen(false);
 
       if (activeChallengeId) {

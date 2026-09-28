@@ -4,6 +4,8 @@ import './index.css';
 import { Challenge, MatchRecord, Player } from './types';
 import { deriveLeagueInsights, runLeagueReplay, DAY_MS } from './utils/league';
 import { LeaderboardView } from './components/LeaderboardView';
+import { MatchSuccessModal } from './components/MatchSuccessModal';
+import { buildMatchRecap } from './utils/recap';
 import { ArenaView } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
@@ -161,6 +163,7 @@ const Harness: React.FC = () => {
   const [showDuel, setShowDuel] = useState(false);
   const [showSent, setShowSent] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
   const [aId, setAId] = useState<string | undefined>('p2');
   const [bId, setBId] = useState<string | undefined>('p1');
 
@@ -218,6 +221,8 @@ const Harness: React.FC = () => {
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">duel</button>
           <button id="demo-sent" onClick={() => setShowSent(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">sent</button>
+          <button id="demo-recap" onClick={() => setShowRecap(true)}
+            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">recap</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
             className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
@@ -252,6 +257,25 @@ const Harness: React.FC = () => {
             onDecline={async () => setShowIncoming(false)}
             onDismiss={() => setShowIncoming(false)} />
         )}
+        {showRecap && (() => {
+          // Dave (rank 2) beats Sarah (rank 1): passes her, collects the crown.
+          const winner = players[2], loser = players[1];
+          const gain = 30;
+          const after = players.map((p) => p.id === winner.id ? { ...p, elo: p.elo + gain, wins: p.wins + 1, currentStreak: 3 }
+            : p.id === loser.id ? { ...p, elo: p.elo - gain, losses: p.losses + 1, currentStreak: -1 } : p);
+          const match = { ...seasonMatches[0], id: 'demo', timestamp: now, playerAId: winner.id, playerAName: winner.name,
+            playerBId: loser.id, playerBName: loser.name, winnerId: winner.id, loserId: loser.id, eloDelta: 12, bountyCollected: 18, isUpset: true };
+          const matchesAfter = [match, ...seasonMatches];
+          const leagueAfter = deriveLeagueInsights(after, matchesAfter, challengesList, now);
+          const recap = buildMatchRecap({ match, playersBefore: players, playersAfter: after, matchesAfter,
+            challenge: challenges[0], leagueBefore: league, leagueAfter, now });
+          return (
+            <MatchSuccessModal
+              result={{ match, winnerName: winner.name, loserName: loser.name, eloDelta: 12, bountyCollected: 18,
+                winnerNewElo: winner.elo + gain, loserNewElo: loser.elo - gain, isUpset: true, crownChangedHands: true, recap }}
+              onClose={() => setShowRecap(false)} onViewLeaderboard={() => setShowRecap(false)} />
+          );
+        })()}
         {showSent && (
           <CalloutSentOverlay opponent={players[1]} winDelta={41} crownBounty={24}
             onComplete={() => setShowSent(false)} />
