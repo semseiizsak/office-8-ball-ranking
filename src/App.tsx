@@ -36,6 +36,7 @@ import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
+import { CupView } from './components/CupView';
 import { Tournament, deriveCups, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
 import { FightPoster, posterReason } from './components/FightPoster';
@@ -961,6 +962,12 @@ export default function App() {
       ) ?? null
     : null;
   const challengeInbox = incomingChallenge ?? outgoingChallenge;
+  // The cup tab gets a dot when there is something to do there.
+  const cupBadge =
+    !!currentPlayer &&
+    !!thisCup &&
+    ((clock >= thisCup.opensAt && clock < thisCup.closesAt && !thisCup.entrants.some((entry) => entry.id === currentPlayer.id)) ||
+      !!cupState?.rounds.flat().some((game) => !game.winnerId && game.a && game.b && [game.a, game.b].includes(currentPlayer.id)));
   const arenaBadge = currentPlayer
     ? challenges.filter(
         (challenge) =>
@@ -1065,10 +1072,25 @@ export default function App() {
                   };
                 })()}
                 onPlayDaily={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
-                cup={thisCup}
-                cupState={cupState}
-                onJoinCup={handleJoinCup}
                 onOpenLiveMatch={setActiveLiveChallengeId}
+              />
+            </div>
+          )}
+
+          {activeTab === 'cup' && (
+            <div className="anim-fade">
+              <CupView
+                tournaments={tournaments}
+                current={thisCup}
+                currentState={cupState}
+                records={cupRecords}
+                matches={matches}
+                players={players}
+                currentPlayer={currentPlayer}
+                now={clock}
+                onJoin={handleJoinCup}
+                onPlay={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
+                onSelectPlayer={(player) => setDossierPlayer(player)}
               />
             </div>
           )}
@@ -1097,7 +1119,7 @@ export default function App() {
           )}
         </main>
 
-        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge} />
+        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge} cupBadge={cupBadge} />
 
         {isLoggerOpen && (
           <MatchLoggerSheet

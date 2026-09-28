@@ -9,6 +9,7 @@ import { buildMatchRecap } from './utils/recap';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
+import { CupView } from './components/CupView';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { weekAwards } from './utils/awards';
 import { resolveCup, weekTournament } from './utils/tournament';
@@ -173,7 +174,7 @@ const inboxFixture: LeagueNotification[] = [
 ];
 
 const Harness: React.FC = () => {
-  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'events' | 'log'>('leaderboard');
+  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'events' | 'log'>('leaderboard');
   // Mirrors the app's submission lock so the double-tap guard is exercised.
   const [logged, setLogged] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
@@ -235,7 +236,7 @@ const Harness: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex justify-center">
       <div className="w-full max-w-md min-h-screen bg-[#0A0A0A] flex flex-col">
-        <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : 'leaderboard'}
+        <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab === 'cup' ? 'cup' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
           onOpenProfile={() => {}} onQuickMatch={() => {}} activityBadge={3} onOpenActivity={() => setShowActivity(true)} />
         <div className="flex gap-2 p-2">
@@ -259,7 +260,11 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
         <main className="flex-1 px-4 pt-3">
-          {tab === 'events' ? (
+          {tab === 'cup' ? (
+            <CupView tournaments={[harnessCup]} current={harnessCup} currentState={resolveCup(harnessCup, [], Date.now())}
+              records={new Map([[players[0].id, { entered: 3, titles: 2, finals: 3, matchWins: 7, bonus: 0 }], [players[2].id, { entered: 2, titles: 0, finals: 1, matchWins: 2, bonus: 0 }]])}
+              matches={seasonMatches} players={players} currentPlayer={me} now={Date.now()} onJoin={() => {}} onPlay={() => setChallenging(true)} onSelectPlayer={setDossier} />
+          ) : tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
               seasons={[currentSeason, pastSeason]} currentPlayer={me} onEditWinner={async () => {}}
               onDelete={async () => {}} onEndSeason={async () => {}} onScheduleSeasonEnd={async () => {}} now={now}
@@ -270,7 +275,7 @@ const Harness: React.FC = () => {
               season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
-              chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} cup={harnessCup} cupState={resolveCup(harnessCup, [], Date.now())} onJoinCup={() => {}} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
+              chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}
@@ -278,8 +283,8 @@ const Harness: React.FC = () => {
           )}
         </main>
         <Navigation activeTab={tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab}
-          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'history' ? 'events' : 'leaderboard')}
-          arenaBadge={1} />
+          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'cup' ? 'cup' : t === 'history' ? 'events' : 'leaderboard')}
+          arenaBadge={1} cupBadge />
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
           allPlayers={players} matches={seasonMatches} league={league}
           onClose={() => setDossier(null)} onChallenge={() => setDossier(null)} />

@@ -18,6 +18,7 @@ interface HeaderProps {
 const TITLES: Record<TabType, string> = {
   leaderboard: 'Ranks',
   arena: 'Arena',
+  cup: 'Cup',
   history: 'History',
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Swords, Trophy } from 'lucide-react';
+import { Award, History, Swords, Trophy } from 'lucide-react';
 import { TabType } from '../types';
 
 interface NavigationProps {
@@ -7,11 +7,14 @@ interface NavigationProps {
   onSelectTab: (tab: TabType) => void;
   /** Open challenges waiting on this player, shown as a dot on the Arena tab. */
   arenaBadge?: number;
+  /** Something to do in the cup: sign-ups open, or a tie to play. */
+  cupBadge?: boolean;
 }
 
 const TABS: Array<{ tab: TabType; label: string; Icon: typeof Trophy }> = [
   { tab: 'leaderboard', label: 'Ranks', Icon: Trophy },
   { tab: 'arena', label: 'Arena', Icon: Swords },
+  { tab: 'cup', label: 'Cup', Icon: Award },
   { tab: 'history', label: 'History', Icon: History },
 ];
 
@@ -19,14 +22,14 @@ const TABS: Array<{ tab: TabType; label: string; Icon: typeof Trophy }> = [
  * A floating pill at the bottom of the screen. The active tab is a white pill
  * with its label; the others are just icons.
  */
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab, arenaBadge = 0 }) => (
+export const Navigation: React.FC<NavigationProps> = ({ activeTab, onSelectTab, arenaBadge = 0, cupBadge = false }) => (
   <nav
     id="bottom-navigation-bar"
     className="anim-rise fixed bottom-[calc(var(--safe-bottom)+16px)] left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-full border border-white/14 bg-surface p-1.5"
   >
     {TABS.map(({ tab, label, Icon }) => {
       const active = activeTab === tab;
-      const dot = tab === 'arena' && arenaBadge > 0 && !active;
+      const dot = !active && ((tab === 'arena' && arenaBadge > 0) || (tab === 'cup' && cupBadge));
       return (
         <button
           key={tab}
