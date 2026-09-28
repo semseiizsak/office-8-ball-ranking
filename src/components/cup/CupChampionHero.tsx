@@ -7,7 +7,7 @@ import { BallBurst, CountUp, PlayerAvatar } from '../ui';
 const CONFETTI = ['#FFFFFF', '#0A0A0A', '#0B7A3E', '#C9CCD1'];
 
 /** Paper falling over the gold card, once. */
-const CupConfetti: React.FC<{ delay: number }> = ({ delay }) => {
+export const CupConfetti: React.FC<{ delay: number }> = ({ delay }) => {
   const pieces = useMemo(
     () =>
       Array.from({ length: 24 }, (_, index) => ({

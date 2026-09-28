@@ -6,7 +6,7 @@ import { ballColor, playerBall } from '../utils/balls';
 import { Payout, stakeOf } from '../utils/chips';
 import { DailyPairing, dayKeyOf } from '../utils/daily';
 import { shamed } from '../utils/shame';
-import { Tournament, resolveCup, roundName } from '../utils/tournament';
+import { Tournament, allGames, resolveCup } from '../utils/tournament';
 import { CommentsThread, ReactionBar } from './MatchSocial';
 import { Ball, CallSplit, CountUp, PlayerAvatar, Sheet } from './ui';
 
@@ -173,8 +173,8 @@ export const MatchDetailSheet: React.FC<MatchDetailProps> = (props) => {
     if (daily?.pairs.some(([x, y]) => [x, y].includes(match.winnerId) && [x, y].includes(match.loserId))) out.push('📅 Match of the day');
     for (const cup of tournaments) {
       const state = resolveCup(cup, allMatches, Date.now());
-      const game = state && [...state.rounds.flat(), ...(state.final ? [state.final] : [])].find((entry) => entry.matchId === match.id);
-      if (game) out.push(`🏆 Weekly cup ${roundName(game.round).toLowerCase()}`);
+      const game = state && allGames(state).find((entry) => entry.matchId === match.id);
+      if (game) out.push(`🏆 Weekly cup ${game.label.toLowerCase()}`);
     }
     return out;
   }, [match, dailies, tournaments, allMatches]);

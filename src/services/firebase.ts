@@ -50,7 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
-import { Pairing, Tournament, drawField, firstRound, roundDeadline, withCloseOverride, withRedraw } from '../utils/tournament';
+import { Tournament, gameDeadline, seedField, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1242,19 +1242,11 @@ const toTournament = (id: string, data: Record<string, unknown>): Tournament => 
   entrants: Array.isArray(data.entrants)
     ? (data.entrants as Array<{ id: string; at: number }>).map((entry) => ({ id: String(entry.id), at: Number(entry.at) }))
     : [],
-  // A document from before the cup went Swiss has a bracket and no field: it counts as undrawn.
-  field: Array.isArray(data.field) ? (data.field as string[]).map(String) : null,
-  drawnAt: Array.isArray(data.field) && data.drawnAt ? Number(data.drawnAt) : null,
-  pairings: Array.isArray(data.pairings)
-    ? (data.pairings as Array<Record<string, unknown>>).map((entry) => ({
-        round: Number(entry.round ?? 0),
-        a: String(entry.a ?? ''),
-        b: String(entry.b ?? ''),
-        at: Number(entry.at ?? 0),
-      }))
-    : [],
-  claims: Array.isArray(data.claims)
-    ? (data.claims as Array<Record<string, unknown>>).map((entry) => ({ round: Number(entry.round ?? 0), id: String(entry.id ?? ''), at: Number(entry.at ?? 0) }))
+  // Documents from the earlier formats have no seeded field: they count as undrawn.
+  field: data.format === 'knockout' && Array.isArray(data.field) ? (data.field as string[]).map(String) : null,
+  drawnAt: data.format === 'knockout' && data.drawnAt ? Number(data.drawnAt) : null,
+  claims: data.format === 'knockout' && Array.isArray(data.claims)
+    ? (data.claims as Array<Record<string, unknown>>).map((entry) => ({ game: String(entry.game ?? ''), id: String(entry.id ?? ''), at: Number(entry.at ?? 0) }))
     : [],
 }));
 
@@ -1291,57 +1283,39 @@ export async function joinTournament(week: string, playerId: string): Promise<To
 }
 
 /** Draws the bracket once sign-ups close. Whoever gets there first draws; the rest read it. */
-export async function drawTournament(week: string): Promise<Tournament> {
+export async function drawTournament(week: string, elo: Record<string, number>): Promise<Tournament> {
   const ref = doc(tournamentsCollection, week);
   return runTransaction(db, async (transaction) => {
     const existing = await transaction.get(ref);
     if (!existing.exists()) throw new Error('There is no cup this week.');
     const tournament = toTournament(existing.id, existing.data());
     if (tournament.field !== null || Date.now() < tournament.closesAt) return tournament;
-    const field = drawField(tournament);
+    const field = seedField(tournament, elo);
     const drawnAt = Date.now();
-    const pairings = firstRound(field, drawnAt);
-    transaction.update(ref, { field, drawnAt, pairings, bracket: null });
-    return { ...tournament, field, drawnAt, pairings };
+    transaction.update(ref, { format: 'knockout', field, drawnAt, claims: [], bracket: null, pairings: null });
+    return { ...tournament, field, drawnAt, claims: [] };
   });
 }
 
 /**
- * Records that a player is ready to play their game in a round. Only before
- * the round's deadline, only for a game of theirs that has an opponent.
+ * Records that a player is ready to play a cup game. Only before the game's
+ * deadline, and only once per player and game.
  */
-export async function claimWalkover(week: string, round: number, playerId: string): Promise<Tournament> {
+export async function claimWalkover(week: string, game: string, playerId: string): Promise<Tournament> {
   const ref = doc(tournamentsCollection, week);
   return runTransaction(db, async (transaction) => {
     const existing = await transaction.get(ref);
     if (!existing.exists()) throw new Error('There is no cup this week.');
     const tournament = toTournament(existing.id, existing.data());
-    const pairing = tournament.pairings.find((entry) => entry.round === round && entry.b && [entry.a, entry.b].includes(playerId));
-    if (!pairing) throw new Error('No game to claim.');
-    if (Date.now() > roundDeadline(tournament, round)) throw new Error('This round is over.');
-    if (tournament.claims.some((claim) => claim.round === round && claim.id === playerId)) return tournament;
-    const claims = [...tournament.claims, { round, id: playerId, at: Date.now() }];
+    if (!tournament.field?.includes(playerId)) throw new Error('Not in this cup.');
+    if (Date.now() > gameDeadline(tournament, game)) throw new Error('This game is over.');
+    if (tournament.claims.some((claim) => claim.game === game && claim.id === playerId)) return tournament;
+    const claims = [...tournament.claims, { game, id: playerId, at: Date.now() }];
     transaction.update(ref, { claims });
     return { ...tournament, claims };
   });
 }
 
-/** Stores the next round's pairings, unless another phone already did. */
-export async function advanceTournament(week: string, next: Pairing[]): Promise<{ tournament: Tournament; stored: boolean }> {
-  const ref = doc(tournamentsCollection, week);
-  return runTransaction(db, async (transaction) => {
-    const existing = await transaction.get(ref);
-    if (!existing.exists()) throw new Error('There is no cup this week.');
-    const tournament = toTournament(existing.id, existing.data());
-    const round = next[0]?.round;
-    if (round === undefined || tournament.field === null || tournament.pairings.some((pairing) => pairing.round === round)) {
-      return { tournament, stored: false };
-    }
-    const pairings = [...tournament.pairings, ...next];
-    transaction.update(ref, { pairings });
-    return { tournament: { ...tournament, pairings }, stored: true };
-  });
-}
 
 // ── Weekly awards ───────────────────────────────────────────────────────────
 // The awards themselves are derived; this only records that a week was

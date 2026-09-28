@@ -1,28 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MatchRecord, Player } from '../types';
-import { CUP_MIN_PLAYERS, CupRecord, CupState, FINAL_ROUND, Tournament, resolveCup, roundDeadline, roundName, weekTournament } from '../utils/tournament';
+import { CUP_MIN_PLAYERS, CupRecord, CupState, Tournament, allGames, resolveCup, weekTournament } from '../utils/tournament';
 import { addSeen, cupIn, cupNames, cupPhase, dayMonth, hm, myRoad, readSeen, usePrefersReducedMotion, weekday } from '../utils/cupView';
+import { CupBracket, CupRounds } from './cup/CupBracket';
 import { CupChampionHero } from './cup/CupChampionHero';
-import { CupFinalCard } from './cup/CupFinalCard';
-import { CupFixtures } from './cup/CupFixtures';
 import { CupCabinet, CupHowItWorks, CupPastCups } from './cup/CupLower';
 import { CupMyMatch } from './cup/CupMyMatch';
 import { CupSeats } from './cup/CupSeats';
 import { CupCountdown, CupReigning, CupStage, CupStakeBanner } from './cup/CupStage';
-import { CupStandings } from './cup/CupStandings';
 import { PlayerAvatar, Sheet } from './ui';
 
-/** A section's slot in the page timeline. Everything renders straight away, no scrolling needed. */
-const Reveal: React.FC<{ at: number; motion: boolean; children: (base: number, hold: boolean) => React.ReactNode }> = ({ at, children }) => (
-  <div className="min-w-0">{children(at, false)}</div>
-);
+/** The stage headline per round: short enough to sit on one line at poster size. */
+const HEADLINE: Record<string, string> = { 'Play-in': 'Play-in', 'Round of 16': 'Last 16', 'Quarter-final': 'Quarters', 'Semi-final': 'Semis', Final: 'The final' };
 
 /**
  * Everything about the weekly cup in one tab, laid out like a championship
- * poster: the stage with this week's headline, then sign-ups or the rounds
- * (your game, fixtures, standings, the final), then how it works, the trophy
- * cabinet and every past cup. The top of the page enters on one timeline, and
- * tapping the crest runs it again.
+ * poster: the stage with this week's headline, then sign-ups or the knockout
+ * (your game, then the bracket from the play-in down to the final), then how
+ * it works, the trophy cabinet and every past cup. The top of the page enters
+ * on one timeline, and tapping the crest runs it again.
  */
 export const CupView: React.FC<{
   tournaments: Tournament[];
@@ -35,7 +31,7 @@ export const CupView: React.FC<{
   now: number;
   onJoin: () => void;
   onPlay: (opponentId: string) => void;
-  onClaimWalkover?: (round: number) => Promise<void>;
+  onClaimWalkover?: (gameKey: string) => Promise<void>;
   onSelectPlayer: (player: Player) => void;
 }> = ({ tournaments, current, currentState, records, matches, players, currentPlayer, now, onJoin, onPlay, onClaimWalkover, onSelectPlayer }) => {
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
@@ -67,10 +63,12 @@ export const CupView: React.FC<{
   const nextOpen = now < thisWeek.opensAt ? thisWeek.opensAt : weekTournament(now + 7 * 86_400_000).opensAt;
 
   const names = useMemo(() => cupNames(current?.field ?? [], byId), [current, byId]);
-  const road = currentState ? myRoad(currentState, currentPlayer.id, now) : null;
+  const road = currentState ? myRoad(currentState, currentPlayer.id) : null;
   const tone = phase === 'off' || phase === 'unfinished' ? 'silver' : 'gold';
-  const round = currentState ? Math.min(currentState.current, FINAL_ROUND) : 0;
-  const roundClose = current && currentState ? (round === FINAL_ROUND && currentState.final ? currentState.final.deadline : roundDeadline(current, round)) : 0;
+  // The round being played: its earliest open game sets the countdown.
+  const open = currentState ? allGames(currentState).filter((game) => !game.winnerId && game.label === currentState.current) : [];
+  const roundClose = open.length ? Math.min(...open.map((game) => game.deadline)) : 0;
+  const n = current?.field?.length ?? 0;
 
   const title =
     phase === 'weekend' ? 'Next cup'
@@ -79,15 +77,14 @@ export const CupView: React.FC<{
     : phase === 'off' ? 'No cup'
     : phase === 'champion' ? 'Champion'
     : phase === 'unfinished' ? 'No winner'
-    : round === FINAL_ROUND ? 'The final'
-    : roundName(round);
+    : HEADLINE[currentState!.current] ?? currentState!.current;
 
   const subline =
     phase === 'weekend' ? `Opens ${weekday(nextOpen)} ${hm(nextOpen)}`
-    : phase === 'drawing' ? 'Drawing round 1'
+    : phase === 'drawing' ? 'Seeding the field by Elo'
     : phase === 'off' ? `Only ${current!.entrants.length} signed up. It takes ${CUP_MIN_PLAYERS}.`
     : phase === 'unfinished' ? `The final was not played by ${weekday(current!.deadline)} ${hm(current!.deadline)}`
-    : phase === 'live' ? `Week of ${dayMonth(current!.opensAt)}. ${current!.field!.length} players`
+    : phase === 'live' ? `Week of ${dayMonth(current!.opensAt)}. ${n} players`
     : `Week of ${dayMonth(current!.opensAt)}`;
 
   const countdown =
@@ -95,67 +92,14 @@ export const CupView: React.FC<{
     : phase === 'before' ? { to: current!.opensAt, caption: `Sign ups open at ${hm(current!.opensAt)}` }
     : phase === 'open' ? { to: current!.closesAt, caption: `Sign ups close at ${hm(current!.closesAt)}` }
     : phase === 'off' ? { to: nextOpen, caption: `Next cup opens ${weekday(nextOpen)} ${hm(nextOpen)}` }
-    : phase === 'live' ? { to: roundClose, caption: `${roundName(round)} closes ${weekday(roundClose)} ${hm(roundClose)}` }
+    : phase === 'live' && roundClose ? { to: roundClose, caption: `${currentState!.current === 'Final' ? 'The final' : `The ${currentState!.current.toLowerCase()}`} closes ${weekday(roundClose)} ${hm(roundClose)}` }
     : null;
   const stake = phase !== 'off' && phase !== 'unfinished' && phase !== 'champion';
 
   const championId = currentState?.champion ?? null;
   const openCup = openWeek ? past.find((entry) => entry.cup.week === openWeek) : null;
   const saw = (keys: string[]) => week && addSeen(week, keys);
-
-  // The rounds: fixtures, the table and the final, with whatever matters most right now first.
-  const rounds = current && currentState && (phase === 'live' || phase === 'champion' || phase === 'unfinished') ? (
-    (() => {
-      const fixtures = (at: number) => (
-        <Reveal key="fixtures" at={at} motion={motion}>
-          {(base, hold) => (
-            <CupFixtures
-              state={currentState}
-              byId={byId}
-              names={names}
-              meId={currentPlayer.id}
-              now={now}
-              seen={seen}
-              force={replayKey > 0}
-              flip={replayKey === 0 && !seen.has('drawn')}
-              motion={motion}
-              base={base}
-              hold={hold}
-              onSelectPlayer={onSelectPlayer}
-              onSeen={saw}
-            />
-          )}
-        </Reveal>
-      );
-      const standings = (at: number) => (
-        <Reveal key="standings" at={at} motion={motion}>
-          {(base) => <CupStandings state={currentState} byId={byId} names={names} meId={currentPlayer.id} base={base} motion={motion} onSelectPlayer={onSelectPlayer} />}
-        </Reveal>
-      );
-      const final = (at: number) => (
-        <Reveal key="final" at={at} motion={motion}>
-          {(base, hold) => (
-            <CupFinalCard
-              state={currentState}
-              tournament={current}
-              byId={byId}
-              names={names}
-              meId={currentPlayer.id}
-              now={now}
-              seen={seen}
-              force={replayKey > 0}
-              motion={motion}
-              base={base + (celebrate ? 600 : 0)}
-              hold={hold}
-              onSelectPlayer={onSelectPlayer}
-              onSeen={saw}
-            />
-          )}
-        </Reveal>
-      );
-      return currentState.current >= FINAL_ROUND ? [final(820), standings(1000), fixtures(1180)] : [fixtures(820), standings(1000), final(1180)];
-    })()
-  ) : null;
+  const showBracket = current && currentState && (phase === 'live' || phase === 'champion' || phase === 'unfinished');
 
   return (
     <div className="-mx-3 grid gap-4 overflow-x-clip px-4 pb-28">
@@ -215,52 +159,56 @@ export const CupView: React.FC<{
           <CupMyMatch state={currentState} steps={road} me={currentPlayer} byId={byId} names={names} delay={640} onPlay={onPlay} onClaimWalkover={onClaimWalkover} />
         )}
 
-        {rounds && (
-          <div className="relative isolate grid gap-4">
+        {showBracket && (
+          <section className="cup-in relative isolate -mx-4 grid gap-3 px-4 pb-2 pt-1" style={cupIn('rise-in', 760, 360)}>
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-x-4 -bottom-6 top-1/3 z-[-1]"
+              className="pointer-events-none absolute inset-0 z-[-1]"
+              style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,.06) 1px, rgba(0,0,0,0) 1.3px)', backgroundSize: '10px 10px' }}
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 -bottom-6 top-1/2 z-[-1]"
               style={{ background: 'radial-gradient(ellipse 90% 45% at 50% 100%, rgba(11,122,62,.20), rgba(11,122,62,0) 70%)' }}
             />
-            {rounds}
-          </div>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl">The bracket</h2>
+              <span className="text-[13px] font-extrabold tabular-nums">{n} players</span>
+            </div>
+            <CupRounds state={currentState!} delay={820} motion={motion} />
+            <CupBracket
+              state={currentState!}
+              byId={byId}
+              names={names}
+              meId={currentPlayer.id}
+              seen={seen}
+              force={replayKey > 0}
+              motion={motion}
+              base={900}
+              silver={phase === 'unfinished'}
+              onSelectPlayer={onSelectPlayer}
+              onSeen={saw}
+            />
+          </section>
         )}
       </React.Fragment>
 
-      <Reveal at={1000} motion={motion}>{(base) => <CupHowItWorks now={now} delay={base} />}</Reveal>
-      {cabinet.length > 0 && (
-        <Reveal at={1080} motion={motion}>{(base) => <CupCabinet cabinet={cabinet} byId={byId} delay={base} onSelectPlayer={onSelectPlayer} />}</Reveal>
-      )}
-      {past.length > 0 && (
-        <Reveal at={1160} motion={motion}>{(base) => <CupPastCups past={past} byId={byId} delay={base} onOpen={setOpenWeek} />}</Reveal>
-      )}
+      <CupHowItWorks now={now} delay={1000} />
+      {cabinet.length > 0 && <CupCabinet cabinet={cabinet} byId={byId} delay={1080} onSelectPlayer={onSelectPlayer} />}
+      {past.length > 0 && <CupPastCups past={past} byId={byId} delay={1160} onOpen={setOpenWeek} />}
 
       {openCup && (
         <Sheet title={`Week of ${dayMonth(openCup.cup.opensAt)}`} onClose={() => setOpenWeek(null)}>
-          <CupFinalCard
+          <CupBracket
             state={openCup.state}
-            tournament={openCup.cup}
             byId={byId}
             names={cupNames(openCup.cup.field ?? [], byId)}
             meId={currentPlayer.id}
-            now={now}
             seen={new Set()}
             force={false}
             motion={false}
             base={0}
-            hold={false}
-            onSelectPlayer={(player) => {
-              setOpenWeek(null);
-              onSelectPlayer(player);
-            }}
-          />
-          <CupStandings
-            state={openCup.state}
-            byId={byId}
-            names={cupNames(openCup.cup.field ?? [], byId)}
-            meId={currentPlayer.id}
-            base={120}
-            motion={motion}
+            silver={!openCup.state.champion}
             onSelectPlayer={(player) => {
               setOpenWeek(null);
               onSelectPlayer(player);

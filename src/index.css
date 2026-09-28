@@ -238,6 +238,12 @@ input, textarea, select { font-size: 16px; }
 @keyframes cup-lose-final { from { background-color: #222222; } }
 @keyframes cup-dim { from { opacity: 1; filter: none; } }
 @keyframes cup-dim-text { from { color: #FFFFFF; } }
+/* Bracket plates, replaying a fresh result: an empty seat fills, an open plate takes its result, a champion's win turns gold. */
+@keyframes cup-plate-empty { from { background-color: #222222; color: rgba(255,255,255,.55); } }
+@keyframes cup-plate-open { from { background-color: #C9CCD1; color: #0A0A0A; } }
+@keyframes cup-plate-white { from { background-color: #FFFFFF; } }
+@keyframes cup-sq-open { from { background-color: #3A3A3A; } }
+@keyframes cup-trophy-lift { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.12); } 100% { transform: translateY(0) scale(1); } }
 
 .cup-in { animation: var(--k, rise-in) var(--dur, 360ms) var(--ease) var(--d, 0ms) both; }
 .cup-shine { animation: cup-shine 5s var(--ease) 1100ms infinite; transform-box: fill-box; }
@@ -252,6 +258,8 @@ input, textarea, select { font-size: 16px; }
 .cup-line { stroke-dasharray: 1; animation: draw-line var(--dur, 420ms) var(--ease) var(--d, 0ms) both; }
 .cup-digit { animation: cup-digit 220ms var(--ease) both; }
 .cup-seat-shuffle { animation: cup-seat-shuffle 1200ms var(--ease) infinite; }
+/* The bracket's entrance waits, paused, until it scrolls into view. */
+.cup-hold, .cup-hold * { animation-play-state: paused !important; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition: none !important; }

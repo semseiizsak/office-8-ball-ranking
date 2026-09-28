@@ -12,7 +12,7 @@ import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
-import { deriveCups, drawField, firstRound, resolveCup, weekTournament, withCloseOverride } from '../src/utils/tournament';
+import { bracketShape, deriveCups, gameDeadline, gamesOf, resolveCup, seedField, slotOrder, weekTournament, withCloseOverride } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -449,11 +449,15 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const at = new Date(2026, 8, 28, 9).getTime(); // a Monday
   const cup = weekTournament(at);
   eq('cup: week key is the Monday', cup.week, '2026-09-28');
-  const entrants = Array.from({ length: 20 }, (_, i) => ({ id: `p${i}`, at: at + i }));
-  eq('cup: everyone plays, up to 16', [drawField({ ...cup, entrants: entrants.slice(0, 9) }).length, drawField({ ...cup, entrants }).length], [9, 16]);
-  eq('cup: 2 entrants, no cup', drawField({ ...cup, entrants: entrants.slice(0, 2) }).length, 0);
-  const r1 = firstRound(['a', 'b', 'c', 'd', 'e'], cup.closesAt);
-  eq('cup: odd field, one bye in round 1', [r1.length, r1.filter((p) => !p.b).map((p) => p.a)], [3, ['e']]);
+  eq('cup: bracket order keeps 1 and 2 apart', slotOrder(8), [1, 8, 4, 5, 2, 7, 3, 6]);
+  eq('cup: shapes for 3, 8, 9 and 12', [3, 8, 9, 12].map((n) => bracketShape(n)), [
+    { size: 2, rounds: 1, playIns: 1 }, { size: 8, rounds: 3, playIns: 0 }, { size: 8, rounds: 3, playIns: 1 }, { size: 8, rounds: 3, playIns: 4 },
+  ]);
+  const entrants = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((id, i) => ({ id, at: at + i }));
+  const elo = { a: 1000, b: 1100, c: 950, d: 1200, e: 1000, f: 900, g: 1050, h: 980, i: 1010 };
+  const field = seedField({ ...cup, entrants }, elo);
+  eq('cup: seeded by Elo, ties to the earlier sign-up', field, ['d', 'b', 'g', 'i', 'a', 'e', 'h', 'c', 'f']);
+  eq('cup: 2 entrants, no cup', seedField({ ...cup, entrants: entrants.slice(0, 2) }, elo), []);
 
   const m = (id: string, w: string, l: string, t: number) => ({
     id, timestamp: t, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
@@ -461,29 +465,31 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
     eloDelta: 16, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false },
   });
   const h = (n: number) => cup.closesAt + n * 3600_000;
-  let t = { ...cup, entrants: ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({ id, at: at + i })), field: ['a', 'b', 'c', 'd', 'e'], drawnAt: cup.closesAt, pairings: r1 };
-  const games = [m('x', 'b', 'a', cup.closesAt - 1000), m('1', 'a', 'b', h(1)), m('2', 'c', 'd', h(2))];
-  let state = resolveCup(t, games, h(3))!;
-  eq('cup: a match before the draw does not count', state.rounds[0][0].matchId, '1');
-  eq('cup: round 1 done, round 2 is due', [state.current, state.next?.[0].round], [1, 1]);
-  const r2 = state.next!;
-  const met = (x: string, y: string) => r2.some((p) => [p.a, p.b].includes(x) && [p.a, p.b].includes(y));
-  eq('cup: round 2 has no rematches', met('a', 'b') || met('c', 'd'), false);
-  eq('cup: the round 1 bye does not sit out again', r2.find((p) => !p.b)!.a !== 'e', true);
-  t = { ...t, pairings: [...t.pairings, ...r2.map((p) => ({ ...p, at: h(4) }))] };
-  const r2games = r2.filter((p) => p.b).map((p, i) => m(`r2-${i}`, p.a, p.b, h(5 + i)));
-  state = resolveCup(t, [...games, ...r2games], h(8))!;
-  eq('cup: after two rounds the top two go to the final', [state.next?.[0].round, state.next?.[0].a, state.next?.[0].b], [2, state.standings[0].id, state.standings[1].id]);
-  eq('cup: nobody plays more than two Swiss games', state.standings.every((s) => s.played + s.byes <= 2), true);
-  const fin = state.next![0];
-  t = { ...t, pairings: [...t.pairings, { ...fin, at: h(9) }] };
-  const all = [...games, ...r2games, m('f', fin.b, fin.a, h(10))];
-  state = resolveCup(t, all, h(11))!;
-  eq('cup: champion and runner-up', [state.champion, state.runnerUp], [fin.b, fin.a]);
-  const records = deriveCups([t], all, h(11));
-  eq('cup: champion takes the title and chips', [records.get(fin.b)!.titles, records.get(fin.b)!.bonus, records.get(fin.a)!.bonus], [1, 300, 100]);
-  eq('cup: a bye is not a cup win', records.get('e')!.matchWins, state.standings.find((s) => s.id === 'e')!.wins + (fin.b === 'e' ? 1 : 0));
-  eq('cup: past the deadline with no final is unfinished', resolveCup({ ...t, pairings: t.pairings.filter((p) => p.round < 2) }, [...games, ...r2games], cup.deadline + 1)!.unfinished, true);
+  const t = { ...cup, entrants, field, drawnAt: cup.closesAt, claims: [] };
+  let state = resolveCup(t, [], h(1))!;
+  eq('cup: 9 players, seeds 8 and 9 play in', [state.playIn.length, state.playIn[0].a, state.playIn[0].b], [1, 'c', 'f']);
+  eq('cup: seed 1 waits for the play-in winner', [state.rounds[0][0].a, state.rounds[0][0].b], ['d', null]);
+  eq('cup: the rest meet straight away', [state.rounds[0][1].a, state.rounds[0][1].b], ['i', 'a']);
+
+  const early = m('x', 'd', 'c', cup.closesAt - 1000);
+  const games = [early, m('p', 'f', 'c', h(1)), m('q1', 'd', 'f', h(2)), m('q2', 'i', 'a', h(3)), m('q3', 'b', 'h', h(4)), m('q4', 'g', 'e', h(5)), m('s1', 'd', 'i', h(6)), m('s2', 'b', 'g', h(7)), m('f', 'b', 'd', h(8))];
+  state = resolveCup(t, games, h(9))!;
+  eq('cup: a match before the draw does not count', state.playIn[0].matchId, 'p');
+  eq('cup: the play-in winner takes the seat', state.rounds[0][0].b, 'f');
+  eq('cup: champion and runner-up', [state.champion, state.runnerUp], ['b', 'd']);
+  eq('cup: nobody who skipped the play-in plays more than 3', Math.max(...field.slice(0, 7).map((id) => gamesOf(state, id).length)), 3);
+  const records = deriveCups([t], games, h(9));
+  eq('cup: champion takes the title and chips', [records.get('b')!.titles, records.get('b')!.bonus, records.get('d')!.bonus], [1, 300, 100]);
+
+  // Nothing played: walkover for the only ready player, otherwise the higher seed.
+  const deadlinePassed = gameDeadline(t, 'p8') + 1;
+  const quiet = resolveCup({ ...t, claims: [{ game: 'p8', id: 'f', at: h(1) }] }, [], deadlinePassed)!;
+  eq('walkover: the only ready player goes through', [quiet.playIn[0].winnerId, quiet.playIn[0].walkover], ['f', true]);
+  const nobody = resolveCup(t, [], deadlinePassed)!;
+  eq('walkover: nobody ready, the higher seed goes through', [nobody.playIn[0].winnerId, nobody.playIn[0].auto], ['c', true]);
+  eq('walkover: nothing is decided before the deadline', resolveCup(t, [], h(1))!.playIn[0].winnerId, null);
+  eq('walkover: not a cup win', deriveCups([{ ...t, claims: [{ game: 'p8', id: 'f', at: h(1) }] }], [], deadlinePassed).get('f')!.matchWins, 0);
+  eq('cup: the final is on Friday 17:00', new Date(gameDeadline(t, 'r2-0')).toString(), new Date(t.deadline).toString());
 }
 
 {
@@ -548,17 +554,6 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('achievements: award shelf counts awards', achievementProgress(ctx).find((row) => row.a.id === 'awards')!.v, 3);
 }
 
-{
-  const cup = weekTournament(new Date(2026, 8, 28, 9).getTime());
-  const field = ['a', 'b', 'c', 'd'];
-  const base = { ...cup, field, drawnAt: cup.closesAt, pairings: firstRound(field, cup.closesAt), claims: [{ round: 0, id: 'a', at: cup.closesAt + 1000 }, { round: 0, id: 'c', at: cup.closesAt + 1000 }, { round: 0, id: 'd', at: cup.closesAt + 1000 }] };
-  const before = resolveCup(base, [], cup.closesAt + 2000)!;
-  eq('walkover: nothing is decided before the deadline', before.rounds[0][0].winnerId, null);
-  const after = resolveCup(base, [], cup.deadline - 1)!;
-  eq('walkover: the only ready player takes the point', [after.rounds[0][0].winnerId, after.rounds[0][0].walkover], ['a', true]);
-  eq('walkover: both ready means nobody scores', after.rounds[0][1].winnerId, null);
-  eq('walkover: a point but not a cup win', [after.standings.find((s) => s.id === 'a')!.points, deriveCups([base], [], cup.deadline - 1).get('a')?.matchWins ?? 0], [1, 0]);
-}
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

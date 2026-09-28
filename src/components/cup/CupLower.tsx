@@ -1,6 +1,6 @@
 import React from 'react';
 import { Player } from '../../types';
-import { CHAMPION_CHIPS, CUP_MAX_PLAYERS, CUP_MIN_PLAYERS, CupRecord, CupState, FINALIST_CHIPS, FINAL_ROUND, Tournament, roundDeadline, weekTournament } from '../../utils/tournament';
+import { CHAMPION_CHIPS, CUP_MAX_PLAYERS, CUP_MIN_PLAYERS, CupRecord, CupState, FINALIST_CHIPS, Tournament, weekTournament } from '../../utils/tournament';
 import { hm, monthShort, weekday } from '../../utils/cupView';
 import { cupIn } from '../../utils/cupView';
 import { Ball, CountUp, PlayerAvatar } from '../ui';
@@ -10,13 +10,12 @@ const first = (name: string) => name.split(' ')[0];
 /** The rules, each marked with a pool ball. */
 export const CupHowItWorks: React.FC<{ now: number; delay: number }> = ({ now, delay }) => {
   const week = weekTournament(now);
-  const by = (round: number) => `${weekday(roundDeadline(week, round))} ${hm(roundDeadline(week, round))}`;
   const items: Array<[string, string]> = [
-    ['Monday morning', ` sign ups open. Everyone who signs up plays, ${CUP_MIN_PLAYERS} to ${CUP_MAX_PLAYERS} of you.`],
-    ['Round 1', ` is drawn at random at the close. Play it by ${by(0)}.`],
-    ['Round 2', ` pairs players on the same points, no rematches. Play it by ${by(1)}.`],
-    ['An odd number', ' means one player sits a round out and takes the point. No match, no Elo.'],
-    ['The top 2', ` on the table play the final by ${by(FINAL_ROUND)}. Buchholz breaks a tie on points.`],
+    ['Monday morning', ` sign ups open at ${hm(week.opensAt)} and close at ${hm(week.closesAt)}. Everyone who signs up plays, ${CUP_MIN_PLAYERS} to ${CUP_MAX_PLAYERS} of you.`],
+    ['At the close', ' the field is seeded by Elo. The best seed meets the lowest, so 1 and 2 can only meet in the final.'],
+    ['The play-in', ' comes first when the field does not fill the bracket. The lowest seeds play for the last places.'],
+    ['Every round', ` has a deadline, a day at a time. The final is ${weekday(week.deadline)} ${hm(week.deadline)}.`],
+    ['Not played?', " Say you're ready. If your opponent does not play you in time, you go through on a walkover. If nobody said so, the higher seed goes through. No match, no Elo."],
     ['The champion', ` gets 🏆 and ${CHAMPION_CHIPS} chips, the runner up ${FINALIST_CHIPS}. Every match counts for Elo as usual.`],
   ];
   return (
