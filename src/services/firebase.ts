@@ -50,7 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
-import { Tournament, drawBracket } from '../utils/tournament';
+import { Tournament, drawBracket, withCloseOverride } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1234,7 +1234,7 @@ export async function ensureDaily(pairing: DailyPairing): Promise<DailyPairing> 
 
 const tournamentsCollection = collection(db, 'tournaments');
 
-const toTournament = (id: string, data: Record<string, unknown>): Tournament => ({
+const toTournament = (id: string, data: Record<string, unknown>): Tournament => withCloseOverride({
   week: String(data.week ?? id),
   opensAt: Number(data.opensAt ?? 0),
   closesAt: Number(data.closesAt ?? 0),

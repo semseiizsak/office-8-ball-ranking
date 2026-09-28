@@ -38,7 +38,7 @@ export const CupCard: React.FC<{
       <div className="card-drop grid gap-3 rounded-2xl bg-card p-3.5">
         {header(before ? `Sign-ups open ${clock(tournament.opensAt)}` : open ? `Closes ${clock(tournament.closesAt)}` : 'Drawing')}
         <p className="text-sm text-white/70">
-          Knockout for the first 8 to sign up, or 4 if fewer come. Random draw at noon, done by Friday {clock(tournament.deadline)}. The champion takes 🏆 and {CHAMPION_CHIPS} chips.
+          Knockout for the first 8 to sign up, or 4 if fewer come. Random draw at {clock(tournament.closesAt)}, done by Friday {clock(tournament.deadline)}. The champion takes 🏆 and {CHAMPION_CHIPS} chips.
         </p>
         <div className="flex items-center justify-between gap-3">
           <span className="flex -space-x-1.5">

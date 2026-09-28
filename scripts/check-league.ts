@@ -11,7 +11,7 @@ import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
-import { deriveCups, drawBracket, resolveCup, weekTournament } from '../src/utils/tournament';
+import { deriveCups, drawBracket, resolveCup, weekTournament, withCloseOverride } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -488,6 +488,14 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('awards: after Friday 16:00 does not count', week.matches, 3);
   eq('awards: MVP, generous, landlord, butterfingers', [who('mvp'), who('clown'), who('bully'), who('butter')], ['a', 'b', 'a', 'b']);
   eq('awards: a regular who skipped the week is the ghost', who('ghost'), 'c');
+}
+
+{
+  const today = weekTournament(new Date(2026, 8, 28, 9).getTime());
+  eq('cup override: this week closes 16:00', new Date(today.closesAt).getHours(), 16);
+  eq('cup override: next week back to noon', new Date(weekTournament(new Date(2026, 9, 5, 9).getTime()).closesAt).getHours(), 12);
+  const drawnAtNoon = withCloseOverride({ ...today, bracket: [], drawnAt: new Date(2026, 8, 28, 12, 5).getTime() });
+  eq('cup override: an early draw is undone', [drawnAtNoon.bracket, drawnAtNoon.drawnAt], [null, null]);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

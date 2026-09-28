@@ -15,6 +15,23 @@ export const CUP_DEADLINE_HOUR = 17;
 export const CHAMPION_CHIPS = 300;
 export const FINALIST_CHIPS = 100;
 
+/** Weeks whose sign-ups close later than usual: week key to closing hour. */
+export const CUP_CLOSE_OVERRIDES: Record<string, number> = { '2026-09-28': 16 };
+
+/**
+ * Applies a later closing hour to a week's cup. A cup already drawn before the
+ * new close is treated as undrawn, so sign-ups reopen and it is drawn again.
+ */
+export function withCloseOverride(tournament: Tournament): Tournament {
+  const hour = CUP_CLOSE_OVERRIDES[tournament.week];
+  if (hour === undefined) return tournament;
+  const closes = new Date(tournament.opensAt);
+  closes.setHours(hour, 0, 0, 0);
+  const closesAt = closes.getTime();
+  const early = tournament.drawnAt !== null && tournament.drawnAt < closesAt;
+  return { ...tournament, closesAt, ...(early ? { bracket: null, drawnAt: null } : {}) };
+}
+
 export interface Tournament {
   /** The Monday of the week, YYYY-MM-DD. */
   week: string;
@@ -45,7 +62,7 @@ export function weekTournament(at: number): Tournament {
     d.setHours(h, 0, 0, 0);
     return d.getTime();
   };
-  return {
+  return withCloseOverride({
     week: dayKeyOf(monday.getTime()),
     opensAt: hour(0, CUP_OPENS_HOUR),
     closesAt: hour(0, CUP_CLOSES_HOUR),
@@ -53,7 +70,7 @@ export function weekTournament(at: number): Tournament {
     entrants: [],
     bracket: null,
     drawnAt: null,
-  };
+  });
 }
 
 const seeded = (seed: string) => {
