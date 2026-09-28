@@ -3,6 +3,7 @@ import { ArrowLeftRight, History } from 'lucide-react';
 import { Player, MatchRecord, MatchModifier } from '../types';
 import { calculateProjectedStakes } from '../utils/elo';
 import { CrownState } from '../utils/league';
+import { ballColor, playerBall } from '../utils/balls';
 import { Ball, PlayerAvatar } from './ui';
 
 /**
@@ -43,9 +44,58 @@ interface LogMatchViewProps {
   isSubmitting?: boolean;
 }
 
+interface Outcome {
+  elo: number;
+  delta: number;
+  rank: number;
+}
+
 /**
- * Tap the winner, then say which balls they were on, and it is logged. Two
- * taps for the whole thing, because it gets done standing next to the table.
+ * The player's recent rating, then two dashed branches: where a win and where
+ * a loss would leave them. The branch for the picked result is drawn solid.
+ */
+const EloForecast: React.FC<{
+  player: Player;
+  history: number[];
+  win: Outcome;
+  loss: Outcome;
+  picked: 'win' | 'loss' | null;
+}> = ({ player, history, win, loss, picked }) => {
+  const W = 150, H = 76, L = 2, R = 34, T = 8, B = 8;
+  const points = [...history.slice(-7), player.elo];
+  const lo = Math.min(...points, loss.elo) - 6;
+  const hi = Math.max(...points, win.elo) + 6;
+  const span = points.length; // the branches take one more step
+  const x = (i: number) => L + (i * (W - L - R)) / span;
+  const y = (v: number) => T + ((hi - v) * (H - T - B)) / (hi - lo);
+  const line = points.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const last = points.length - 1;
+  const branch = (to: number, on: boolean, colour: string) => (
+    <path
+      d={`M${x(last).toFixed(1)} ${y(player.elo).toFixed(1)} L${x(span).toFixed(1)} ${y(to).toFixed(1)}`}
+      stroke={colour}
+      strokeWidth={on ? 3 : 2}
+      strokeDasharray={on ? undefined : '3 3'}
+      strokeLinecap="round"
+      opacity={picked && !on ? 0.35 : 1}
+      className="transition-opacity duration-300"
+    />
+  );
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`${player.name}: ${win.elo} with a win, ${loss.elo} with a loss`}>
+      <path d={line} fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" pathLength={1} className="draw-line" />
+      {branch(win.elo, picked === 'win', picked === 'win' ? '#FFFFFF' : '#5FCB8C')}
+      {branch(loss.elo, picked === 'loss', 'rgba(255,255,255,.55)')}
+      <circle cx={x(last)} cy={y(player.elo)} r="4" fill={ballColor(playerBall(player)).c} stroke="#fff" strokeWidth="1.5" />
+      <text x={x(span) + 5} y={y(win.elo) + 3.5} fill="#fff" fontSize="10" fontWeight="800">{win.elo}</text>
+      <text x={x(span) + 5} y={y(loss.elo) + 3.5} fill="rgba(255,255,255,.55)" fontSize="10" fontWeight="800">{loss.elo}</text>
+    </svg>
+  );
+};
+
+/**
+ * Pick the winner by tapping their card, then say which balls they were on,
+ * and it is logged. Each card says exactly what a win and a loss would do.
  */
 export const LogMatchView: React.FC<LogMatchViewProps> = ({
   players,
@@ -67,11 +117,6 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   const playerB = players.find((p) => p.id === playerBId) ?? null;
   const ready = Boolean(playerA && playerB && playerA.id !== playerB.id);
 
-  const handleSwap = () => {
-    if (!playerA || !playerB) return;
-    onChangePlayers(playerB.id, playerA.id);
-  };
-
   const lastMatch = recentMatches[0];
   const showRematch = lastMatch && !(
     [lastMatch.playerAId, lastMatch.playerBId].includes(playerAId ?? '') &&
@@ -79,10 +124,26 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   );
 
   // Beating the crown holder also collects their reign bounty, so the numbers
-  // on the buttons have to include it or they are a lie.
+  // on the cards have to include it or they are a lie.
   const bountyOnA = playerA && crown.holderId === playerA.id ? crown.bounty : 0;
   const bountyOnB = playerB && crown.holderId === playerB.id ? crown.bounty : 0;
   const stakes = calculateProjectedStakes(playerA ? playerA.elo : 1000, playerB ? playerB.elo : 1000, bountyOnA, bountyOnB);
+
+  // The ladder as it stands: everyone who has played, best rating first.
+  const ladder = players.filter((p) => p.wins + p.losses > 0 || p.id === playerAId || p.id === playerBId);
+  const rankWith = (id: string, elos: Record<string, number>) => {
+    const mine = elos[id];
+    return ladder.filter((p) => p.id !== id && (elos[p.id] ?? p.elo) > mine).length + 1;
+  };
+  const current = playerA && playerB ? { [playerA.id]: playerA.elo, [playerB.id]: playerB.elo } : {};
+  const ifAWins = playerA && playerB ? { [playerA.id]: stakes.playerAWinNewA, [playerB.id]: stakes.playerAWinNewB } : {};
+  const ifBWins = playerA && playerB ? { [playerA.id]: stakes.playerBWinNewA, [playerB.id]: stakes.playerBWinNewB } : {};
+
+  const historyOf = (player: Player) =>
+    recentMatches
+      .filter((match) => match.playerAId === player.id || match.playerBId === player.id)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map((match) => (match.playerAId === player.id ? match.playerAEloBefore : match.playerBEloBefore));
 
   const winner = winnerId === playerA?.id ? playerA : winnerId === playerB?.id ? playerB : null;
 
@@ -91,20 +152,83 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
     onRecordMatch(playerA.id, playerB.id, winner.id, NO_MODIFIERS, group);
   };
 
-  const slot = (player: Player | null, side: 'A' | 'B') => (
-    <button
-      type="button"
-      onClick={() => {
-        setSelectingFor(side);
-        setWinnerId(null);
-      }}
-      className="press grid min-w-0 justify-items-center gap-2 rounded-2xl bg-surface px-2 py-4 text-center"
-    >
-      {player ? <PlayerAvatar player={player} size={56} /> : <span className="grid h-14 w-14 place-items-center rounded-full bg-surface-alt text-2xl text-white/55">?</span>}
-      <span className="max-w-full truncate text-sm font-bold">{player?.name ?? 'Pick a player'}</span>
-      <span className="text-xs font-semibold tabular-nums text-white/55">{player ? player.elo : 'Tap to choose'}</span>
-    </button>
-  );
+  const card = (player: Player | null, side: 'A' | 'B') => {
+    if (!player || !playerA || !playerB) {
+      return (
+        <button
+          type="button"
+          onClick={() => setSelectingFor(side)}
+          className="press grid min-w-0 content-center justify-items-center gap-2 rounded-2xl bg-surface px-2 py-6 text-center"
+        >
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-surface-alt text-2xl text-white/55">?</span>
+          <span className="text-sm font-bold">Pick a player</span>
+        </button>
+      );
+    }
+    const isA = side === 'A';
+    const win: Outcome = {
+      elo: isA ? stakes.playerAWinNewA : stakes.playerBWinNewB,
+      delta: isA ? stakes.playerAWinsDelta : stakes.playerBWinsDelta,
+      rank: rankWith(player.id, isA ? ifAWins : ifBWins),
+    };
+    const loss: Outcome = {
+      elo: isA ? stakes.playerBWinNewA : stakes.playerAWinNewB,
+      delta: player.elo - (isA ? stakes.playerBWinNewA : stakes.playerAWinNewB),
+      rank: rankWith(player.id, isA ? ifBWins : ifAWins),
+    };
+    const rankNow = rankWith(player.id, current);
+    const upset = isA ? stakes.isAUpset : stakes.isBUpset;
+    const on = winnerId === player.id;
+    const off = winnerId !== null && !on;
+    const rankMove = (to: number) => (to === rankNow ? `stays #${rankNow}` : `#${rankNow} to #${to}`);
+
+    return (
+      <div className={`grid min-w-0 content-start gap-2.5 rounded-2xl p-3 transition-colors duration-300 ease-[var(--ease)] ${on ? 'bg-felt' : 'bg-surface'}`}>
+        <button
+          type="button"
+          aria-pressed={on}
+          disabled={isSubmitting}
+          onClick={() => setWinnerId(player.id)}
+          className={`press grid justify-items-center gap-1.5 text-center transition-opacity duration-300 ${off ? 'opacity-60' : ''}`}
+        >
+          <PlayerAvatar player={player} size={56} />
+          <span className="max-w-full truncate text-sm font-bold">{player.name.split(' ')[0]}</span>
+          <span className={`text-xs font-semibold tabular-nums ${on ? 'text-white' : 'text-white/55'}`}>
+            {player.elo} now, #{rankNow}
+          </span>
+        </button>
+
+        <div className="grid gap-1 text-xs font-semibold">
+          <div className={`flex items-baseline justify-between gap-1 rounded-lg px-2 py-1.5 ${on ? 'bg-white text-bg' : 'bg-bg/40'}`}>
+            <span className="font-extrabold uppercase tracking-[0.08em]">Win</span>
+            <span className="text-right tabular-nums">
+              <b className="text-sm font-black">+{win.delta}</b> {rankMove(win.rank)}
+            </span>
+          </div>
+          <div className={`flex items-baseline justify-between gap-1 rounded-lg px-2 py-1.5 ${off ? 'bg-white text-bg' : 'bg-bg/40'}`}>
+            <span className="font-extrabold uppercase tracking-[0.08em]">Loss</span>
+            <span className="text-right tabular-nums">
+              <b className="text-sm font-black">−{loss.delta}</b> {rankMove(loss.rank)}
+            </span>
+          </div>
+          {upset && <span className="text-center text-[11px] font-bold">Winning would be an upset</span>}
+        </div>
+
+        <EloForecast player={player} history={historyOf(player)} win={win} loss={loss} picked={on ? 'win' : off ? 'loss' : null} />
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectingFor(side);
+            setWinnerId(null);
+          }}
+          className="press h-9 rounded-full text-[11px] font-extrabold uppercase tracking-[0.08em] text-white/70 hover:text-white"
+        >
+          Change
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div id="log-match-view" className="stagger grid gap-4 pb-6">
@@ -133,94 +257,55 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
       )}
 
       <div className="grid gap-2">
-        <span className="px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Who played</span>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          {slot(playerA, 'A')}
-          <button
-            type="button"
-            onClick={handleSwap}
-            aria-label="Swap players"
-            className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt text-white transition-transform duration-300 ease-[var(--ease)] active:rotate-180"
-          >
-            <ArrowLeftRight className="h-4 w-4" strokeWidth={2.25} />
-          </button>
-          {slot(playerB, 'B')}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">{ready ? 'Tap the winner' : 'Who played'}</span>
+          {ready && (
+            <button type="button" onClick={() => { if (playerA && playerB) onChangePlayers(playerB.id, playerA.id); setWinnerId(null); }} aria-label="Swap sides" className="press grid h-9 w-9 place-items-center rounded-full bg-surface-alt">
+              <ArrowLeftRight className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+          )}
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          {card(playerA, 'A')}
+          {card(playerB, 'B')}
+        </div>
+        {ready && bountyOnA + bountyOnB > 0 && (
+          <span className="justify-self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+            👑 {bountyOnA + bountyOnB} bounty on the crown
+          </span>
+        )}
+        {!ready && (playerA || playerB) && <p className="text-center text-sm text-white/55">Pick the other player.</p>}
       </div>
 
-      {!ready ? (
-        <p className="rounded-xl bg-surface-alt px-3 py-2.5 text-center text-sm font-semibold">Pick both players first.</p>
-      ) : (
-        <>
-          <div className="grid gap-2">
-            <span className="px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Who won</span>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { player: playerA!, delta: stakes.playerAWinsDelta, upset: stakes.isAUpset },
-                { player: playerB!, delta: stakes.playerBWinsDelta, upset: stakes.isBUpset },
-              ].map(({ player, delta, upset }) => {
-                const on = winnerId === player.id;
-                return (
-                  <button
-                    key={player.id}
-                    id={player.id === playerA!.id ? 'btn-player-a-won' : 'btn-player-b-won'}
-                    type="button"
-                    aria-pressed={on}
-                    disabled={isSubmitting}
-                    onClick={() => setWinnerId(player.id)}
-                    className={`press grid justify-items-center gap-2 rounded-2xl px-2 py-4 transition-colors duration-300 ease-[var(--ease)] ${
-                      on ? 'bg-felt text-white' : 'bg-surface hover:bg-[#1C1C1C]'
-                    }`}
-                  >
-                    <PlayerAvatar player={player} size={68} />
-                    <span className="max-w-full truncate text-sm font-bold">{player.name.split(' ')[0]}</span>
-                    <span className={`text-[13px] font-extrabold tabular-nums ${on ? 'text-white' : 'text-white/55'}`}>
-                      +{delta}{upset ? ' upset' : ''}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {bountyOnA + bountyOnB > 0 && (
-              <span className="justify-self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
-                👑 {bountyOnA + bountyOnB} bounty included
-              </span>
-            )}
-          </div>
-
-          {winner ? (
-            <div key={winner.id} className="anim-rise grid gap-3">
-              <p className="text-center font-display text-lg font-extrabold uppercase">What was {winner.name.split(' ')[0]}'s ball?</p>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  ['solids', 1, 'Solids'],
-                  ['stripes', 9, 'Stripes'],
-                ] as const).map(([group, n, label], index) => (
-                  <button
-                    key={group}
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => record(group)}
-                    className="press grid justify-items-center gap-2.5 rounded-2xl bg-surface py-[18px] text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#1C1C1C] disabled:opacity-50"
-                  >
-                    <Ball n={n} size={64} className="callout-throw" style={{ animationDuration: '520ms', animationDelay: `${index * 80}ms` }} />
-                    {label}
-                  </button>
-                ))}
-              </div>
+      {winner && (
+        <div key={winner.id} className="anim-rise grid gap-3">
+          <p className="text-center font-display text-lg font-extrabold uppercase">What was {winner.name.split(' ')[0]}'s ball?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              ['solids', 1, 'Solids'],
+              ['stripes', 9, 'Stripes'],
+            ] as const).map(([group, n, label], index) => (
               <button
+                key={group}
                 type="button"
                 disabled={isSubmitting}
-                onClick={() => record()}
-                className="press h-11 rounded-full text-xs font-extrabold uppercase tracking-[0.06em] text-white/55 hover:text-white disabled:opacity-50"
+                onClick={() => record(group)}
+                className="press grid justify-items-center gap-2.5 rounded-2xl bg-surface py-[18px] text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#1C1C1C] disabled:opacity-50"
               >
-                {isSubmitting ? 'Logging' : 'Not sure, log it anyway'}
+                <Ball n={n} size={64} className="callout-throw" style={{ animationDuration: '520ms', animationDelay: `${index * 80}ms` }} />
+                {label}
               </button>
-            </div>
-          ) : (
-            <p className="text-center text-sm text-white/55">Tap the winner</p>
-          )}
-        </>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => record()}
+            className="press h-11 rounded-full text-xs font-extrabold uppercase tracking-[0.06em] text-white/55 hover:text-white disabled:opacity-50"
+          >
+            {isSubmitting ? 'Logging' : 'Not sure, log it anyway'}
+          </button>
+        </div>
       )}
 
       {selectingFor && (
