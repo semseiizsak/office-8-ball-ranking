@@ -10,6 +10,7 @@ import {
   buildBadgeContext,
   earnedBadges,
 } from '../utils/achievements';
+import { CupRecord } from '../utils/tournament';
 import { DailyRecord } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
@@ -35,6 +36,7 @@ interface PlayerDossierModalProps {
   onEditProfile?: () => void;
   /** Matches of the day, per player. */
   dailyRecords?: Map<string, DailyRecord>;
+  cupRecords?: Map<string, CupRecord>;
 }
 
 type Tab = 'overview' | 'stats' | 'rivals' | 'badges';
@@ -108,6 +110,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
   onSelectPlayer,
   onEditProfile,
   dailyRecords,
+  cupRecords,
 }) => {
   const [tab, setTab] = useState<Tab>('overview');
   useEffect(() => setTab('overview'), [player?.id]);
@@ -120,11 +123,11 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
 
   const everything = allMatches ?? matches;
   const context = useMemo(
-    () => (player ? buildBadgeContext(player, everything, challenges, startingElo[player.id] ?? 1000, undefined, dailyRecords?.get(player.id)) : null),
-    [player, everything, challenges, startingElo, dailyRecords]
+    () => (player ? buildBadgeContext(player, everything, challenges, startingElo[player.id] ?? 1000, undefined, dailyRecords?.get(player.id), cupRecords?.get(player.id)) : null),
+    [player, everything, challenges, startingElo, dailyRecords, cupRecords]
   );
   const everyoneBadges = useMemo(
-    () => (tab === 'badges' ? allPlayers.map((entry) => earnedBadges(buildBadgeContext(entry, everything, challenges, startingElo[entry.id] ?? 1000, undefined, dailyRecords?.get(entry.id)))) : []),
+    () => (tab === 'badges' ? allPlayers.map((entry) => earnedBadges(buildBadgeContext(entry, everything, challenges, startingElo[entry.id] ?? 1000, undefined, dailyRecords?.get(entry.id), cupRecords?.get(entry.id)))) : []),
     [tab, allPlayers, everything, challenges, startingElo, dailyRecords]
   );
 

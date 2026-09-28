@@ -10,6 +10,7 @@ import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
+import { deriveCups, drawBracket, resolveCup, weekTournament } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -440,6 +441,32 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('daily: playing pays both, winning pays more', [records.get('a')!.bonus, records.get('b')!.bonus], [150, 150]);
   const todayOpen = deriveDaily(dailies.slice(2), [], day(3));
   eq('daily: today is not a skip until the day is over', todayOpen.get('a')!.skipped, 0);
+}
+
+{
+  const at = new Date(2026, 8, 28, 9).getTime(); // a Monday
+  const cup = weekTournament(at);
+  eq('cup: week key is the Monday', cup.week, '2026-09-28');
+  const entrants = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, at: at + i }));
+  const eight = drawBracket({ ...cup, entrants });
+  eq('cup: first 8 make the field', [...eight].sort(), entrants.slice(0, 8).map((e) => e.id).sort());
+  eq('cup: 5 entrants play a 4-player cup', drawBracket({ ...cup, entrants: entrants.slice(0, 5) }).length, 4);
+  eq('cup: 3 entrants, no cup', drawBracket({ ...cup, entrants: entrants.slice(0, 3) }).length, 0);
+  const bracket = ['a', 'b', 'c', 'd'];
+  const drawn = { ...cup, entrants: bracket.map((id, i) => ({ id, at: at + i })), bracket, drawnAt: cup.closesAt };
+  const m = (id: string, w: string, l: string, t: number) => ({
+    id, timestamp: t, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
+    playerAEloBefore: 1000, playerAEloAfter: 1016, playerBEloBefore: 1000, playerBEloAfter: 984,
+    eloDelta: 16, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false },
+  });
+  const h = (n: number) => cup.closesAt + n * 3600_000;
+  const games = [m('x', 'b', 'a', cup.closesAt - 1000), m('1', 'a', 'b', h(1)), m('2', 'd', 'c', h(2)), m('3', 'a', 'd', h(3))];
+  const state = resolveCup(drawn, games, h(4))!;
+  eq('cup: a match before the draw does not count', state.rounds[0][0].matchId, '1');
+  eq('cup: champion and runner-up', [state.champion, state.runnerUp], ['a', 'd']);
+  const records = deriveCups([drawn], games, h(4));
+  eq('cup: champion takes the title and chips', [records.get('a')!.titles, records.get('a')!.bonus, records.get('d')!.bonus], [1, 300, 100]);
+  eq('cup: past the deadline with no final is unfinished', resolveCup(drawn, games.slice(0, 3), cup.deadline + 1)!.unfinished, true);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

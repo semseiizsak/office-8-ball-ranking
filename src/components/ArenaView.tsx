@@ -3,6 +3,8 @@ import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucid
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
 import { BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
+import { CupState, Tournament } from '../utils/tournament';
+import { CupCard } from './CupCard';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
@@ -35,6 +37,9 @@ interface ArenaViewProps {
   /** Today's match of the day for the current player, if the draw has run. */
   daily?: { bye: boolean; opponent: Player | null; played: boolean; won: boolean; streak: number } | null;
   onPlayDaily?: (opponentId: string) => void;
+  cup?: Tournament | null;
+  cupState?: CupState | null;
+  onJoinCup?: () => void;
 }
 
 interface VoterInfo {
@@ -558,6 +563,9 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onOpenLiveMatch,
   daily,
   onPlayDaily,
+  cup,
+  cupState,
+  onJoinCup,
 }) => {
   const now = Date.now();
   /**
@@ -781,6 +789,18 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             </>
           ) : null}
         </div>
+      )}
+
+      {cup && currentPlayer && (
+        <CupCard
+          tournament={cup}
+          state={cupState ?? null}
+          players={players}
+          currentPlayer={currentPlayer}
+          now={now}
+          onJoin={() => onJoinCup?.()}
+          onPlay={(opponentId) => onPlayDaily?.(opponentId)}
+        />
       )}
 
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">

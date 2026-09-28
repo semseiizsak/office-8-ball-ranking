@@ -50,6 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
+import { Tournament, drawBracket } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1228,5 +1229,66 @@ export async function ensureDaily(pairing: DailyPairing): Promise<DailyPairing> 
       createdAt: serverTimestamp(),
     });
     return pairing;
+  });
+}
+
+const tournamentsCollection = collection(db, 'tournaments');
+
+const toTournament = (id: string, data: Record<string, unknown>): Tournament => ({
+  week: String(data.week ?? id),
+  opensAt: Number(data.opensAt ?? 0),
+  closesAt: Number(data.closesAt ?? 0),
+  deadline: Number(data.deadline ?? 0),
+  entrants: Array.isArray(data.entrants)
+    ? (data.entrants as Array<{ id: string; at: number }>).map((entry) => ({ id: String(entry.id), at: Number(entry.at) }))
+    : [],
+  bracket: Array.isArray(data.bracket) ? (data.bracket as string[]).map(String) : null,
+  drawnAt: data.drawnAt ? Number(data.drawnAt) : null,
+});
+
+export async function getTournaments(): Promise<Tournament[]> {
+  const snapshot = await getDocs(tournamentsCollection);
+  return snapshot.docs.map((entry) => toTournament(entry.id, entry.data())).sort((a, b) => a.week.localeCompare(b.week));
+}
+
+/** Creates the week's cup if nobody has yet, under the Monday as its id. */
+export async function ensureTournament(tournament: Tournament): Promise<Tournament> {
+  const ref = doc(tournamentsCollection, tournament.week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return toTournament(existing.id, existing.data());
+    transaction.set(ref, { ...tournament, createdAt: serverTimestamp() });
+    return tournament;
+  });
+}
+
+/** Signs a player up, only while sign-ups are open and only once. */
+export async function joinTournament(week: string, playerId: string): Promise<Tournament> {
+  const ref = doc(tournamentsCollection, week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (!existing.exists()) throw new Error('There is no cup this week.');
+    const tournament = toTournament(existing.id, existing.data());
+    const now = Date.now();
+    if (now < tournament.opensAt || now >= tournament.closesAt) throw new Error('Sign-ups are closed.');
+    if (tournament.entrants.some((entry) => entry.id === playerId)) return tournament;
+    const entrants = [...tournament.entrants, { id: playerId, at: now }];
+    transaction.update(ref, { entrants });
+    return { ...tournament, entrants };
+  });
+}
+
+/** Draws the bracket once sign-ups close. Whoever gets there first draws; the rest read it. */
+export async function drawTournament(week: string): Promise<Tournament> {
+  const ref = doc(tournamentsCollection, week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (!existing.exists()) throw new Error('There is no cup this week.');
+    const tournament = toTournament(existing.id, existing.data());
+    if (tournament.bracket !== null || Date.now() < tournament.closesAt) return tournament;
+    const bracket = drawBracket(tournament);
+    const drawnAt = Date.now();
+    transaction.update(ref, { bracket, drawnAt });
+    return { ...tournament, bracket, drawnAt };
   });
 }

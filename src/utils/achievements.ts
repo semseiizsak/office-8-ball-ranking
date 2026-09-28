@@ -1,6 +1,7 @@
 import { Challenge, MatchRecord, Player } from '../types';
 import { ChipRecord, deriveChips } from './chips';
 import { DailyRecord } from './daily';
+import { CupRecord } from './tournament';
 
 /**
  * Badges and tiered achievements, all derived from what is already stored:
@@ -34,6 +35,7 @@ export interface BadgeContext {
   calls: { total: number; hits: number; locks: number; lockHits: number; against: number; bigBet: number; worstDay: number };
   chips: ChipRecord;
   daily: DailyRecord;
+  cups: CupRecord;
   ducks: number;
   startElo: number;
 }
@@ -69,7 +71,8 @@ export function buildBadgeContext(
   challenges: Challenge[],
   startElo = 1000,
   flags = crownFlags(matches),
-  daily?: DailyRecord
+  daily?: DailyRecord,
+  cups?: CupRecord
 ): BadgeContext {
   const my = matches
     .filter((match) => match.playerAId === player.id || match.playerBId === player.id)
@@ -117,7 +120,7 @@ export function buildBadgeContext(
 
   const ducks = challenges.filter((challenge) => challenge.status === 'declined' && challenge.opponentId === player.id).length;
   const noDaily: DailyRecord = { completed: 0, wins: 0, upsets: 0, skipped: 0, byes: 0, streak: 0, bestStreak: 0, bonus: 0, doubleDuty: 0, history: [] };
-  return { player, my, calls, chips, daily: daily ?? noDaily, ducks, startElo };
+  return { player, my, calls, chips, daily: daily ?? noDaily, cups: cups ?? { entered: 0, titles: 0, finals: 0, matchWins: 0, bonus: 0 }, ducks, startElo };
 }
 
 const runOf = <T,>(items: T[], test: (item: T) => boolean) => {
@@ -201,6 +204,10 @@ export const BADGES: Badge[] = [
   { id: 'doubleduty', e: '🧃', name: 'Double Duty', desc: 'Play your daily and three more matches the same day.', test: (c) => c.daily.doubleDuty >= 1 },
   { id: 'byebye', e: '🏖️', name: 'Bye Bye', desc: 'Sit out the daily draw 3 times.', secret: true, test: (c) => c.daily.byes >= 3 },
   { id: 'leftonread', e: '📵', name: 'Left on Read', desc: 'Skip 5 matches of the day.', secret: true, test: (c) => c.daily.skipped >= 5 },
+  { id: 'signedup', e: '📝', name: 'Signed Up', desc: 'Make the field of a weekly cup.', test: (c) => c.cups.entered >= 1 },
+  { id: 'cupchamp', e: '🏆', name: 'Cup Champion', desc: 'Win the weekly cup.', test: (c) => c.cups.titles >= 1 },
+  { id: 'soclose', e: '🥈', name: 'So Close', desc: 'Lose a weekly cup final.', test: (c) => c.cups.finals > c.cups.titles },
+  { id: 'cuprun', e: '🎟️', name: 'Cup Run', desc: 'Win 5 cup matches.', test: (c) => c.cups.matchWins >= 5 },
   { id: 'lucky8', e: '🎱', name: 'Lucky Eight', desc: 'Win for exactly +8.', secret: true, test: (c) => c.my.some((x) => x.won && x.gain === 8) },
   { id: 'textbook', e: '📐', name: 'Textbook', desc: 'Win for exactly +16 three times. The most average win there is.', secret: true, test: (c) => c.my.filter((x) => x.won && x.gain === 16).length >= 3 },
   { id: 'dejavu', e: '🔁', name: 'Déjà Vu', desc: 'Play the same person 3 times in one day.', secret: true, test: (c) => Object.values(c.my.reduce<Record<string, number>>((acc, x) => { const key = x.opp + x.d.toDateString(); acc[key] = (acc[key] ?? 0) + 1; return acc; }, {})).some((n) => n >= 3) },
@@ -253,6 +260,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'opps', e: '🧭', name: 'Social Butterfly', unit: 'different opponents', at: [3, 6, 9, 15, 25], names: ['Small Circle', 'Networker', 'Mingler', 'Office Celebrity', "Everyone's Nemesis"], v: (c) => new Set(c.my.map((x) => x.opp)).size },
   { id: 'daily', e: '📆', name: 'Daily Grind', unit: 'matches of the day', at: [1, 5, 20, 50, 150], names: ['Clocked In', 'Regular Shift', 'Overtime', 'Employee of the Month', 'Lifer'], v: (c) => c.daily.completed },
   { id: 'dstreak', e: '⏱️', name: 'Punch Card', unit: 'days in a row', at: [2, 5, 10, 20, 50], names: ['Warming Up', 'On Schedule', 'Clockwork', 'Unbreakable', 'Metronome'], v: (c) => c.daily.bestStreak },
+  { id: 'cups', e: '🏆', name: 'Trophy Cabinet', unit: 'weekly cups won', at: [1, 3, 5, 10, 25], names: ['Cup Holder', 'Serial Winner', 'Dynasty Builder', 'Trophy Room', 'Hall of Famer'], v: (c) => c.cups.titles },
   { id: 'chips', e: '🪙', name: 'Chip Stack', unit: 'chips won', at: [100, 500, 2000, 5000, 20000], names: ['Pocket Change', 'Stack Builder', 'High Roller', 'Casino Whale', 'The House'], v: (c) => c.chips.chips },
   { id: 'calls', e: '🔮', name: 'Crystal Ball', unit: 'correct calls', at: [3, 15, 50, 120, 300], names: ['Lucky Guess', 'Hunch Haver', 'Tea Leaf Reader', 'Seer', 'Nostradamus'], v: (c) => c.calls.hits },
 ];

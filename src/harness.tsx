@@ -9,6 +9,7 @@ import { buildMatchRecap } from './utils/recap';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
+import { resolveCup, weekTournament } from './utils/tournament';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { Navigation } from './components/Navigation';
@@ -64,6 +65,11 @@ const matches: MatchRecord[] = script.map(([a, b, winner, daysAgo], index) => ({
 const replay = runLeagueReplay(basePlayers.map((p) => p.id), matches);
 // Use the replayed snapshots so displayed Elo swings are the real ones.
 const seasonMatches = replay.matches;
+const harnessCup = (() => {
+  const cup = weekTournament(Date.now());
+  const ids = basePlayers.slice(0, 8).map((p) => p.id);
+  return { ...cup, entrants: ids.map((id, i) => ({ id, at: i })), bracket: ids, drawnAt: cup.closesAt };
+})();
 const players = basePlayers.map((player) => {
   const member = replay.members.get(player.id)!;
   return { ...player, elo: member.elo, peakElo: member.peakElo, wins: member.wins,
@@ -259,7 +265,7 @@ const Harness: React.FC = () => {
               season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
-              chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
+              chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} cup={harnessCup} cupState={resolveCup(harnessCup, [], Date.now())} onJoinCup={() => {}} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}

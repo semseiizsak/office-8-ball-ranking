@@ -34,6 +34,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { addBonus, leftToday } from './utils/chips';
+import { Tournament, deriveCups, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
 import { FightPoster, posterReason } from './components/FightPoster';
 import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
@@ -58,6 +59,8 @@ export default function App() {
   const [seasons, setSeasons] = useState<Season[]>([]);
   /** The match-of-the-day pairings, one document per day. */
   const [dailies, setDailies] = useState<DailyPairing[]>([]);
+  /** The weekly cups, one document per week. */
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
   const [clock, setClock] = useState(() => Date.now());
   const closingSeasonRef = useRef(false);
@@ -141,11 +144,18 @@ export default function App() {
 
   // Matches of the day: who played theirs, streaks, and the chips it paid.
   const dailyRecords = useMemo(() => deriveDaily(dailies, matches, clock), [dailies, matches, clock]);
+  const cupRecords = useMemo(() => deriveCups(tournaments, matches, clock), [tournaments, matches, clock]);
+  const thisCup = useMemo(() => {
+    const week = weekTournament(clock).week;
+    return tournaments.find((entry) => entry.week === week) ?? null;
+  }, [tournaments, clock]);
+  const cupState = useMemo(() => (thisCup ? resolveCup(thisCup, matches, clock) : null), [thisCup, matches, clock]);
   const chips = useMemo(() => {
     const merged = { ...league.chips, records: new Map([...league.chips.records].map(([id, record]) => [id, { ...record }])) };
     for (const [id, record] of dailyRecords) if (record.bonus) addBonus(merged, id, record.bonus);
+    for (const [id, record] of cupRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     return merged;
-  }, [league.chips, dailyRecords]);
+  }, [league.chips, dailyRecords, cupRecords]);
 
   useEffect(() => {
     let cancelled = false;
@@ -181,6 +191,7 @@ export default function App() {
         setChallenges(loadedChallenges);
         setSeasons(loadedSeasons);
         poolService.getDailies().then((loaded) => !cancelled && setDailies(loaded)).catch((error) => console.warn('Daily pairings not loaded:', error));
+        poolService.getTournaments().then((loaded) => !cancelled && setTournaments(loaded)).catch((error) => console.warn('Cups not loaded:', error));
         const savedPlayerId = localStorage.getItem(LOCAL_PLAYER_KEY);
         setCurrentPlayer(loadedPlayers.find((player) => player.id === savedPlayerId) ?? null);
 
@@ -382,6 +393,44 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer, players.length, today, dailies.length]);
 
+  // The week's cup: created on a weekday's first open, drawn on the first open after noon Monday.
+  const upsertCup = (cup: Tournament) => setTournaments((prev) => [...prev.filter((entry) => entry.week !== cup.week), cup]);
+  const cupWeek = weekTournament(clock);
+  const cupDue = !!thisCup && thisCup.bracket === null && clock >= thisCup.closesAt;
+  useEffect(() => {
+    if (!currentPlayer || isLoading) return;
+    const weekday = new Date(clock).getDay();
+    if (!thisCup && weekday >= 1 && weekday <= 5) {
+      poolService.ensureTournament(cupWeek).then(upsertCup).catch((error) => console.warn('Cup not created:', error));
+      return;
+    }
+    if (!cupDue || !thisCup) return;
+    poolService
+      .drawTournament(thisCup.week)
+      .then((cup) => {
+        upsertCup(cup);
+        // Only the phone that actually made the draw tells the field.
+        if (cup.bracket && cup.bracket.length >= 4 && cup.drawnAt && !thisCup.drawnAt && cup.bracket.includes(currentPlayer.id)) {
+          void notifyMany(cup.bracket.filter((id) => id !== currentPlayer.id), {
+            type: 'tournament',
+            title: '🏆 The weekly cup is drawn',
+            body: `${cup.bracket.length} in, knockout until Friday. Check who you got.`,
+          });
+        }
+      })
+      .catch((error) => console.warn('Cup not drawn:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cupWeek.week, !!thisCup, cupDue]);
+
+  const handleJoinCup = async () => {
+    if (!currentPlayer || !thisCup) return;
+    try {
+      upsertCup(await poolService.joinTournament(thisCup.week, currentPlayer.id));
+    } catch (error) {
+      console.warn('Could not join the cup:', error);
+    }
+  };
+
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -440,13 +489,28 @@ export default function App() {
         const start = currentSeason.startingElo[id] ?? 1000;
         const dailyBefore = deriveDaily(dailies, matches, Date.now()).get(id);
         const dailyAfter = deriveDaily(dailies, matchesAfter, Date.now()).get(id);
-        const had = unlockKeys(buildBadgeContext(before, matches, challenges, start, undefined, dailyBefore));
-        const fresh = [...unlockKeys(buildBadgeContext(after, matchesAfter, challenges, start, undefined, dailyAfter))].filter((key) => !had.has(key));
+        const cupsBefore = deriveCups(tournaments, matches, Date.now()).get(id);
+        const cupsAfter = deriveCups(tournaments, matchesAfter, Date.now()).get(id);
+        const had = unlockKeys(buildBadgeContext(before, matches, challenges, start, undefined, dailyBefore, cupsBefore));
+        const fresh = [...unlockKeys(buildBadgeContext(after, matchesAfter, challenges, start, undefined, dailyAfter, cupsAfter))].filter((key) => !had.has(key));
         for (const key of fresh) {
           const unlock = describeUnlock(key);
           if (!unlock) continue;
           unlockRows.push([unlock.label, `${unlock.e} ${unlock.name}  ${after.name.split(' ')[0]}`]);
           if (id === currentPlayer?.id) myUnlocks.push(key);
+        }
+      }
+
+      // The cup final just went in: the whole office hears who lifted it.
+      if (thisCup && !cupState?.champion) {
+        const champion = resolveCup(thisCup, matchesAfter, Date.now())?.champion;
+        const winner = champion ? result.players.find((player) => player.id === champion) : null;
+        if (winner) {
+          void notifyMany(result.players.map((player) => player.id).filter((id) => id !== currentPlayer?.id), {
+            type: 'tournament',
+            title: `🏆 ${winner.name.split(' ')[0]} wins the weekly cup`,
+            body: 'Trophy in the cabinet and chips in the stack.',
+          });
         }
       }
 
@@ -953,6 +1017,9 @@ export default function App() {
                   };
                 })()}
                 onPlayDaily={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
+                cup={thisCup}
+                cupState={cupState}
+                onJoinCup={handleJoinCup}
                 onOpenLiveMatch={setActiveLiveChallengeId}
               />
             </div>
@@ -1010,6 +1077,7 @@ export default function App() {
           allMatches={matches}
           challenges={challenges}
           dailyRecords={dailyRecords}
+          cupRecords={cupRecords}
           startingElo={currentSeason.startingElo}
           currentPlayerId={currentPlayer.id}
           onSelectPlayer={(player) => setDossierPlayer(player)}
