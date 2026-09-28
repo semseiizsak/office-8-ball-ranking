@@ -46,12 +46,12 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full bg-bg px-4 pb-3 pt-[calc(var(--safe-top)+0.9rem)]">
       <div className="flex items-center justify-between gap-2">
-        <h1 key={activeTab} className="anim-rise font-display text-[32px] font-extrabold uppercase leading-none tracking-[-0.02em] text-white">
+        <h1 key={activeTab} className="anim-rise min-w-0 truncate font-display text-[28px] font-extrabold uppercase leading-none tracking-[-0.02em] text-white min-[440px]:text-[32px]">
           {TITLES[activeTab]}
         </h1>
 
-        <div className="flex items-center gap-1.5">
-          <button type="button" onClick={handleRefresh} disabled={isRefreshing} aria-label="Check for updates" className={`${iconButton} hidden sm:flex`}>
+        <div className="flex flex-none items-center gap-1.5">
+          <button type="button" onClick={handleRefresh} disabled={isRefreshing} aria-label="Refresh" title="Refresh" className={iconButton}>
             <RotateCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} strokeWidth={2.25} />
           </button>
           <button type="button" onClick={onQuickMatch} aria-label="Quick match" className={iconButton}>
@@ -75,10 +75,10 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenProfile}
               aria-label={`Your profile, ${currentUser.elo} Elo`}
-              className="press flex h-11 items-center gap-2 rounded-full bg-surface-alt pl-1.5 pr-3.5 text-sm font-black tabular-nums text-white transition-colors hover:bg-[#2C2C2C]"
+              className="press flex h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-surface-alt px-1.5 text-sm font-black tabular-nums text-white transition-colors hover:bg-[#2C2C2C] min-[440px]:pr-3.5"
             >
               <PlayerAvatar player={currentUser} size={32} />
-              {currentUser.elo}
+              <span className="hidden min-[440px]:inline">{currentUser.elo}</span>
             </button>
           )}
         </div>
