@@ -435,6 +435,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [players, matches, challenges, chips, dayKeyOf(latestReleasedMonday(clock).getTime())]
   );
+  const awardRecords = useMemo(() => {
+    const out = new Map<string, Array<{ week: string; key: string }>>();
+    for (const week of awards) for (const award of week.awards) out.set(award.playerId, [...(out.get(award.playerId) ?? []), { week: week.week, key: award.key }]);
+    return out;
+  }, [awards]);
   const latestAwards = awards[0]?.week === dayKeyOf(latestReleasedMonday(clock).getTime()) ? awards[0] : null;
   useEffect(() => {
     if (!currentPlayer || isLoading || !latestAwards) return;
@@ -1150,6 +1155,7 @@ export default function App() {
           challenges={challenges}
           dailyRecords={dailyRecords}
           cupRecords={cupRecords}
+          awardRecords={awardRecords}
           startingElo={currentSeason.startingElo}
           currentPlayerId={currentPlayer.id}
           onSelectPlayer={(player) => setDossierPlayer(player)}

@@ -2,6 +2,7 @@ import { Challenge, MatchRecord, Player } from '../types';
 import { stakeOf, ChipRecord, deriveChips } from './chips';
 import { DailyRecord } from './daily';
 import { CupRecord } from './tournament';
+import { FUNNY_AWARDS } from './awards';
 
 /**
  * Badges and tiered achievements, all derived from what is already stored:
@@ -32,10 +33,18 @@ export interface MatchEntry {
 export interface BadgeContext {
   player: Player;
   my: MatchEntry[];
-  calls: { total: number; hits: number; locks: number; lockHits: number; against: number; bigBet: number; worstDay: number };
+  calls: { total: number; hits: number; locks: number; lockHits: number; against: number; bigBet: number; worstDay: number; first: number; hitRun: number; missRun: number };
   chips: ChipRecord;
   daily: DailyRecord;
   cups: CupRecord;
+  /** How the room called this player's own matches. */
+  crowd: { backedTotal: number; maxBackers: number; lostBacked: number; wonAlone: number };
+  /** Ball tips: placed, spot on, and right winner but wrong balls. */
+  tips: { placed: number; exact: number; wrongBall: number };
+  /** Separate trips to the wall of shame, and wins that ended one. */
+  shame: { times: number; redemptions: number };
+  /** Every weekly award won, one entry per award. */
+  awards: Array<{ week: string; key: string }>;
   ducks: number;
   startElo: number;
 }
@@ -72,7 +81,8 @@ export function buildBadgeContext(
   startElo = 1000,
   flags = crownFlags(matches),
   daily?: DailyRecord,
-  cups?: CupRecord
+  cups?: CupRecord,
+  awards: Array<{ week: string; key: string }> = []
 ): BadgeContext {
   const my = matches
     .filter((match) => match.playerAId === player.id || match.playerBId === player.id)
@@ -97,7 +107,10 @@ export function buildBadgeContext(
       };
     });
 
-  const calls = { total: 0, hits: 0, locks: 0, lockHits: 0, against: 0, bigBet: 0, worstDay: 0 };
+  const calls = { total: 0, hits: 0, locks: 0, lockHits: 0, against: 0, bigBet: 0, worstDay: 0, first: 0, hitRun: 0, missRun: 0 };
+  const settledCalls: Array<{ at: number; right: boolean }> = [];
+  const tips = { placed: 0, exact: 0, wrongBall: 0 };
+  const matchById = new Map(matches.map((match) => [match.id, match]));
   const lostByDay: Record<string, number> = {};
   for (const challenge of challenges) {
     if (challenge.status !== 'played' || !challenge.resolvedWinnerId) continue;
@@ -107,6 +120,14 @@ export function buildBadgeContext(
     const same = challenge.predictions.filter((prediction) => prediction.predictedWinnerId === mine.predictedWinnerId).length;
     calls.total++;
     if (right) calls.hits++;
+    settledCalls.push({ at: mine.createdAt, right });
+    if (challenge.predictions.length >= 2 && challenge.predictions.every((prediction) => prediction.createdAt >= mine.createdAt)) calls.first++;
+    const winnerBall = challenge.matchId ? matchById.get(challenge.matchId)?.winnerBall : undefined;
+    if (mine.ball) {
+      tips.placed++;
+      if (right && winnerBall && mine.ball === winnerBall) tips.exact++;
+      if (right && winnerBall && mine.ball !== winnerBall) tips.wrongBall++;
+    }
     if (mine.isLock) { calls.locks++; if (right) calls.lockHits++; }
     if (same < challenge.predictions.length - same) calls.against++;
     calls.bigBet = Math.max(calls.bigBet, stakeOf(mine));
@@ -116,11 +137,38 @@ export function buildBadgeContext(
       calls.worstDay = Math.max(calls.worstDay, lostByDay[day]);
     }
   }
+  settledCalls.sort((a, b) => a.at - b.at);
+  calls.hitRun = runOf(settledCalls, (entry) => entry.right);
+  calls.missRun = runOf(settledCalls, (entry) => !entry.right);
+
+  // The room on this player's own matches.
+  const crowd = { backedTotal: 0, maxBackers: 0, lostBacked: 0, wonAlone: 0 };
+  for (const challenge of challenges) {
+    if (![challenge.challengerId, challenge.opponentId].includes(player.id)) continue;
+    const backers = challenge.predictions.filter((prediction) => prediction.predictedWinnerId === player.id).length;
+    const doubters = challenge.predictions.length - backers;
+    crowd.backedTotal += backers;
+    crowd.maxBackers = Math.max(crowd.maxBackers, backers);
+    if (challenge.status !== 'played' || !challenge.resolvedWinnerId) continue;
+    if (challenge.resolvedWinnerId !== player.id && backers >= 3) crowd.lostBacked++;
+    if (challenge.resolvedWinnerId === player.id && backers === 0 && doubters >= 2) crowd.wonAlone++;
+  }
+
+  // Wall of shame: every run of three losses is one trip; a win after it ends it.
+  const shame = { times: 0, redemptions: 0 };
+  let losing = 0;
+  for (const x of my) {
+    if (x.won) {
+      if (losing >= 3) shame.redemptions++;
+      losing = 0;
+    } else if (++losing === 3) shame.times++;
+  }
+
   const chips = deriveChips(challenges, matches).records.get(player.id) ?? { chips: 0, lost: 0, bets: 0, wins: 0, jackpots: 0, biggest: 0 };
 
   const ducks = challenges.filter((challenge) => challenge.status === 'declined' && challenge.opponentId === player.id).length;
   const noDaily: DailyRecord = { completed: 0, wins: 0, upsets: 0, skipped: 0, byes: 0, streak: 0, bestStreak: 0, bonus: 0, doubleDuty: 0, history: [] };
-  return { player, my, calls, chips, daily: daily ?? noDaily, cups: cups ?? { entered: 0, titles: 0, finals: 0, matchWins: 0, bonus: 0 }, ducks, startElo };
+  return { player, my, calls, chips, daily: daily ?? noDaily, cups: cups ?? { entered: 0, titles: 0, finals: 0, matchWins: 0, bonus: 0 }, crowd, tips, shame, awards, ducks, startElo };
 }
 
 const runOf = <T,>(items: T[], test: (item: T) => boolean) => {
@@ -144,6 +192,13 @@ function byDay(my: MatchEntry[]) {
 const byOpp = (my: MatchEntry[]) =>
   my.reduce<Record<string, MatchEntry[]>>((acc, x) => ((acc[x.opp] ??= []).push(x), acc), {});
 const minutesOfDay = (d: Date) => d.getHours() * 60 + d.getMinutes();
+
+const won = (c: BadgeContext, key: string) => c.awards.some((award) => award.key === key);
+const maxSameWeek = (c: BadgeContext) => {
+  const perWeek: Record<string, number> = {};
+  for (const award of c.awards) perWeek[award.week] = (perWeek[award.week] ?? 0) + 1;
+  return Math.max(0, ...Object.values(perWeek));
+};
 
 export interface Badge {
   id: string;
@@ -208,6 +263,26 @@ export const BADGES: Badge[] = [
   { id: 'cupchamp', e: '🏆', name: 'Cup Champion', desc: 'Win the weekly cup.', test: (c) => c.cups.titles >= 1 },
   { id: 'soclose', e: '🥈', name: 'So Close', desc: 'Lose a weekly cup final.', test: (c) => c.cups.finals > c.cups.titles },
   { id: 'cuprun', e: '🎟️', name: 'Cup Run', desc: 'Win 5 cup matches.', test: (c) => c.cups.matchWins >= 5 },
+  { id: 'crowdfav', e: '📣', name: 'Crowd Favourite', desc: 'Have 5 people back you in one match.', test: (c) => c.crowd.maxBackers >= 5 },
+  { id: 'nobeliever', e: '🙈', name: 'Nobody Believed', desc: 'Win a match where everyone called the other side.', test: (c) => c.crowd.wonAlone >= 1 },
+  { id: 'jinx', e: '🐈‍⬛', name: 'The Jinx', desc: 'Lose a match with 3 or more people backing you.', secret: true, test: (c) => c.crowd.lostBacked >= 1 },
+  { id: 'balltips', e: '🎟️', name: 'Group Chat', desc: 'Place 10 ball tips.', test: (c) => c.tips.placed >= 10 },
+  { id: 'ballnerd', e: '🔬', name: 'Ball Knower', desc: 'Call the winner and their balls exactly 3 times.', test: (c) => c.tips.exact >= 3 },
+  { id: 'wrongballs', e: '🫥', name: 'Wrong Balls', desc: 'Get the winner right but the balls wrong 5 times.', secret: true, test: (c) => c.tips.wrongBall >= 5 },
+  { id: 'firstcall', e: '⏱️', name: 'Quick Draw', desc: 'Be the first to call a match 10 times.', test: (c) => c.calls.first >= 10 },
+  { id: 'hothand', e: '🔥', name: 'Hot Hand', desc: 'Get 5 calls right in a row.', test: (c) => c.calls.hitRun >= 5 },
+  { id: 'reverse', e: '🙃', name: 'Reverse Oracle', desc: 'Get 5 calls wrong in a row. Just bet against yourself.', secret: true, test: (c) => c.calls.missRun >= 5 },
+  { id: 'donor', e: '🎁', name: 'Generous Donor', desc: 'Lose 500 chips on calls. The office thanks you.', secret: true, test: (c) => c.chips.lost >= 500 },
+  { id: 'clowncar', e: '🤡', name: 'Clown Car', desc: 'Land on the wall of shame.', secret: true, test: (c) => c.shame.times >= 1 },
+  { id: 'circus', e: '🎪', name: 'Circus Regular', desc: 'Land on the wall of shame 3 separate times.', secret: true, test: (c) => c.shame.times >= 3 },
+  { id: 'redemption', e: '🧽', name: 'Redemption Arc', desc: 'Win your way off the wall of shame.', test: (c) => c.shame.redemptions >= 1 },
+  { id: 'dailyflop', e: '🫠', name: 'Daily Disaster', desc: 'Lose 5 matches of the day.', secret: true, test: (c) => c.daily.completed - c.daily.wins >= 5 },
+  { id: 'potw', e: '🥇', name: 'Player of the Week', desc: 'Win Player of the week at the weekly awards.', test: (c) => won(c, 'mvp') },
+  { id: 'onstage', e: '🎭', name: 'Fan Favourite', desc: 'Win one of the funny weekly awards.', test: (c) => c.awards.some((award) => FUNNY_AWARDS.has(award.key)) },
+  { id: 'bigclown', e: '🤹', name: 'Biggest Clown', desc: 'Take Biggest clown at the weekly awards.', secret: true, test: (c) => won(c, 'clown') },
+  { id: 'haunting', e: '👻', name: 'Haunting', desc: 'Named Ghost at the weekly awards.', secret: true, test: (c) => won(c, 'ghost') },
+  { id: 'landlord', e: '🏠', name: 'Landlord', desc: 'Collect rent: named Landlord at the weekly awards.', test: (c) => won(c, 'bully') },
+  { id: 'sweep', e: '🧹', name: 'Clean Sweep', desc: 'Win 3 weekly awards in the same week.', test: (c) => maxSameWeek(c) >= 3 },
   { id: 'lucky8', e: '🎱', name: 'Lucky Eight', desc: 'Win for exactly +8.', secret: true, test: (c) => c.my.some((x) => x.won && x.gain === 8) },
   { id: 'textbook', e: '📐', name: 'Textbook', desc: 'Win for exactly +16 three times. The most average win there is.', secret: true, test: (c) => c.my.filter((x) => x.won && x.gain === 16).length >= 3 },
   { id: 'dejavu', e: '🔁', name: 'Déjà Vu', desc: 'Play the same person 3 times in one day.', secret: true, test: (c) => Object.values(c.my.reduce<Record<string, number>>((acc, x) => { const key = x.opp + x.d.toDateString(); acc[key] = (acc[key] ?? 0) + 1; return acc; }, {})).some((n) => n >= 3) },
@@ -261,6 +336,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'daily', e: '📆', name: 'Daily Grind', unit: 'matches of the day', at: [1, 5, 20, 50, 150], names: ['Clocked In', 'Regular Shift', 'Overtime', 'Employee of the Month', 'Lifer'], v: (c) => c.daily.completed },
   { id: 'dstreak', e: '⏱️', name: 'Punch Card', unit: 'days in a row', at: [2, 5, 10, 20, 50], names: ['Warming Up', 'On Schedule', 'Clockwork', 'Unbreakable', 'Metronome'], v: (c) => c.daily.bestStreak },
   { id: 'cups', e: '🏆', name: 'Trophy Cabinet', unit: 'weekly cups won', at: [1, 3, 5, 10, 25], names: ['Cup Holder', 'Serial Winner', 'Dynasty Builder', 'Trophy Room', 'Hall of Famer'], v: (c) => c.cups.titles },
+  { id: 'awards', e: '🎖️', name: 'Award Shelf', unit: 'weekly awards', at: [1, 5, 15, 30, 60], names: ['On Stage', 'Regular Nominee', 'Speech Ready', 'Red Carpet', 'Lifetime Achievement'], v: (c) => c.awards.length },
+  { id: 'fanclub', e: '📣', name: 'Fan Club', unit: 'calls backing you', at: [5, 25, 75, 200, 500], names: ['Some Fans', 'Local Hero', 'Office Idol', 'Cult Following', 'Main Character'], v: (c) => c.crowd.backedTotal },
+  { id: 'balls', e: '🔬', name: 'Ball Whisperer', unit: 'exact ball tips', at: [1, 3, 10, 25, 50], names: ['Lucky Tip', 'Ball Reader', 'Felt Scientist', 'Pocket Prophet', 'Knows Every Ball'], v: (c) => c.tips.exact },
+  { id: 'cupwins', e: '🥊', name: 'Cup Fighter', unit: 'cup matches won', at: [1, 5, 15, 30, 60], names: ['First Round Win', 'Contender', 'Knockout Artist', 'Bracket Buster', 'Cup Monster'], v: (c) => c.cups.matchWins },
+  { id: 'clowns', e: '🤡', name: 'Clown College', unit: 'trips to the wall of shame', at: [1, 3, 6, 10, 20], names: ['Class Clown', 'Juggler', 'Unicyclist', 'Ringmaster', 'Clown Emeritus'], v: (c) => c.shame.times },
   { id: 'chips', e: '🪙', name: 'Chip Stack', unit: 'chips won', at: [100, 500, 2000, 5000, 20000], names: ['Pocket Change', 'Stack Builder', 'High Roller', 'Casino Whale', 'The House'], v: (c) => c.chips.chips },
   { id: 'calls', e: '🔮', name: 'Crystal Ball', unit: 'correct calls', at: [3, 15, 50, 120, 300], names: ['Lucky Guess', 'Hunch Haver', 'Tea Leaf Reader', 'Seer', 'Nostradamus'], v: (c) => c.calls.hits },
 ];

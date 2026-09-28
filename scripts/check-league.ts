@@ -10,6 +10,7 @@ import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
+import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
 import { deriveCups, drawBracket, resolveCup, weekTournament, withCloseOverride } from '../src/utils/tournament';
 
@@ -507,6 +508,29 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   }] as any;
   const rec = deriveChips(legacy, []).records;
   eq('legacy calls: 25 a call, 50 a lock, settled as a pool', [rec.get('p')!.chips, rec.get('q')!.chips, rec.get('r')!.chips], [100, 0, 0]);
+}
+
+{
+  const at = (h: number) => new Date(2026, 8, 21, h).getTime();
+  const m = (id: string, w: string, l: string, t: number) => ({
+    id, timestamp: t, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
+    playerAEloBefore: 1000, playerAEloAfter: 1010, playerBEloBefore: 1000, playerBEloAfter: 990,
+    eloDelta: 10, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false },
+  });
+  const games = [m('1', 'b', 'a', at(9)), m('2', 'b', 'a', at(10)), m('3', 'b', 'a', at(11)), m('4', 'a', 'b', at(12))];
+  const call = (who: string, pick: string, t: number) => ({ id: who, predictorId: who, predictorName: who, predictedWinnerId: pick, createdAt: t, stake: 10 });
+  const challenges = [{
+    id: 'c', status: 'played', challengerId: 'a', opponentId: 'b', resolvedWinnerId: 'b', matchId: '3', createdAt: at(10),
+    predictions: [call('x', 'a', at(10)), call('y', 'a', at(10) + 1), call('z', 'a', at(10) + 2)],
+  }] as any;
+  const player = { id: 'a', name: 'A', elo: 1000, wins: 1, losses: 3, currentStreak: 1, recentForm: [] } as any;
+  const ctx = buildBadgeContext(player, games as any, challenges, 1000, undefined, undefined, undefined, [
+    { week: 'w1', key: 'mvp' }, { week: 'w1', key: 'clown' }, { week: 'w1', key: 'ghost' },
+  ]);
+  const got = earnedBadges(ctx);
+  eq('badges: shame trip, redemption, jinx', [ctx.shame.times, ctx.shame.redemptions, got.has('clowncar'), got.has('redemption'), got.has('jinx')], [1, 1, true, true, true]);
+  eq('badges: weekly awards feed badges', [got.has('potw'), got.has('bigclown'), got.has('onstage'), got.has('sweep')], [true, true, true, true]);
+  eq('achievements: award shelf counts awards', achievementProgress(ctx).find((row) => row.a.id === 'awards')!.v, 3);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

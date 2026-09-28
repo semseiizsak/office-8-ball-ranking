@@ -183,7 +183,33 @@ input, textarea, select { font-size: 16px; }
 .press { transition: transform var(--fast) var(--ease); }
 .press:active { transform: scale(.97); }
 
+
+/* Weekly awards: every page enters its own way. No overshoot, ease-in-out. */
+@keyframes wa-slam { from { opacity: 0; transform: scale(2.6); } }
+@keyframes wa-slide { from { opacity: 0; transform: translateX(110%); } }
+@keyframes wa-drop { from { opacity: 0; transform: translateY(-70vh); } }
+@keyframes wa-flip { from { opacity: 0; transform: perspective(700px) rotateY(95deg); } }
+@keyframes wa-spin { from { opacity: 0; transform: rotate(-270deg) scale(.2); } }
+@keyframes wa-blur { from { opacity: 0; filter: blur(18px); transform: translateY(40px); } }
+@keyframes wa-zoom { from { opacity: 0; transform: scale(.1); } }
+@keyframes wa-wipe { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes wa-rise { from { opacity: 0; transform: translateY(60px); } }
+@keyframes wa-tilt { from { opacity: 0; transform: rotate(-14deg) translateY(50px); } }
+@keyframes wa-wash { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+@keyframes wa-glow { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: .9; transform: scale(1.12); } }
+@keyframes wa-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes wa-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes wa-podium { from { transform: scaleY(0); } }
+@keyframes wa-rain { 0% { opacity: 0; transform: translateY(-20vh) rotate(0); } 10% { opacity: 1; } 100% { opacity: 0; transform: translateY(105vh) rotate(var(--r, 360deg)); } }
+.wa-in { animation: var(--wa, wa-rise) 620ms var(--ease) both; }
+.wa-d1 { animation-delay: 120ms; } .wa-d2 { animation-delay: 300ms; } .wa-d3 { animation-delay: 480ms; } .wa-d4 { animation-delay: 700ms; }
+.wa-wash { animation: wa-wash 700ms var(--ease) both, wa-glow 3.2s var(--ease) 700ms infinite; }
+.wa-fill { transform-origin: left; animation: wa-fill linear both; }
+.wa-float { animation: wa-float 2.4s var(--ease) 900ms infinite; }
+.wa-podium { transform-origin: bottom; animation: wa-podium 700ms var(--ease) both; }
+.wa-rain { position: absolute; top: 0; animation: wa-rain var(--t, 2.6s) var(--ease) var(--d, 0ms) both; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition: none !important; }
-  .burst-ball, .cheer-float { display: none; }
+  .burst-ball, .cheer-float, .wa-rain { display: none; }
 }
