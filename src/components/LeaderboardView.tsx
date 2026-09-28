@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ChevronRight, Moon, Search, UserPlus } from 'lucide-react';
+import { Moon, Search, UserPlus, X } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS, describeTimeLeft, isFinalDay } from '../utils/league';
-import { CollapsibleSection } from './CollapsibleSection';
 import { SeasonFinaleBanner } from './SeasonFinaleBanner';
 import { buildSeasonFinale } from '../utils/finale';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
+import { PlayerAvatar } from './ui';
 
 interface LeaderboardViewProps {
   players: Player[];
@@ -22,6 +22,26 @@ interface LeaderboardViewProps {
   onAddPlayer: () => void;
 }
 
+/** Five form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
+const FormDots: React.FC<{ form: ('W' | 'L')[]; onYellow?: boolean }> = ({ form, onYellow }) => {
+  const recent = form.slice(0, 5).reverse();
+  if (recent.length === 0) return null;
+  return (
+    <span className="flex gap-1" role="img" aria-label={`Form ${recent.join(' ')}`}>
+      {recent.map((result, index) => (
+        <i
+          key={index}
+          className={`block h-2 w-2 rounded-full ${
+            onYellow
+              ? result === 'W' ? 'bg-bg' : 'shadow-[inset_0_0_0_1.5px_#0A0A0A]'
+              : result === 'W' ? 'bg-felt' : 'bg-loss'
+          }`}
+        />
+      ))}
+    </span>
+  );
+};
+
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   players,
   matches,
@@ -36,156 +56,16 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
-  const crownHolder = players.find((player) => player.id === league.crown.holderId) ?? null;
+  const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo || a.id.localeCompare(b.id));
 
   // Dormant players keep their rating but drop out of the live ladder, so the
   // ranking answers "who is good now" rather than "who played a lot in March".
   const active = sortedPlayers.filter((player) => !league.insights.get(player.id)?.isDormant);
   const dormant = sortedPlayers.filter((player) => league.insights.get(player.id)?.isDormant);
 
-  let worstStreakPlayerId: string | null = null;
-  let worstStreak = 0;
-  active.forEach((player) => {
-    if (player.currentStreak < 0 && player.currentStreak < worstStreak) {
-      worstStreak = player.currentStreak;
-      worstStreakPlayerId = player.id;
-    }
-  });
-
   const matchesQuery = (player: Player) =>
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (player.department ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-
-  const getRankBorder = (index: number) => {
-    if (index === 0) return 'border-l-4 border-l-[#f59e0b] shadow-[inset_4px_0_12px_rgba(245,158,11,0.15)]';
-    if (index === 1) return 'border-l-4 border-l-[#94a3b8] shadow-[inset_4px_0_12px_rgba(148,163,184,0.1)]';
-    if (index === 2) return 'border-l-4 border-l-[#d97706] shadow-[inset_4px_0_12px_rgba(217,119,6,0.15)]';
-    return 'border-l-2 border-l-[#30363d]';
-  };
-
-  const getRankNumberColor = (index: number) => {
-    if (index === 0) return 'text-[#f59e0b] drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]';
-    if (index === 1) return 'text-[#94a3b8]';
-    if (index === 2) return 'text-[#d97706]';
-    return 'text-[#86948a]';
-  };
-
-  const renderRow = (player: Player, rank: number, isDormantRow: boolean) => {
-    const insight = league.insights.get(player.id);
-    const titles = league.titlesByPlayer.get(player.id) ?? [];
-    const isFireStreak = player.currentStreak >= 3;
-    const isColdStreak = player.id === worstStreakPlayerId && worstStreak < 0;
-    const totalGames = player.wins + player.losses;
-    const winRate = totalGames > 0 ? Math.round((player.wins / totalGames) * 100) : 0;
-    const change = leaderboardChanges[player.id];
-
-    return (
-      <div
-        key={player.id}
-        id={`player-row-${player.id}`}
-        onClick={() => onSelectPlayer(player)}
-        className={`group relative flex items-center justify-between p-3.5 rounded-xl bg-[#161b22] hover:bg-[#1c2026] border border-[#30363d] transition-all duration-150 cursor-pointer active:scale-[0.99] ${
-          isDormantRow ? 'opacity-55' : getRankBorder(rank - 1)
-        } ${change === 'woke' ? 'leaderboard-woke' : change === 'reordered' ? 'leaderboard-reordered' : ''}`}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-6 text-center shrink-0">
-            <span
-              className={`font-['JetBrains_Mono'] text-base font-black ${
-                isDormantRow ? 'text-[#86948a]' : getRankNumberColor(rank - 1)
-              }`}
-            >
-              {isDormantRow ? '–' : rank}
-            </span>
-          </div>
-
-          <div className="shrink-0">
-            {player.avatarUrl ? (
-              <img
-                src={player.avatarUrl}
-                alt={player.name}
-                referrerPolicy="no-referrer"
-                className="w-11 h-11 rounded-full object-cover border border-[#30363d]"
-              />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#30363d] bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3]">
-                {player.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 pr-1">
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-['Chivo'] text-sm font-bold text-white truncate group-hover:text-[#4edea3] transition-colors">
-                {player.name}
-              </h3>
-              <TitleBadges titles={titles} />
-
-              {!isDormantRow && isFireStreak && (
-                <span
-                  title={`Active win streak: ${player.currentStreak} matches`}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-['JetBrains_Mono'] font-extrabold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30 shrink-0"
-                >
-                  🔥 {player.currentStreak}W
-                </span>
-              )}
-
-              {!isDormantRow && isColdStreak && (
-                <span
-                  title={`Longest active losing streak: ${Math.abs(player.currentStreak)} matches`}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-['JetBrains_Mono'] font-extrabold bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/30 shrink-0"
-                >
-                  🥶 L{Math.abs(player.currentStreak)}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#86948a] font-['Space_Grotesk']">
-              {isDormantRow ? (
-                <span>
-                  {insight?.daysSincePlayed === null
-                    ? 'Never played'
-                    : `Idle ${insight?.daysSincePlayed} days`}
-                </span>
-              ) : (
-                <>
-                  <span>
-                    {player.wins}W - {player.losses}L
-                  </span>
-                  <span>•</span>
-                  <span className="text-[#bbcabf] font-medium">{winRate}% Win</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0 text-right">
-          <div>
-            <div
-              className={`font-['JetBrains_Mono'] text-lg font-black tracking-tight ${
-                isDormantRow ? 'text-[#86948a]' : 'text-[#4edea3]'
-              }`}
-            >
-              {player.elo}
-            </div>
-            <div className="flex items-center justify-end gap-1 mt-1">
-              {player.recentForm.slice(0, 4).map((res, index) => (
-                <span
-                  key={index}
-                  className={`w-1.5 h-1.5 rounded-full ${res === 'W' ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}
-                  title={res === 'W' ? 'Win' : 'Loss'}
-                />
-              ))}
-            </div>
-          </div>
-
-          <ChevronRight className="w-4 h-4 text-[#86948a] group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-        </div>
-      </div>
-    );
-  };
 
   const finale = buildSeasonFinale({
     players,
@@ -198,139 +78,150 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const visibleActive = active.filter(matchesQuery);
   const visibleDormant = dormant.filter(matchesQuery);
 
-  return (
-    <div id="leaderboard-view" className="space-y-4 pb-24 pt-1">
-      <div className="flex items-start justify-between gap-3 px-1">
-        <div className="min-w-0">
-          <h2 className="font-['Chivo'] text-xl font-black tracking-tight text-white">
-            Power Rankings
-          </h2>
-          <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
-            {season.name} • {active.length} active • {matches.length} played
-            {season.endsAt && (
-              <span className={isFinalDay(season.endsAt, now) ? 'font-bold text-[#f59e0b]' : 'text-[#f59e0b]/80'}>
-                {' '}• {isFinalDay(season.endsAt, now) ? 'final day' : `ends in ${describeTimeLeft(season.endsAt, now)}`}
+  const renderRow = (player: Player, rank: number, isDormantRow: boolean, index: number) => {
+    const insight = league.insights.get(player.id);
+    const titles = league.titlesByPlayer.get(player.id) ?? [];
+    const change = leaderboardChanges[player.id];
+    const first = !isDormantRow && rank === 1;
+    const isMe = currentPlayer?.id === player.id;
+    const medal = !isDormantRow && rank >= 2 && rank <= 3 ? rank : 0;
+
+    return (
+      <button
+        type="button"
+        key={player.id}
+        id={`player-row-${player.id}`}
+        onClick={() => onSelectPlayer(player)}
+        style={{ ['--j' as string]: Math.min(index, 12) }}
+        className={`press grid min-h-[54px] w-full grid-cols-[22px_auto_1fr_auto] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+          first ? 'bg-crown text-bg' : 'bg-card hover:bg-[#161616]'
+        } ${medal === 2 ? 'shadow-[inset_0_0_0_1.5px_#C9CCD1]' : ''} ${medal === 3 ? 'shadow-[inset_0_0_0_1.5px_#A8622C]' : ''} ${
+          isMe && !first && !medal ? 'shadow-[inset_0_0_0_1.5px_rgba(255,255,255,.26)]' : ''
+        } ${change === 'woke' ? 'leaderboard-woke' : change === 'reordered' ? 'leaderboard-reordered' : ''}`}
+      >
+        {isDormantRow ? (
+          <Moon className="h-[15px] w-[15px] justify-self-center text-white/55" aria-label="Dormant" />
+        ) : rank <= 3 ? (
+          <span
+            aria-label={`Rank ${rank}`}
+            className={`grid h-[22px] w-[22px] place-items-center rounded-full text-xs font-black tabular-nums ${
+              rank === 1 ? 'bg-bg text-crown' : rank === 2 ? 'bg-silver text-bg' : 'bg-bronze text-white'
+            }`}
+          >
+            {rank}
+          </span>
+        ) : (
+          <span className="text-center text-[13px] font-black tabular-nums text-white/55">{rank}</span>
+        )}
+
+        <PlayerAvatar player={player} size={34} />
+
+        <span className="grid min-w-0 gap-[5px]">
+          <span className={`flex min-w-0 items-center gap-1.5 text-sm font-bold leading-tight ${isDormantRow ? 'text-white/55' : ''}`}>
+            <span className="truncate">{first ? '👑 ' : ''}{player.name}</span>
+            {isMe && (
+              <span className={`flex-none rounded-md px-1.5 py-[3px] text-[10px] font-extrabold uppercase tracking-[0.1em] ${first ? 'bg-bg text-white' : 'bg-white text-bg'}`}>
+                You
               </span>
             )}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onAddPlayer}
-          title="Enroll a new contender"
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-[#30363d] bg-[#161b22] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#4edea3] transition-all hover:border-[#10b981] active:scale-95"
-        >
-          <UserPlus className="h-4 w-4" />
-          Add
-        </button>
-      </div>
+            <TitleBadges titles={titles} />
+          </span>
+          {isDormantRow ? (
+            <span className="text-xs font-semibold text-white/55">
+              {insight?.daysSincePlayed === null || insight?.daysSincePlayed === undefined
+                ? 'No matches yet'
+                : `Last played ${insight.daysSincePlayed} days ago`}
+            </span>
+          ) : (
+            <FormDots form={player.recentForm} onYellow={first} />
+          )}
+        </span>
 
-      {finale && (
-        <div className="px-1">
-          <SeasonFinaleBanner finale={finale} />
-        </div>
-      )}
+        <span className={`text-[17px] font-black tabular-nums ${isDormantRow ? 'text-white/55' : ''}`}>{player.elo}</span>
+      </button>
+    );
+  };
 
-      <div className="px-1">
-        <CollapsibleSection
-          title="The Crown"
-          accent="#f59e0b"
-          storageKey="office_8ball_section_crown"
-          defaultOpen
-          containerClassName="rounded-2xl border border-[#f59e0b]/40 bg-gradient-to-br from-[#241a07] to-[#161b22] shadow-lg"
-          summary={
-            crownHolder && (
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate font-['Chivo'] text-xs font-bold text-white">
-                  {crownHolder.name.split(' ')[0]}
-                </span>
-                <span className="shrink-0 font-['JetBrains_Mono'] text-xs font-black text-[#f59e0b]">
-                  {league.crown.bounty}
-                </span>
-              </span>
-            )
-          }
-        >
-          <CrownBanner
-            crown={league.crown}
-            players={players}
-            currentPlayer={currentPlayer}
-            onChallenge={onChallenge}
-          />
-        </CollapsibleSection>
-      </div>
+  const finalDay = season.endsAt ? isFinalDay(season.endsAt, now) : false;
 
-      {league.titles.length > 0 && (
-        <div className="px-1">
-          <CollapsibleSection
-            title="Titles held"
-            storageKey="office_8ball_section_titles"
-            defaultOpen={false}
-            summary={
-              <span className="flex items-center gap-0.5 text-[13px] leading-none">
-                {league.titles.slice(0, 7).map((title) => (
-                  <span key={title.key}>{title.emoji}</span>
-                ))}
-              </span>
-            }
-          >
-            <div className="flex flex-wrap gap-1.5">
-              {league.titles.map((title) => (
-                <span
-                  key={title.key}
-                  title={`${title.blurb} (${title.valueLabel})`}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#3c4a42] bg-[#1c2026] px-2 py-1 font-['Space_Grotesk'] text-[11px] text-[#bbcabf]"
-                >
-                  <span>{title.emoji}</span>
-                  <span className="font-bold text-white">{title.label}</span>
-                  <span className="text-[#86948a]">{title.holderName.split(' ')[0]}</span>
-                </span>
+  return (
+    <div id="leaderboard-view" className="stagger grid gap-3 pb-28 pt-1">
+      <CrownBanner crown={league.crown} players={players} currentPlayer={currentPlayer} onChallenge={onChallenge} />
+
+      {finale && <SeasonFinaleBanner finale={finale} />}
+
+      <section className="mt-2 grid gap-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-base">Ladder</h3>
+          <span className="flex items-center gap-2 text-xs font-semibold text-white/55">
+            {season.name}
+            {season.endsAt &&
+              (finalDay ? (
+                <span className="rounded-full bg-crown px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.1em] text-bg">Final day</span>
+              ) : (
+                <span>Ends in {describeTimeLeft(season.endsAt, now)}</span>
               ))}
-            </div>
-          </CollapsibleSection>
+          </span>
         </div>
-      )}
 
-      <div className="relative px-1">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#86948a]" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Filter contenders by name or role..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#161b22] border border-[#30363d] text-white text-xs placeholder:text-[#86948a] focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] font-['Space_Grotesk'] transition-all"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#86948a] hover:text-white"
-          >
-            Clear
-          </button>
+        {players.length > 8 && (
+          <label className="relative block">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Find a player"
+              aria-label="Find a player"
+              className="h-11 w-full rounded-full bg-surface pl-10 pr-10 text-white outline-none placeholder:text-white/55 focus-visible:shadow-[inset_0_0_0_2px_#fff]"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear" className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/55">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </label>
         )}
-      </div>
 
-      <div className="space-y-2.5 px-1">
-        {visibleActive.map((player) => renderRow(player, active.indexOf(player) + 1, false))}
+        <div className="stagger-rows grid gap-0.5">
+          {visibleActive.map((player, index) => renderRow(player, active.indexOf(player) + 1, false, index))}
+        </div>
 
         {visibleActive.length === 0 && visibleDormant.length === 0 && (
-          <div className="text-center py-10 rounded-xl bg-[#161b22] border border-[#30363d] p-6">
-            <p className="text-sm text-[#86948a] font-['Space_Grotesk']">
-              {searchQuery ? `No contenders found matching "${searchQuery}"` : 'No matches logged yet.'}
-            </p>
+          <div className="grid justify-items-center gap-2.5 rounded-2xl bg-card px-4 py-7 text-center">
+            <h3 className="text-lg">{searchQuery ? 'Nobody by that name' : 'Empty ladder'}</h3>
+            <p className="text-sm text-white/70">{searchQuery ? `No one matches "${searchQuery}".` : `${matches.length === 0 ? 'Play a match to get on it.' : ''}`}</p>
           </div>
         )}
-      </div>
+      </section>
+
+      {league.titles.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          <h3 className="px-1 text-base">Titles</h3>
+          <TitleBadges titles={league.titles} variant="card" />
+        </section>
+      )}
 
       {visibleDormant.length > 0 && (
-        <div className="space-y-2.5 px-1">
-          <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            <Moon className="h-3.5 w-3.5" />
-            Dormant · no match in {DORMANT_AFTER_DAYS} days
-          </span>
-          {visibleDormant.map((player) => renderRow(player, 0, true))}
-        </div>
+        <section className="mt-2 grid gap-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-base">Dormant</h3>
+            <span className="text-xs font-semibold text-white/55">{DORMANT_AFTER_DAYS}+ days away</span>
+          </div>
+          <div className="stagger-rows grid gap-0.5">
+            {visibleDormant.map((player, index) => renderRow(player, 0, true, index))}
+          </div>
+        </section>
       )}
+
+      <button
+        type="button"
+        onClick={onAddPlayer}
+        className="press flex h-12 w-full items-center justify-center gap-2 rounded-full bg-surface-alt text-[13px] font-extrabold uppercase tracking-[0.06em] text-white hover:bg-[#2C2C2C]"
+      >
+        <UserPlus className="h-[18px] w-[18px]" strokeWidth={2.25} />
+        Enrol a player
+      </button>
     </div>
   );
 };

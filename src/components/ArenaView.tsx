@@ -1,16 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Send, Swords, Target, Trophy, X, Zap } from 'lucide-react';
+import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
 import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
+import { ballColor, playerBall } from '../utils/balls';
+import { Ball, CallSplit, PlayerAvatar } from './ui';
 
 /** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
-const CHEER_EMOJI = ['🔥', '💪', '😱', '👏', '😂', '💀'];
-
-/** A stable, Twitch-style username color per person, picked off their id
- * rather than stored, so it's free and never collides with a re-render. */
-const CHAT_NAME_COLORS = ['#4edea3', '#ffb95f', '#60a5fa', '#f472b6', '#c4b5fd', '#fbbf24', '#f87171', '#5eead4'];
-const chatNameColor = (id: string): string =>
-  CHAT_NAME_COLORS[[...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % CHAT_NAME_COLORS.length];
+const CHEER_EMOJI = ['🔥', '🎱', '😱', '👏', '💀', '😭'];
 
 interface ArenaViewProps {
   players: Player[];
@@ -42,164 +38,39 @@ interface VoterInfo {
   isCurrentUser: boolean;
 }
 
-const VoterAvatar: React.FC<{
-  player?: Player;
-  name: string;
-  isCurrentUser: boolean;
-  side: 'challenger' | 'opponent';
-  onSelect?: () => void;
-}> = ({ player, name, isCurrentUser, side, onSelect }) => {
-  const accentBorder = side === 'challenger' ? 'hover:border-[#10b981]' : 'hover:border-[#ffb95f]';
-  const textColor = side === 'challenger' ? 'text-[#4edea3]' : 'text-[#ffb95f]';
-  const currentRing = isCurrentUser
-    ? side === 'challenger'
-      ? 'ring-2 ring-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-      : 'ring-2 ring-[#ffb95f] shadow-[0_0_8px_rgba(255,185,95,0.5)]'
-    : '';
-
+/** Who backed a side, as a tight stack of faces. */
+const VoterStack: React.FC<{ voters: VoterInfo[]; align: 'start' | 'end'; onSelectPlayer?: (player: Player) => void }> = ({
+  voters,
+  align,
+  onSelectPlayer,
+}) => {
+  if (voters.length === 0) return <span />;
+  const sorted = [...voters].sort((a, b) => Number(b.isCurrentUser) - Number(a.isCurrentUser));
+  const visible = sorted.slice(0, 5);
   return (
-    <div
-      className="group relative shrink-0 cursor-pointer"
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect?.();
-      }}
-      title={`${name}${isCurrentUser ? ' (You)' : ''}`}
-    >
-      {player?.avatarUrl ? (
-        <img
-          src={player.avatarUrl}
-          alt={name}
-          referrerPolicy="no-referrer"
-          className={`h-6 w-6 rounded-full border-2 border-[#161b22] object-cover transition-all duration-150 group-hover:scale-125 group-hover:z-30 ${accentBorder} ${currentRing}`}
-        />
-      ) : (
-        <div
-          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#161b22] bg-[#262a31] font-['Chivo'] text-[10px] font-bold ${textColor} transition-all duration-150 group-hover:scale-125 group-hover:z-30 ${accentBorder} ${currentRing}`}
-        >
-          {name.charAt(0).toUpperCase()}
-        </div>
-      )}
-
-      {/* Floating tooltip */}
-      <div
-        className={`pointer-events-none absolute bottom-full mb-1.5 hidden items-center rounded-md border border-[#30363d] bg-[#10141a] px-2 py-0.5 font-['Space_Grotesk'] text-[10px] font-medium text-white shadow-xl whitespace-nowrap z-40 group-hover:flex ${
-          side === 'challenger' ? 'left-0' : 'right-0'
-        }`}
-      >
-        <span className="truncate max-w-[120px]">{name}</span>
-        {isCurrentUser && (
-          <span
-            className="ml-1 font-bold"
-            style={{ color: side === 'challenger' ? '#4edea3' : '#ffb95f' }}
-          >
-            (You)
-          </span>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VoterAvatarStack: React.FC<{
-  voters: VoterInfo[];
-  side: 'challenger' | 'opponent';
-  onSelectPlayer?: (player: Player) => void;
-}> = ({ voters, side, onSelectPlayer }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  if (voters.length === 0) {
-    return null;
-  }
-
-  // Put current user first so their avatar is always prominently visible
-  const sorted = [...voters].sort((a, b) => {
-    if (a.isCurrentUser) return -1;
-    if (b.isCurrentUser) return 1;
-    return 0;
-  });
-
-  const shouldCollapse = sorted.length > 5 && !expanded;
-  const visible = shouldCollapse ? sorted.slice(0, 4) : sorted;
-  const hiddenCount = sorted.length - 4;
-
-  return (
-    <div
-      className={
-        expanded
-          ? `flex flex-wrap items-center gap-1 ${side === 'challenger' ? 'justify-start' : 'justify-end'}`
-          : `flex items-center -space-x-1.5 ${side === 'challenger' ? 'justify-start' : 'justify-end'}`
-      }
-    >
+    <span className={`flex items-center -space-x-1.5 ${align === 'end' ? 'justify-end' : ''}`}>
       {visible.map((voter) => (
-        <VoterAvatar
+        <button
           key={voter.prediction.id}
-          player={voter.player}
-          name={voter.name}
-          isCurrentUser={voter.isCurrentUser}
-          side={side}
-          onSelect={() => voter.player && onSelectPlayer?.(voter.player)}
-        />
+          type="button"
+          title={`${voter.name}${voter.isCurrentUser ? ' (You)' : ''}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (voter.player) onSelectPlayer?.(voter.player);
+          }}
+          className="rounded-full ring-2 ring-card"
+        >
+          <PlayerAvatar player={voter.player ?? { id: voter.prediction.predictorId, name: voter.name, avatarUrl: '' }} size={24} />
+        </button>
       ))}
-
-      {shouldCollapse && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded(true);
-          }}
-          title={`${hiddenCount} more: ${sorted.slice(4).map((v) => v.name).join(', ')}`}
-          className="group relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#161b22] bg-[#262a31] font-['JetBrains_Mono'] text-[9px] font-bold text-[#86948a] transition-all hover:bg-[#30363d] hover:text-white cursor-pointer z-10"
-        >
-          +{hiddenCount}
-          <div
-            className={`pointer-events-none absolute bottom-full mb-1.5 hidden items-center rounded-md border border-[#30363d] bg-[#10141a] px-2 py-0.5 font-['Space_Grotesk'] text-[10px] font-medium text-white shadow-xl whitespace-nowrap z-40 group-hover:flex ${
-              side === 'challenger' ? 'left-0' : 'right-0'
-            }`}
-          >
-            +{hiddenCount} more
-          </div>
-        </button>
+      {sorted.length > 5 && (
+        <span className="ml-1 grid h-6 min-w-6 place-items-center rounded-full bg-surface-alt px-1.5 text-[10px] font-bold text-white/70 ring-2 ring-card">
+          +{sorted.length - 5}
+        </span>
       )}
-
-      {expanded && sorted.length > 5 && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded(false);
-          }}
-          title="Show less"
-          className="flex h-6 px-1.5 shrink-0 items-center justify-center rounded-full border border-[#30363d] bg-[#1c2026] font-['Space_Grotesk'] text-[9px] font-bold text-[#86948a] hover:text-white transition-colors cursor-pointer"
-        >
-          less
-        </button>
-      )}
-    </div>
+    </span>
   );
 };
-
-const Avatar: React.FC<{ player?: Player; name: string; size?: string; ring?: string }> = ({
-  player,
-  name,
-  size = 'h-10 w-10',
-  ring = 'border-[#30363d]',
-}) =>
-  player?.avatarUrl ? (
-    <img
-      src={player.avatarUrl}
-      alt={name}
-      referrerPolicy="no-referrer"
-      className={`${size} shrink-0 rounded-full border object-cover ${ring}`}
-    />
-  ) : (
-    <div
-      className={`${size} flex shrink-0 items-center justify-center rounded-full border bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3] ${ring}`}
-    >
-      {name.charAt(0).toUpperCase()}
-    </div>
-  );
 
 /** Running time since the match was called on. */
 const elapsed = (startedAt: number, now: number): string => {
@@ -214,13 +85,6 @@ const timeLeft = (expiresAt: number, now: number): string => {
   return `${Math.round(minutes / 60)}h left`;
 };
 
-/**
- * How long the room keeps calling a match once it starts.
- * Calls used to stay open for the entire game, which meant a spectator could
- * watch the game finish and still get a call in — the timer gives the room a
- * real window to call it live without turning into a loophole.
- */
-
 /** Milliseconds left to call a live match, or Infinity if it isn't live yet. */
 const voteWindowRemaining = (challenge: Challenge, now: number): number => {
   if (challenge.status !== 'live' || !challenge.startedAt) return Infinity;
@@ -231,6 +95,8 @@ const formatCountdown = (ms: number): string => {
   const seconds = Math.ceil(ms / 1000);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
+
+const first = (name: string) => name.split(' ')[0];
 
 /** Everything derived from a challenge that both the board card and the
  * full-screen live view need, kept in one place so they cannot drift.
@@ -254,29 +120,21 @@ export const deriveChallengeView = (challenge: Challenge, players: Player[], cur
   const total = challenge.predictions.length;
   const challengerShare = total > 0 ? Math.round((forChallenger / total) * 100) : 50;
 
-  const challengerVoters: VoterInfo[] = challenge.predictions
+  const toVoter = (prediction: Prediction): VoterInfo => {
+    const player = byId.get(prediction.predictorId);
+    return {
+      prediction,
+      player,
+      name: player?.name || prediction.predictorName,
+      isCurrentUser: prediction.predictorId === currentPlayer.id,
+    };
+  };
+  const challengerVoters = challenge.predictions
     .filter((prediction) => prediction.predictedWinnerId === challenge.challengerId)
-    .map((prediction) => {
-      const player = byId.get(prediction.predictorId);
-      return {
-        prediction,
-        player,
-        name: player?.name || prediction.predictorName,
-        isCurrentUser: prediction.predictorId === currentPlayer.id,
-      };
-    });
-
-  const opponentVoters: VoterInfo[] = challenge.predictions
+    .map(toVoter);
+  const opponentVoters = challenge.predictions
     .filter((prediction) => prediction.predictedWinnerId === challenge.opponentId)
-    .map((prediction) => {
-      const player = byId.get(prediction.predictorId);
-      return {
-        prediction,
-        player,
-        name: player?.name || prediction.predictorName,
-        isCurrentUser: prediction.predictorId === currentPlayer.id,
-      };
-    });
+    .map(toVoter);
 
   return {
     challenger,
@@ -292,64 +150,80 @@ export const deriveChallengeView = (challenge: Challenge, players: Player[], cur
   };
 };
 
+/** Stand-in for a player who has since left the roster, so a card never breaks. */
+const ghost = (id: string, name: string) => ({ id, name, avatarUrl: '' });
+
+/**
+ * The two call buttons and the lock of the day, or what you called once you
+ * have. Shared by the board cards and the live screen.
+ */
+const CallControls: React.FC<{
+  challenge: Challenge;
+  myCall?: Prediction;
+  lockArmed: boolean;
+  lockUsedToday: boolean;
+  onToggleLock: () => void;
+  onCall: (playerId: string) => void;
+  /** The two players' balls, for the colour dot on each button. */
+  balls: [number, number];
+  prefix?: string;
+}> = ({ challenge, myCall, lockArmed, lockUsedToday, onToggleLock, onCall, balls, prefix = '' }) => {
+  if (myCall) {
+    const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
+    return (
+      <p className="text-[13px] text-white/70">
+        You called <b className="text-white">{first(pickedName)}</b>
+        {myCall.isLock ? ' as your lock 🔒' : ''}. Calls can't be switched.
+      </p>
+    );
+  }
+  const sides = [
+    { id: challenge.challengerId, name: challenge.challengerName, ball: balls[0] },
+    { id: challenge.opponentId, name: challenge.opponentName, ball: balls[1] },
+  ];
+  return (
+    <div className="grid gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        {sides.map((side) => (
+          <button
+            key={side.id}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onCall(side.id);
+            }}
+            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-surface-alt px-3 text-xs font-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[#2C2C2C]"
+          >
+            <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: ballColor(side.ball).c, boxShadow: side.ball === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }} />
+            <span className="truncate">{prefix}{first(side.name)}</span>
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        disabled={lockUsedToday}
+        aria-pressed={lockArmed}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleLock();
+        }}
+        className={`press h-11 justify-self-start rounded-full px-4 text-[11px] font-extrabold uppercase tracking-[0.1em] transition-colors ${
+          lockUsedToday ? 'bg-surface-alt text-white/40' : lockArmed ? 'bg-white text-bg' : 'bg-surface-alt text-white hover:bg-[#2C2C2C]'
+        }`}
+      >
+        {lockUsedToday ? '🔒 Lock used today' : lockArmed ? '🔒 Lock armed, counts double' : '🔒 Make this call my lock'}
+      </button>
+    </div>
+  );
+};
+
 /**
  * The board when a match is actually on the table, not just a card in a list.
  *
  * Opened either by tapping in from the board, or automatically for the two
- * players the moment their match goes live — they are about to walk to the
- * table, not stare at this screen, but the room should feel like the game is
- * happening here the instant it starts. The room keeps calling it: closing
- * calls at the start of a match locked spectators out for however long the
- * game ran, which is most of the point of calling it live rather than after
- * the fact.
+ * players the moment their match goes live. Black, stream-like: the two
+ * players in their ball colours, the room's calls, cheers and the chat.
  */
-/** One side of the matchup, styled like the log screen's player cards so the
- * live view reads as the same app rather than a lesser cousin of it. */
-const LiveMatchPlayerCard: React.FC<{
-  player?: Player;
-  fallbackName: string;
-  rank: number;
-  tone: 'challenger' | 'opponent';
-  onSelect?: () => void;
-}> = ({ player, fallbackName, rank, tone, onSelect }) => {
-  const accent = tone === 'challenger' ? '#10b981' : '#ffb95f';
-  const accentText = tone === 'challenger' ? 'text-[#4edea3]' : 'text-[#ffb95f]';
-  const badgeText = tone === 'challenger' ? 'text-[#002113]' : 'text-[#2a1700]';
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="flex w-full items-center gap-3.5 rounded-2xl border border-[#30363d] bg-[#161b22] p-4 text-left shadow-md transition-all active:scale-[0.99]"
-    >
-      <div className="relative shrink-0">
-        <Avatar player={player} name={fallbackName} size="h-14 w-14" ring={`border-2`} />
-        <span
-          className={`absolute -bottom-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full border border-[#10141a] font-['JetBrains_Mono'] text-[10px] font-black ${badgeText}`}
-          style={{ backgroundColor: accent }}
-        >
-          {rank || '–'}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="truncate font-['Chivo'] text-lg font-bold tracking-tight text-white">{fallbackName}</h3>
-        <div className="mt-1 flex items-center gap-2">
-          <span className={`font-['JetBrains_Mono'] text-sm font-black ${accentText}`}>
-            {player?.elo ?? '—'} <span className="text-[10px] font-medium text-[#86948a]">ELO</span>
-          </span>
-          <div className="flex items-center gap-1">
-            {player?.recentForm.slice(0, 5).map((form, index) => (
-              <span
-                key={index}
-                className={`h-1.5 w-1.5 rounded-full ${form === 'W' ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-};
-
 export const LiveMatchScreen: React.FC<{
   challenge: Challenge;
   players: Player[];
@@ -382,8 +256,6 @@ export const LiveMatchScreen: React.FC<{
   myCall,
   forChallenger,
   forOpponent,
-  total,
-  challengerShare,
   challengerVoters,
   opponentVoters,
   lockUsedToday,
@@ -414,10 +286,10 @@ export const LiveMatchScreen: React.FC<{
         if (seenCheerIdsRef.current.has(cheer.id)) continue;
         seenCheerIdsRef.current.add(cheer.id);
         const floatId = `${cheer.id}-${Math.random()}`;
-        setFloatingCheers((prev) => [...prev, { id: floatId, emoji: cheer.emoji, x: 10 + Math.random() * 80 }]);
+        setFloatingCheers((prev) => [...prev, { id: floatId, emoji: cheer.emoji, x: 12 + Math.random() * 76 }]);
         window.setTimeout(() => {
           setFloatingCheers((prev) => prev.filter((entry) => entry.id !== floatId));
-        }, 2200);
+        }, 600);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -446,309 +318,201 @@ export const LiveMatchScreen: React.FC<{
   const now = Date.now();
   const remainingVoteMs = voteWindowRemaining(challenge, now);
   const callsClosed = remainingVoteMs <= 0;
-  const urgent = remainingVoteMs <= 30_000;
-  const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
-  const rankChallenger = sortedPlayers.findIndex((p) => p.id === challenger?.id) + 1;
-  const rankOpponent = sortedPlayers.findIndex((p) => p.id === opponent?.id) + 1;
+  const byId = new Map(players.map((player) => [player.id, player]));
+
+  const sides = [
+    { player: challenger, id: challenge.challengerId, name: challenge.challengerName, win: challenge.stakes.challengerWinDelta, elo: challenger?.elo ?? challenge.stakes.challengerElo },
+    { player: opponent, id: challenge.opponentId, name: challenge.opponentName, win: challenge.stakes.opponentWinDelta, elo: opponent?.elo ?? challenge.stakes.opponentElo },
+  ];
 
   return (
-    <div role="dialog" aria-label="Match in progress" className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-[#05070a]">
-      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
-        {floatingCheers.map((cheer) => (
-          <span
-            key={cheer.id}
-            className="cheer-float absolute bottom-24 text-3xl"
-            style={{ left: `${cheer.x}%` }}
-          >
-            {cheer.emoji}
+    <div role="dialog" aria-modal="true" aria-label="Match in progress" className="anim-fade fixed inset-0 z-40 flex flex-col overflow-hidden bg-bg">
+      <div className="mx-auto flex h-full w-full max-w-md flex-col">
+        <div className="relative z-20 flex shrink-0 items-center justify-between gap-2 px-4 pb-2 pt-[calc(var(--safe-top)+0.9rem)]">
+          <button type="button" onClick={onClose} aria-label="Back" className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
+            <ChevronLeft className="h-5 w-5" strokeWidth={2.25} />
+          </button>
+          <span className="flex h-[26px] items-center gap-1.5 rounded-full bg-live px-2.5 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums text-white">
+            <span className="live-dot" />
+            {callsClosed ? `Live ${elapsed(challenge.startedAt ?? now, now)}` : `Calls ${formatCountdown(remainingVoteMs)}`}
           </span>
-        ))}
-      </div>
-
-      <div className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(var(--safe-top)+0.75rem)]">
-        <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-[0.25em] text-[#ef4444]">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ef4444] opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
-          </span>
-          On the table · {elapsed(challenge.startedAt ?? now, now)}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full p-1.5 text-[#86948a] transition-colors hover:bg-[#1c2026] hover:text-white"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
-        {challenge.stakes.crownBounty > 0 && (
-          <div className="mb-3 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-3 py-1 font-['JetBrains_Mono'] text-xs font-bold text-[#f59e0b]">
-              <Crown className="h-3.5 w-3.5" />
-              {challenge.stakes.crownBounty} crown bounty
-            </span>
-          </div>
-        )}
-
-        <div className="relative space-y-2">
-          <LiveMatchPlayerCard
-            player={challenger}
-            fallbackName={challenge.challengerName}
-            rank={rankChallenger}
-            tone="challenger"
-            onSelect={() => challenger && onSelectPlayer?.(challenger)}
-          />
-          <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#10b981] bg-[#0a1210] font-['Chivo'] text-xs font-black text-[#4edea3] shadow-[0_0_14px_rgba(16,185,129,0.35)]">
-              VS
-            </div>
-          </div>
-          <LiveMatchPlayerCard
-            player={opponent}
-            fallbackName={challenge.opponentName}
-            rank={rankOpponent}
-            tone="opponent"
-            onSelect={() => opponent && onSelectPlayer?.(opponent)}
-          />
-        </div>
-
-        {isPlayer ? (
-          <p className="mt-4 rounded-xl border border-[#30363d] bg-[#161b22] px-4 py-3 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
-            You're playing this one. The room is calling it — log the result once the table's clear.
-          </p>
-        ) : callsClosed ? (
-          <div className="mt-8 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-6 text-center">
-            <p className="font-['Chivo'] text-sm font-bold text-[#ffb4ab]">Calls are closed</p>
-            <p className="mt-1 font-['Space_Grotesk'] text-xs text-[#86948a]">The four-minute window is up.</p>
-          </div>
-        ) : (
-          <div className="mt-6">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-                {myCall ? 'Call locked in' : 'Call it — one tap'}
-              </span>
-              {!myCall && (
-                <span
-                  className={`font-['JetBrains_Mono'] text-sm font-black tabular-nums ${
-                    urgent ? 'text-[#ef4444]' : 'text-[#f59e0b]'
-                  }`}
-                >
-                  {formatCountdown(remainingVoteMs)}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-2 space-y-2">
-              {[
-                { id: challenge.challengerId, name: challenge.challengerName, tone: 'challenger' as const },
-                { id: challenge.opponentId, name: challenge.opponentName, tone: 'opponent' as const },
-              ].map((side) => {
-                const picked = myCall?.predictedWinnerId === side.id;
-                const isChallengerSide = side.tone === 'challenger';
-                return (
-                  <button
-                    key={side.id}
-                    type="button"
-                    disabled={Boolean(myCall)}
-                    onClick={() => {
-                      if (myCall) return;
-                      onPredict(side.id, lockArmed && !lockUsedToday);
-                      setLockArmed(false);
-                    }}
-                    className={`flex min-h-[64px] w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all disabled:pointer-events-none ${
-                      picked
-                        ? isChallengerSide
-                          ? 'border-transparent bg-gradient-to-r from-[#10b981] to-[#4edea3] text-[#002113] shadow-[0_4px_20px_rgba(16,185,129,0.35)]'
-                          : 'border-[#ffb95f] bg-[#ffb95f]/15 text-[#ffb95f]'
-                        : myCall
-                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 opacity-40'
-                        : 'border-[#30363d] bg-[#161b22] text-white hover:border-[#4edea3] active:scale-[0.98]'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 font-['Chivo'] text-lg font-black uppercase tracking-tight">
-                      {picked && '✓ '}
-                      {side.name.split(' ')[0]}
-                    </span>
-                    {picked && myCall?.isLock && (
-                      <span className="flex items-center gap-0.5 font-['JetBrains_Mono'] text-xs font-bold">
-                        <Zap className="h-3.5 w-3.5 fill-current" />×2
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 flex items-center justify-center">
-              {myCall ? (
-                <span className="flex items-center gap-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
-                  <Lock className="h-3.5 w-3.5 text-[#4edea3]" />
-                  {myCall.isLock && (
-                    <span className="flex items-center gap-0.5 font-['JetBrains_Mono'] font-bold text-[#f59e0b]">
-                      <Zap className="h-3.5 w-3.5 fill-[#f59e0b]" />×2
-                    </span>
-                  )}
-                  Call locked in — can't be switched
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={lockUsedToday}
-                  onClick={() => setLockArmed((value) => !value)}
-                  title={
-                    lockUsedToday
-                      ? 'You have already staked your lock today'
-                      : 'Stake your one lock of the day: settles for double, win or lose'
-                  }
-                  className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 font-['JetBrains_Mono'] text-xs font-bold transition-all ${
-                    lockUsedToday
-                      ? 'cursor-not-allowed border-[#30363d]/50 text-[#86948a]/40'
-                      : lockArmed
-                      ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]'
-                      : 'border-[#30363d] text-[#86948a] hover:border-[#f59e0b]/60 hover:text-[#f59e0b]'
-                  }`}
-                >
-                  <Zap className={`h-3.5 w-3.5 ${lockArmed ? 'fill-[#f59e0b]' : ''}`} />
-                  {lockUsedToday ? 'Lock used' : lockArmed ? 'LOCK ARMED ×2' : 'Lock of the day'}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {total > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between font-['JetBrains_Mono'] text-xs text-[#86948a]">
-              <span>{forChallenger}</span>
-              <span className="uppercase tracking-wider">
-                {total} {total === 1 ? 'call' : 'calls'}
-              </span>
-              <span>{forOpponent}</span>
-            </div>
-            <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded-full bg-[#1c2026]">
-              <div className="bg-[#10b981] transition-all duration-300" style={{ width: `${challengerShare}%` }} />
-              <div className="bg-[#ffb95f] transition-all duration-300" style={{ width: `${100 - challengerShare}%` }} />
-            </div>
-            <div className="mt-3 flex min-h-[28px] items-center justify-between gap-2">
-              <VoterAvatarStack voters={challengerVoters} side="challenger" onSelectPlayer={onSelectPlayer} />
-              <VoterAvatarStack voters={opponentVoters} side="opponent" onSelectPlayer={onSelectPlayer} />
-            </div>
-          </div>
-        )}
-
-        <div className="mt-6">
-          <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            Send a cheer
-          </span>
-          <div className="mt-2 flex justify-between gap-1.5">
-            {CHEER_EMOJI.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => onCheer(emoji)}
-                className="flex h-11 flex-1 items-center justify-center rounded-xl border border-[#30363d] bg-[#161b22] text-xl transition-all hover:border-[#4edea3]/50 active:scale-90"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            Live chat
-          </span>
-          <div
-            ref={chatScrollRef}
-            className="mt-2 h-44 space-y-1.5 overflow-y-auto rounded-xl border border-[#30363d] bg-[#0d1117] p-2.5"
-          >
-            {chatMessages.length === 0 ? (
-              <p className="flex h-full items-center justify-center text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-                Nobody's said anything yet.
-              </p>
-            ) : (
-              chatMessages.map((message) => (
-                <p key={message.id} className="break-words font-['Space_Grotesk'] text-xs leading-relaxed">
-                  <span className="font-bold" style={{ color: chatNameColor(message.authorId) }}>
-                    {message.authorName.split(' ')[0]}
-                  </span>
-                  <span className="text-[#86948a]">: </span>
-                  <span className="text-[#dfe2eb]">{message.text}</span>
-                </p>
-              ))
-            )}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <input
-              value={chatInput}
-              onChange={(event) => setChatInput(event.target.value)}
-              onKeyDown={(event) => event.key === 'Enter' && sendChat()}
-              placeholder="Say something…"
-              maxLength={280}
-              className="min-w-0 flex-1 rounded-full border border-[#30363d] bg-[#161b22] px-3.5 py-2 text-xs text-white outline-none focus:border-[#10b981]"
-            />
-            <button
-              type="button"
-              disabled={!chatInput.trim()}
-              onClick={sendChat}
-              className="shrink-0 rounded-full bg-[#10b981] p-2 text-[#002113] disabled:opacity-40"
-              aria-label="Send"
-            >
-              <Send className="h-4 w-4" />
+          {isPlayer ? (
+            <button type="button" onClick={onPlayChallenge} aria-label="Log the result" className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
+              <Flag className="h-5 w-5" strokeWidth={2.25} />
             </button>
-          </div>
-        </div>
-      </div>
-
-      {isPlayer && (
-        <div className="shrink-0 border-t border-[#30363d] bg-[#0d1117] px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-3">
-          {confirmingCancel ? (
-            <div className="flex items-center gap-2">
-              <p className="flex-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
-                Back this out to agreed-but-not-started?
-              </p>
-              <button
-                type="button"
-                onClick={onCancelLive}
-                className="shrink-0 rounded-lg bg-[#ef4444] px-3 py-2 font-['Chivo'] text-xs font-bold text-white"
-              >
-                Cancel match
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingCancel(false)}
-                className="shrink-0 rounded-lg border border-[#30363d] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#86948a]"
-              >
-                Never mind
-              </button>
-            </div>
           ) : (
-            <div className="grid grid-cols-[auto_1fr] gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmingCancel(true)}
-                className="rounded-xl border border-[#30363d] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#86948a] transition-all hover:border-[#ef4444]/60 hover:text-[#ffb4ab] active:scale-[0.98]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={onPlayChallenge}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
-              >
-                <Trophy className="h-4 w-4" />
-                Log the result
-              </button>
-            </div>
+            <span className="h-11 w-11" />
           )}
         </div>
-      )}
+
+        <div id="live-stage" className="no-scrollbar relative flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
+          <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+            {floatingCheers.map((cheer) => (
+              <span key={cheer.id} className="cheer-float absolute bottom-[40%] text-3xl" style={{ left: `${cheer.x}%` }}>
+                {cheer.emoji}
+              </span>
+            ))}
+          </div>
+
+          <div className="stagger grid gap-4">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-2 text-center">
+              {sides.map((side, index) => (
+                <React.Fragment key={side.id}>
+                  {index === 1 && <span className="font-display text-[44px] font-extrabold text-white/55">VS</span>}
+                  <button
+                    type="button"
+                    onClick={() => side.player && onSelectPlayer?.(side.player)}
+                    className={`${index === 0 ? 'duel-in-left' : 'duel-in-right'} grid min-w-0 justify-items-center gap-2`}
+                  >
+                    <PlayerAvatar player={side.player ?? ghost(side.id, side.name)} size={68} />
+                    <span className="font-display text-[clamp(16px,5.5vw,22px)] font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
+                      {first(side.name)}
+                    </span>
+                    <span className="text-xs font-bold tabular-nums text-white/55">{side.elo}</span>
+                    <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
+                      Win +{side.win}
+                    </span>
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+
+            {challenge.stakes.crownBounty > 0 && (
+              <span className="justify-self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+                👑 {challenge.stakes.crownBounty} bounty riding
+              </span>
+            )}
+
+            <div className="grid gap-2">
+              <CallSplit
+                left={{ player: challenger ?? ghost(challenge.challengerId, challenge.challengerName), count: forChallenger }}
+                right={{ player: opponent ?? ghost(challenge.opponentId, challenge.opponentName), count: forOpponent }}
+                mineId={myCall?.predictedWinnerId}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <VoterStack voters={challengerVoters} align="start" onSelectPlayer={onSelectPlayer} />
+                <VoterStack voters={opponentVoters} align="end" onSelectPlayer={onSelectPlayer} />
+              </div>
+            </div>
+
+            {isPlayer ? (
+              <p className="text-center text-[13px] text-white/70">You're playing this one. The room calls it, not you.</p>
+            ) : callsClosed && !myCall ? (
+              <p className="text-center text-[13px] text-white/55">Calls are closed. The four minutes are up.</p>
+            ) : (
+              <CallControls
+                challenge={challenge}
+                myCall={myCall}
+                lockArmed={lockArmed}
+                lockUsedToday={lockUsedToday}
+                onToggleLock={() => setLockArmed((value) => !value)}
+                onCall={(id) => {
+                  onPredict(id, lockArmed && !lockUsedToday);
+                  setLockArmed(false);
+                }}
+                prefix="Call "
+                balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
+              />
+            )}
+
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {CHEER_EMOJI.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => onCheer(emoji)}
+                  aria-label={`Cheer ${emoji}`}
+                  className="grid h-12 w-12 place-items-center rounded-full bg-surface-alt text-[22px] transition-transform duration-150 ease-[var(--ease)] hover:bg-[#2C2C2C] active:scale-90"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            <div
+              ref={chatScrollRef}
+              aria-live="polite"
+              className="no-scrollbar grid max-h-[200px] min-h-[120px] content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
+            >
+              {chatMessages.length === 0 ? (
+                <p className="self-center text-center text-xs text-white/55">Nobody's said anything yet.</p>
+              ) : (
+                chatMessages.map((message) => {
+                  const author = byId.get(message.authorId) ?? { id: message.authorId };
+                  const n = playerBall(author);
+                  return (
+                    <p key={message.id} className="card-drop flex items-baseline gap-1.5 [overflow-wrap:anywhere]">
+                      <span
+                        className="h-[9px] w-[9px] flex-none translate-y-px rounded-full"
+                        style={{ background: ballColor(n).c, boxShadow: n === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }}
+                      />
+                      <span>
+                        <b className="font-extrabold" style={{ color: ballColor(n).t }}>{first(message.authorName)}</b>{' '}
+                        {message.text}
+                      </span>
+                    </p>
+                  );
+                })
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && sendChat()}
+                placeholder="Send a message"
+                aria-label="Chat message"
+                maxLength={280}
+                className="h-11 min-w-0 flex-1 rounded-full bg-surface px-4 text-white outline-none placeholder:text-white/55 focus-visible:shadow-[inset_0_0_0_2px_#fff]"
+              />
+              <button
+                type="button"
+                disabled={!chatInput.trim()}
+                onClick={sendChat}
+                aria-label="Send"
+                className="press grid h-11 w-11 flex-none place-items-center rounded-full bg-white text-bg disabled:opacity-40"
+              >
+                <Send className="h-5 w-5" strokeWidth={2.25} />
+              </button>
+            </div>
+
+            {isPlayer &&
+              (confirmingCancel ? (
+                <div className="grid gap-2">
+                  <p className="text-center text-[13px] text-white/70">Back this out to agreed, not started?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setConfirmingCancel(false)} className="press h-12 rounded-full bg-surface-alt text-[13px] font-extrabold uppercase tracking-[0.06em]">
+                      Keep playing
+                    </button>
+                    <button type="button" onClick={onCancelLive} className="press h-12 rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
+                      Not playing
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <button type="button" onClick={onPlayChallenge} className="press flex h-12 items-center justify-center gap-2 rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
+                    <Flag className="h-[18px] w-[18px]" strokeWidth={2.25} />
+                    Log the result
+                  </button>
+                  <button type="button" onClick={() => setConfirmingCancel(true)} className="press h-12 rounded-full bg-surface-alt text-[13px] font-extrabold uppercase tracking-[0.06em]">
+                    Not playing after all
+                  </button>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
+const sectionHead = (title: string, aside?: React.ReactNode) => (
+  <div className="flex items-center justify-between px-1">
+    <h3 className="text-base">{title}</h3>
+    {aside && <span className="text-xs font-semibold text-white/55">{aside}</span>}
+  </div>
+);
 
 export const ArenaView: React.FC<ArenaViewProps> = ({
   players,
@@ -769,56 +533,33 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   const now = Date.now();
   const [armedLockId, setArmedLockId] = useState<string | null>(null);
   /**
-   * The call that just landed, so it can pop.
-   * Held in state rather than toggled on the node: casting a call re-renders the
-   * button, which wiped a class added imperatively before it ever animated.
-   */
-  const [poppedCall, setPoppedCall] = useState<string | null>(null);
-  /**
    * Starting writes to the server before the card can move to "live", so
    * there is a gap where the start button is still showing. Tracking it
-   * locally lets the card go quiet immediately instead of leaving Start and
-   * Cancel both tappable while the layout is about to shift out from under
-   * a second, impatient tap.
+   * locally lets the card go quiet immediately.
    */
   const [startingId, setStartingId] = useState<string | null>(null);
-  const byId = new Map<string, Player>(players.map((player) => [player.id, player]));
 
-  // Everything still live belongs on the board, answered or not. Showing only
-  // accepted challenges meant a callout was invisible to everybody except the
-  // person being called out, so the challenger saw nothing after issuing it and
-  // the room could not start calling a winner until it had been accepted.
-  // Three states, each meaning something different to the room: being played,
-  // agreed but not started, and waiting on an answer.
   const live = challenges
     .filter((challenge) => challenge.status === 'live')
     .sort((left, right) => (right.startedAt ?? 0) - (left.startedAt ?? 0));
+  const forMe = challenges
+    .filter((challenge) => challenge.status === 'pending' && challenge.opponentId === currentPlayer.id)
+    .sort((left, right) => right.createdAt - left.createdAt);
   const accepted = challenges
     .filter((challenge) => challenge.status === 'accepted')
     .sort((left, right) => (right.respondedAt ?? right.createdAt) - (left.respondedAt ?? left.createdAt));
   const sent = challenges
-    .filter((challenge) => challenge.status === 'pending')
+    .filter((challenge) => challenge.status === 'pending' && challenge.opponentId !== currentPlayer.id)
     .sort((left, right) => right.createdAt - left.createdAt);
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
 
-  // Prediction standings: the second ladder, open to everyone who never wins the first.
-  // Ranked on nerve, not on accuracy. Accuracy rewarded calling only the
-  // matches nobody could get wrong; nerve pays for the calls that were worth
-  // making, so the safe route no longer wins.
+  // Prediction standings: the second ladder, ranked on nerve, not accuracy.
   const oracles = players
     .map((player) => ({ player, record: nerve.get(player.id) }))
-    .filter((entry): entry is { player: Player; record: NerveRecord } =>
-      entry.record !== undefined && entry.record.total > 0
-    )
-    .map((entry) => ({
-      ...entry,
-      accuracy: Math.round((entry.record.correct / entry.record.total) * 100),
-    }))
-    .sort(
-      (left, right) =>
-        right.record.nerve - left.record.nerve || right.record.total - left.record.total
-    )
-    .slice(0, 5);
+    .filter((entry): entry is { player: Player; record: NerveRecord } => entry.record !== undefined && entry.record.total > 0)
+    .map((entry) => ({ ...entry, accuracy: Math.round((entry.record.correct / entry.record.total) * 100) }))
+    .sort((left, right) => right.record.nerve - left.record.nerve || right.record.total - left.record.total)
+    .slice(0, 8);
 
   const lockUsedToday = hasLockOnDay(challenges, currentPlayer.id, now);
 
@@ -840,447 +581,310 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     return () => window.clearInterval(timer);
   }, [live.length]);
 
-  const renderChallenge = (challenge: Challenge) => {
+  const call = (challenge: Challenge, playerId: string) => {
+    void onPredict(challenge, playerId, armedLockId === challenge.id && !lockUsedToday);
+    setArmedLockId(null);
+  };
+
+  const matchLine = (challenge: Challenge, challenger?: Player, opponent?: Player) => (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      {[
+        { player: challenger, id: challenge.challengerId, name: challenge.challengerName, win: challenge.stakes.challengerWinDelta },
+        { player: opponent, id: challenge.opponentId, name: challenge.opponentName, win: challenge.stakes.opponentWinDelta },
+      ].map((side, index) => (
+        <React.Fragment key={side.id}>
+          {index === 1 && <span className="font-display text-sm font-extrabold text-white/55">VS</span>}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (side.player) onSelectPlayer?.(side.player);
+            }}
+            className={`flex min-w-0 items-center gap-2 ${index === 1 ? 'flex-row-reverse text-right' : ''}`}
+          >
+            <PlayerAvatar player={side.player ?? ghost(side.id, side.name)} size={34} />
+            <span className="grid min-w-0">
+              <span className="truncate text-sm font-bold">{first(side.name)}</span>
+              <span className="text-[11px] font-semibold tabular-nums text-white/55">Win +{side.win}</span>
+            </span>
+          </button>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+  const renderCard = (challenge: Challenge) => {
     const lockArmed = armedLockId === challenge.id;
-    const isLive = challenge.status === 'live';
-    const remainingVoteMs = voteWindowRemaining(challenge, now);
-    const callsClosed = remainingVoteMs <= 0;
-    const {
-      challenger,
-      opponent,
-      isPlayer,
-      myCall,
-      forChallenger,
-      forOpponent,
-      total,
-      challengerShare,
-      challengerVoters,
-      opponentVoters,
-    } = deriveChallengeView(challenge, players, currentPlayer);
+    const callsClosed = voteWindowRemaining(challenge, now) <= 0;
+    const view = deriveChallengeView(challenge, players, currentPlayer);
+    const { challenger, opponent, isPlayer, myCall } = view;
+    const mine = challenge.challengerId === currentPlayer.id;
+    const other = mine ? challenge.opponentName : challenge.challengerName;
 
     return (
-      <div
-        key={challenge.id}
-        onClick={isLive ? () => onOpenLiveMatch(challenge.id) : undefined}
-        className={`card-drop rounded-2xl border border-[#30363d] bg-[#161b22] p-4 ${
-          isLive ? 'cursor-pointer transition-colors active:scale-[0.99] hover:border-[#ef4444]/50' : ''
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
-            <Clock className="h-3 w-3" />
-            {challenge.status === 'live'
-              ? `Playing · ${elapsed(challenge.startedAt ?? now, now)}`
-              : challenge.status === 'accepted'
-              ? 'Agreed · not started'
-              : timeLeft(challenge.expiresAt, now)}
+      <div key={challenge.id} className="card-drop grid gap-3 rounded-2xl bg-card p-3.5">
+        {matchLine(challenge, challenger, opponent)}
+        {challenge.stakes.crownBounty > 0 && (
+          <span className="justify-self-start rounded-full bg-crown px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-bg">
+            👑 {challenge.stakes.crownBounty} bounty riding
           </span>
-          {challenge.stakes.crownBounty > 0 && (
-            <span className="inline-flex items-center gap-1 rounded border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] font-bold text-[#f59e0b]">
-              <Crown className="h-3 w-3" />
-              {challenge.stakes.crownBounty} bounty
-            </span>
-          )}
-        </div>
-
-        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              challenger && onSelectPlayer?.(challenger);
-            }}
-            className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
-          >
-            <Avatar player={challenger} name={challenge.challengerName} ring="border-[#10b981]/60" />
-            <span className="w-full truncate font-['Chivo'] text-xs font-bold text-white">
-              {challenge.challengerName}
-            </span>
-            <span className="font-['JetBrains_Mono'] text-[10px] text-[#4edea3]">
-              +{challenge.stakes.challengerWinDelta}
-            </span>
-          </button>
-          <span className="font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">VS</span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              opponent && onSelectPlayer?.(opponent);
-            }}
-            className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-transform active:scale-95 cursor-pointer"
-          >
-            <Avatar player={opponent} name={challenge.opponentName} ring="border-[#ffb95f]/60" />
-            <span className="w-full truncate font-['Chivo'] text-xs font-bold text-white">
-              {challenge.opponentName}
-            </span>
-            <span className="font-['JetBrains_Mono'] text-[10px] text-[#ffb95f]">
-              +{challenge.stakes.opponentWinDelta}
-            </span>
-          </button>
-        </div>
-
-        {/* Where the room is leaning */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-            <span>{forChallenger}</span>
-            <span className="uppercase tracking-wider">
-              {total === 0 ? 'No calls yet' : `${total} ${total === 1 ? 'call' : 'calls'}`}
-            </span>
-            <span>{forOpponent}</span>
-          </div>
-          <div className="mt-1 flex h-2 w-full overflow-hidden rounded-full bg-[#30363d]">
-            {/* An empty bar stays neutral; a 50/50 split would read as a tied vote. */}
-            {total > 0 && (
-              <>
-                <div className="bg-[#10b981] transition-all duration-300" style={{ width: `${challengerShare}%` }} />
-                <div className="bg-[#ffb95f] transition-all duration-300" style={{ width: `${100 - challengerShare}%` }} />
-              </>
-            )}
-          </div>
-
-          {/* Little avatars of voters under the voting bar */}
-          {total > 0 && (
-            <div className="mt-2 flex items-center justify-between gap-2 min-h-[24px]">
-              <div className="flex min-w-0 items-center">
-                <VoterAvatarStack
-                  voters={challengerVoters}
-                  side="challenger"
-                  onSelectPlayer={onSelectPlayer}
-                />
-              </div>
-              <div className="flex min-w-0 items-center justify-end">
-                <VoterAvatarStack
-                  voters={opponentVoters}
-                  side="opponent"
-                  onSelectPlayer={onSelectPlayer}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {isPlayer ? (
-          <p className="mt-3 rounded-lg border border-[#30363d] bg-[#1c2026] px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-            {isLive ? "You're playing this one. Tap in to see the calls land live." : "You're in this one. The room calls it, not you."}
-          </p>
-        ) : callsClosed ? (
-          <p className="mt-3 rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-center font-['Space_Grotesk'] text-[11px] text-[#ffb4ab]">
-            Calls are closed — the window's up.
-          </p>
-        ) : (
-          <div className="mt-3">
-            {isLive && (
-              <p className="mb-1.5 text-center font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#f59e0b]">
-                {formatCountdown(remainingVoteMs)} left to call it
-              </p>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1 font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-wider text-[#86948a]">
-                {myCall ? (
-                  <>
-                    <Lock className="h-3 w-3 text-[#4edea3]" />
-                    <span className="text-[#4edea3]">Call locked in</span>
-                  </>
-                ) : (
-                  'Call it'
-                )}
-              </span>
-              {!myCall && !isPlayer && (
-                <button
-                  type="button"
-                  disabled={lockUsedToday}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setArmedLockId(lockArmed ? null : challenge.id);
-                  }}
-                  title={
-                    lockUsedToday
-                      ? 'You have already staked your lock today'
-                      : 'Stake your one lock of the day: settles for double, win or lose'
-                  }
-                  className={`flex items-center gap-1 rounded-lg border px-2 py-1 font-['JetBrains_Mono'] text-[10px] font-bold transition-all ${
-                    lockUsedToday
-                      ? 'cursor-not-allowed border-[#30363d]/50 text-[#86948a]/40'
-                      : lockArmed
-                      ? 'border-[#f59e0b] bg-[#f59e0b]/15 text-[#f59e0b]'
-                      : 'border-[#30363d] text-[#86948a] hover:border-[#f59e0b]/60 hover:text-[#f59e0b]'
-                  }`}
-                >
-                  <Zap className={`h-3 w-3 ${lockArmed ? 'fill-[#f59e0b]' : ''}`} />
-                  {lockUsedToday ? 'Lock used' : lockArmed ? 'LOCK ARMED ×2' : 'Lock of the day'}
-                </button>
-              )}
-              {myCall && (
-                <span className="flex items-center gap-1 font-['Space_Grotesk'] text-[10px] text-[#86948a]">
-                  {myCall.isLock && (
-                    <span className="flex items-center gap-0.5 font-['JetBrains_Mono'] font-bold text-[#f59e0b]">
-                      <Zap className="h-3 w-3 fill-[#f59e0b]" />×2
-                    </span>
-                  )}
-                  Predictions can't be switched
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-2">
-              {[
-                { id: challenge.challengerId, name: challenge.challengerName, tone: '#10b981' },
-                { id: challenge.opponentId, name: challenge.opponentName, tone: '#ffb95f' },
-              ].map((side) => {
-                const picked = myCall?.predictedWinnerId === side.id;
-                return (
-                  <button
-                    key={side.id}
-                    type="button"
-                    disabled={Boolean(myCall)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (myCall) return;
-                      setPoppedCall(`${challenge.id}:${side.id}`);
-                      window.setTimeout(() => setPoppedCall(null), 360);
-                      void onPredict(challenge, side.id, lockArmed && !lockUsedToday);
-                      setArmedLockId(null);
-                    }}
-                    style={picked ? { borderColor: side.tone, color: side.tone } : undefined}
-                    className={`truncate rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold transition-all ${
-                      poppedCall === `${challenge.id}:${side.id}` ? 'call-pop ' : ''
-                    }${
-                      picked
-                        ? 'bg-[#1c2026] opacity-100 cursor-default shadow-[0_0_12px_rgba(0,0,0,0.4)]'
-                        : myCall
-                        ? 'border-[#30363d]/40 bg-[#161b22] text-[#86948a]/30 cursor-not-allowed opacity-40'
-                        : 'border-[#30363d] bg-[#1c2026] text-[#bbcabf] hover:border-[#4edea3] active:scale-[0.98] cursor-pointer'
-                    }`}
-                  >
-                    {picked && '✓ '}
-                    {side.name.split(' ')[0]}
-                  </button>
-                );
-              })}
-            </div>
+        )}
+        <CallSplit
+          left={{ player: challenger ?? ghost(challenge.challengerId, challenge.challengerName), count: view.forChallenger }}
+          right={{ player: opponent ?? ghost(challenge.opponentId, challenge.opponentName), count: view.forOpponent }}
+          mineId={myCall?.predictedWinnerId}
+        />
+        {view.total > 0 && (
+          <div className="flex items-center justify-between">
+            <VoterStack voters={view.challengerVoters} align="start" onSelectPlayer={onSelectPlayer} />
+            <VoterStack voters={view.opponentVoters} align="end" onSelectPlayer={onSelectPlayer} />
           </div>
         )}
 
-        {challenge.status === 'pending' && challenge.opponentId === currentPlayer.id && (
-          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#30363d] pt-3">
-            <button
-              type="button"
-              onClick={() => onRespond(challenge, 'accepted')}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#10b981] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#002113] transition-all active:scale-[0.98]"
-            >
-              <Check className="h-4 w-4" />
-              Accept
-            </button>
-            <button
-              type="button"
-              onClick={() => onRespond(challenge, 'declined')}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#30363d] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#86948a] transition-all hover:border-[#ef4444] hover:text-[#ffb4ab] active:scale-[0.98]"
-            >
-              <X className="h-4 w-4" />
-              Duck it
-            </button>
-          </div>
+        {challenge.status === 'pending' && (
+          <span className="text-xs font-semibold text-white/55">
+            {mine ? `Waiting for ${first(other)}. ${timeLeft(challenge.expiresAt, now)}` : `Waiting on ${first(challenge.opponentName)}. ${timeLeft(challenge.expiresAt, now)}`}
+          </span>
+        )}
+
+        {!isPlayer && !(callsClosed && !myCall) && (
+          <CallControls
+            challenge={challenge}
+            myCall={myCall}
+            lockArmed={lockArmed}
+            lockUsedToday={lockUsedToday}
+            onToggleLock={() => setArmedLockId(lockArmed ? null : challenge.id)}
+            onCall={(id) => call(challenge, id)}
+            balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
+          />
         )}
 
         {challenge.status === 'accepted' && isPlayer && (
-          <button
-            type="button"
-            disabled={startingId === challenge.id}
-            onClick={() => void handleStart(challenge)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-60"
-          >
-            <PlayCircle className="h-4 w-4" />
-            {startingId === challenge.id ? 'Starting…' : 'Start the match'}
-          </button>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <button
+              type="button"
+              disabled={startingId === challenge.id}
+              onClick={() => void handleStart(challenge)}
+              className="press flex h-12 items-center justify-center gap-2 rounded-full bg-live text-[13px] font-extrabold uppercase tracking-[0.06em] text-white disabled:opacity-60"
+            >
+              <Play className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              {startingId === challenge.id ? 'Starting' : 'Start the match'}
+            </button>
+            <button
+              type="button"
+              onClick={() => onPlayChallenge(challenge)}
+              aria-label="Log the result"
+              className="press grid h-12 w-12 place-items-center rounded-full bg-surface-alt"
+            >
+              <Flag className="h-5 w-5" strokeWidth={2.25} />
+            </button>
+          </div>
         )}
 
-        {(challenge.status === 'accepted' || isLive) && isPlayer && startingId !== challenge.id && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPlayChallenge(challenge);
-            }}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98]"
-          >
-            <Trophy className="h-4 w-4" />
-            Log the result
-          </button>
-        )}
-
-        {['pending', 'accepted'].includes(challenge.status) &&
-          startingId !== challenge.id &&
-          (challenge.challengerId === currentPlayer.id || challenge.opponentId === currentPlayer.id) && (
+        {['pending', 'accepted'].includes(challenge.status) && isPlayer && startingId !== challenge.id && (
           <button
             type="button"
             onClick={() => onCancel(challenge)}
-            className="mt-3 w-full rounded-xl border border-[#30363d] px-3 py-2 font-['Space_Grotesk'] text-[11px] text-[#86948a] hover:text-white"
+            className="press h-11 rounded-full bg-surface-alt text-xs font-extrabold uppercase tracking-[0.06em] text-white/70"
           >
-            {challenge.status === 'accepted' ? 'Cancel duel' : 'Withdraw challenge'}
+            {challenge.status === 'accepted' ? 'Cancel the match' : 'Withdraw callout'}
           </button>
         )}
-
       </div>
     );
   };
 
   return (
-    <div id="arena-view" className="space-y-4 pb-24 pt-1">
-      <div className="px-1">
-        <h2 className="font-['Chivo'] text-2xl font-black tracking-tight text-white">The Arena</h2>
-        <p className="mt-0.5 font-['Space_Grotesk'] text-xs text-[#86948a]">
-          Call someone out. Everyone else calls the winner.
-        </p>
-      </div>
-
-      {/* The primary action is the one that matches how games actually start:
-          two people at the table, now. Logging a result you never announced and
-          challenging someone for later are both still here, one step down. */}
-      <div className="space-y-2 px-1">
-        <button
-          type="button"
-          onClick={onInstantMatch}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#ef4444] px-4 py-3.5 font-['Chivo'] text-base font-black text-white shadow-[0_0_18px_rgba(239,68,68,0.35)] transition-all active:scale-[0.98]"
-        >
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
-          </span>
-          We're on the table
+    <div id="arena-view" className="stagger grid gap-3 pb-28 pt-1">
+      {/* The primary action matches how games actually start: two people at
+          the table, now. Logging and calling out for later sit one step down. */}
+      <button
+        type="button"
+        onClick={onInstantMatch}
+        className="press flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-live text-sm font-extrabold uppercase tracking-[0.06em] text-white"
+      >
+        <span className="live-dot h-[9px] w-[9px]" />
+        We're on the table
+      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={onLogMatch} className="press flex h-12 min-w-0 items-center justify-center gap-2 rounded-full bg-surface-alt px-3 text-xs font-extrabold uppercase tracking-[0.06em] hover:bg-[#2C2C2C]">
+          <ClipboardCheck className="h-[18px] w-[18px] flex-none" strokeWidth={2.25} />
+          Log result
         </button>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onLogMatch}
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#bbcabf] transition-all hover:border-[#10b981] hover:text-[#4edea3] active:scale-[0.98]"
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            Log a result
-          </button>
-          <button
-            type="button"
-            onClick={onIssueChallenge}
-            className="flex items-center justify-center gap-2 rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#bbcabf] transition-all hover:border-[#10b981] hover:text-[#4edea3] active:scale-[0.98]"
-          >
-            <Swords className="h-4 w-4" />
-            Call someone out
-          </button>
-        </div>
+        <button type="button" onClick={onIssueChallenge} className="press flex h-12 min-w-0 items-center justify-center gap-2 rounded-full bg-surface-alt px-3 text-xs font-extrabold uppercase tracking-[0.06em] hover:bg-[#2C2C2C]">
+          <Swords className="h-[18px] w-[18px] flex-none" strokeWidth={2.25} />
+          Call out
+        </button>
       </div>
 
-      {live.length > 0 && (
-        <div className="space-y-2 px-1">
-          <span className="flex items-center gap-1.5 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#ef4444]">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ef4444] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ef4444]" />
-            </span>
-            On the table now
-          </span>
-          {live.map(renderChallenge)}
-        </div>
-      )}
-
-      {accepted.length > 0 && (
-        <div className="space-y-2 px-1">
-          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#4edea3]">
-            Agreed
-          </span>
-          {accepted.map(renderChallenge)}
-        </div>
-      )}
-
-      {sent.length > 0 && (
-        <div className="space-y-2 px-1">
-          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            Waiting on an answer
-          </span>
-          {sent.map(renderChallenge)}
-        </div>
-      )}
-
-      {live.length + accepted.length + sent.length === 0 && (
-        <div className="mx-1 rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-5 py-10 text-center">
-          <Target className="mx-auto mb-2 h-6 w-6 text-[#86948a]" />
-          <p className="font-['Chivo'] text-sm font-bold text-white">Nothing on the board</p>
-          <p className="mt-1 font-['Space_Grotesk'] text-xs text-[#86948a]">
-            Challenge someone and the office can start calling it.
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-2 px-1">
-        <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-          Prediction standings
-        </span>
-        {oracles.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-4 py-6 text-center font-['Space_Grotesk'] text-xs text-[#86948a]">
-            Nobody has called a match yet. Everyone starts on {NERVE_BASE} nerve — calling an
-            underdog that comes in is worth far more than calling the favourite. {NERVE_MIN_CALLS} calls
-            earns you a shot at 🔮 The Oracle.
-          </p>
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-[#30363d] bg-[#161b22]">
-            {oracles.map((entry, index) => (
-              <div
-                key={entry.player.id}
-                onClick={() => onSelectPlayer?.(entry.player)}
-                className="flex items-center gap-3 border-b border-[#30363d]/60 px-4 py-2.5 last:border-b-0 cursor-pointer hover:bg-[#1c2026]/60 transition-colors"
-              >
-                <span className="w-4 shrink-0 font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">
-                  {index + 1}
-                </span>
-                <Avatar player={entry.player} name={entry.player.name} size="h-8 w-8" />
-                <span className="min-w-0 flex-1 truncate font-['Chivo'] text-sm font-bold text-white">
-                  {entry.player.name}
-                </span>
-                <span className="shrink-0 text-right">
-                  <span
-                    className={`block font-['JetBrains_Mono'] text-sm font-black ${
-                      entry.record.nerve >= NERVE_BASE ? 'text-[#4edea3]' : 'text-[#ffb4ab]'
-                    }`}
-                  >
-                    {entry.record.nerve}
-                  </span>
-                  <span className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    {entry.record.correct}/{entry.record.total} · {entry.accuracy}%
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {settled.length > 0 && (
-        <div className="space-y-2 px-1">
-          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            Settled
-          </span>
-          {settled.map((challenge) => {
-            const winnerName =
-              challenge.resolvedWinnerId === challenge.challengerId
-                ? challenge.challengerName
-                : challenge.opponentName;
-            const right = challenge.predictions.filter(
-              (prediction) => prediction.predictedWinnerId === challenge.resolvedWinnerId
-            ).length;
+      {forMe.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          {sectionHead('For you')}
+          {forMe.map((challenge) => {
+            const challenger = players.find((player) => player.id === challenge.challengerId);
             return (
-              <div key={challenge.id} className="rounded-xl border border-[#30363d] bg-[#161b22] px-4 py-3">
-                <p className="font-['Chivo'] text-xs font-bold text-white">
-                  {winnerName} <span className="font-normal text-[#86948a]">beat</span>{' '}
-                  {challenge.resolvedWinnerId === challenge.challengerId
-                    ? challenge.opponentName
-                    : challenge.challengerName}
-                </p>
-                <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-                  {challenge.predictions.length === 0
-                    ? 'Nobody called it.'
-                    : `${right} of ${challenge.predictions.length} called it right.`}
-                </p>
+              <div key={challenge.id} className="card-drop grid gap-3 rounded-2xl bg-card p-3.5">
+                <div className="flex items-center gap-3">
+                  <PlayerAvatar player={challenger ?? ghost(challenge.challengerId, challenge.challengerName)} size={44} />
+                  <h3 className="text-base">{first(challenge.challengerName)} called you out</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1.5 rounded-xl bg-surface p-3">
+                    <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">If you win</span>
+                    <span className="text-[26px] font-black leading-none tabular-nums">+{challenge.stakes.opponentWinDelta}</span>
+                    {challenge.stakes.crownBounty > 0 && <span className="text-xs font-semibold text-white/55">incl. 👑 bounty</span>}
+                  </div>
+                  <div className="grid gap-1.5 rounded-xl bg-surface p-3">
+                    <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">If you lose</span>
+                    <span className="text-[26px] font-black leading-none tabular-nums">−{challenge.stakes.challengerWinDelta}</span>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-white/55">{timeLeft(challenge.expiresAt, now)} to answer. Ducking it counts.</span>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button type="button" onClick={() => onRespond(challenge, 'accepted')} className="press h-12 rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
+                    Accept
+                  </button>
+                  <button type="button" onClick={() => onRespond(challenge, 'declined')} className="press h-12 rounded-full bg-surface-alt px-5 text-[13px] font-extrabold uppercase tracking-[0.06em]">
+                    Duck it
+                  </button>
+                </div>
               </div>
             );
           })}
-        </div>
+        </section>
+      )}
+
+      <section className="mt-2 grid gap-2">
+        {sectionHead('On the table now')}
+        {live.length > 0 ? (
+          live.map((challenge) => {
+            const { challenger, opponent, forChallenger, forOpponent, myCall } = deriveChallengeView(challenge, players, currentPlayer);
+            const remaining = voteWindowRemaining(challenge, now);
+            return (
+              <div
+                key={challenge.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenLiveMatch(challenge.id)}
+                onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && onOpenLiveMatch(challenge.id)}
+                aria-label={`Watch ${challenge.challengerName} against ${challenge.opponentName}`}
+                className="card-drop group relative grid cursor-pointer gap-3.5 overflow-hidden rounded-[20px] bg-live p-[18px] pt-[104px] text-white"
+              >
+                <Ball n={playerBall(challenger ?? { id: challenge.challengerId })} size={128} className="absolute -left-[34px] -top-10 transition-transform duration-500 ease-[var(--ease)] group-hover:rotate-12" />
+                <Ball n={playerBall(opponent ?? { id: challenge.opponentId })} size={128} className="absolute -right-[34px] -top-10 transition-transform duration-500 ease-[var(--ease)] group-hover:-rotate-12" />
+                <div className="relative grid grid-cols-[1fr_auto_1fr] items-end gap-2.5">
+                  <span className="min-w-0 font-display text-2xl font-extrabold uppercase leading-[1.05] tracking-[-0.02em] [overflow-wrap:anywhere]">{first(challenge.challengerName)}</span>
+                  <span className="font-display text-base font-extrabold leading-[1.4]">VS</span>
+                  <span className="min-w-0 text-right font-display text-2xl font-extrabold uppercase leading-[1.05] tracking-[-0.02em] [overflow-wrap:anywhere]">{first(challenge.opponentName)}</span>
+                </div>
+                <div className="relative">
+                  <CallSplit
+                    left={{ player: challenger ?? ghost(challenge.challengerId, challenge.challengerName), count: forChallenger }}
+                    right={{ player: opponent ?? ghost(challenge.opponentId, challenge.opponentName), count: forOpponent }}
+                    mineId={myCall?.predictedWinnerId}
+                    onRed
+                  />
+                </div>
+                <div className="relative flex items-center justify-between gap-2">
+                  <span className="flex h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-extrabold uppercase tracking-[0.06em] text-bg">
+                    <Tv className="h-[18px] w-[18px]" strokeWidth={2.25} />
+                    Watch
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="flex h-[26px] items-center gap-1.5 rounded-full bg-white px-2.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+                      <span className="live-dot" />
+                      Live
+                    </span>
+                    <span className="flex h-[26px] items-center rounded-full bg-bg px-2.5 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums text-white">
+                      {remaining > 0 ? `Calls ${formatCountdown(remaining)}` : elapsed(challenge.startedAt ?? now, now)}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="grid justify-items-center gap-2.5 rounded-2xl bg-card px-4 py-7 text-center">
+            <Ball n={3} size={64} className="mb-1" />
+            <h3 className="text-lg">Table's free</h3>
+            <p className="text-sm text-white/70">Nobody is playing right now. Somebody should be.</p>
+            <button type="button" onClick={onIssueChallenge} className="press h-11 rounded-full bg-white px-4 text-xs font-extrabold uppercase tracking-[0.06em] text-bg">
+              Call someone out
+            </button>
+          </div>
+        )}
+      </section>
+
+      {accepted.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          {sectionHead('Agreed')}
+          {accepted.map(renderCard)}
+        </section>
+      )}
+
+      {sent.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          {sectionHead('Waiting on an answer')}
+          {sent.map(renderCard)}
+        </section>
+      )}
+
+      <section className="mt-2 grid gap-2">
+        {sectionHead('Calling table', 'Nerve')}
+        {oracles.length === 0 ? (
+          <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">
+            Nobody has called a match yet. Everyone starts on {NERVE_BASE} nerve. Backing an underdog that comes in is worth far more than
+            backing the favourite. {NERVE_MIN_CALLS} calls earns you a shot at 🔮 The Oracle.
+          </p>
+        ) : (
+          <div className="stagger-rows grid gap-0.5">
+            {oracles.map((entry, index) => (
+              <button
+                key={entry.player.id}
+                type="button"
+                onClick={() => onSelectPlayer?.(entry.player)}
+                style={{ ['--j' as string]: index }}
+                className={`press grid grid-cols-[22px_auto_1fr_auto] items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-left hover:bg-[#161616] ${
+                  entry.player.id === currentPlayer.id ? 'shadow-[inset_0_0_0_1.5px_rgba(255,255,255,.26)]' : ''
+                }`}
+              >
+                <span className="text-center text-[13px] font-black tabular-nums text-white/55">{index + 1}</span>
+                <PlayerAvatar player={entry.player} size={28} />
+                <span className="grid min-w-0 gap-0.5">
+                  <span className="truncate text-sm font-bold">{entry.player.name}</span>
+                  <span className="text-xs font-semibold text-white/55">
+                    {entry.record.correct} of {entry.record.total} right, {entry.accuracy}%
+                  </span>
+                </span>
+                <span className="text-[17px] font-black tabular-nums">{entry.record.nerve}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {settled.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          {sectionHead('Settled')}
+          <div className="grid gap-0.5">
+            {settled.map((challenge) => {
+              const winnerIsChallenger = challenge.resolvedWinnerId === challenge.challengerId;
+              const right = challenge.predictions.filter((prediction) => prediction.predictedWinnerId === challenge.resolvedWinnerId).length;
+              return (
+                <div key={challenge.id} className="grid gap-0.5 rounded-xl bg-card px-3.5 py-3">
+                  <span className="text-sm font-bold">
+                    {first(winnerIsChallenger ? challenge.challengerName : challenge.opponentName)}{' '}
+                    <span className="font-normal text-white/55">beat</span>{' '}
+                    {first(winnerIsChallenger ? challenge.opponentName : challenge.challengerName)}
+                  </span>
+                  <span className="text-xs font-semibold text-white/55">
+                    {challenge.predictions.length === 0 ? 'Nobody called it.' : `${right} of ${challenge.predictions.length} called it right.`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );

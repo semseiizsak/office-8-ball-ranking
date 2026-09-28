@@ -105,6 +105,7 @@ const toPlayer = (id: string, data: Record<string, unknown>): Player => ({
   title: String(data.title ?? 'Pool Contender'),
   avatarUrl: String(data.avatarUrl ?? ''),
   ballPreference: data.ballPreference === 'stripes' ? 'stripes' : 'solids',
+  ball: Number.isInteger(data.ball) && Number(data.ball) >= 1 && Number(data.ball) <= 15 ? Number(data.ball) : undefined,
   elo: Number(data.elo ?? 1000),
   peakElo: Number(data.peakElo ?? data.elo ?? 1000),
   wins: Number(data.wins ?? 0),
@@ -146,6 +147,7 @@ const toMatch = (id: string, data: Record<string, unknown>): MatchRecord => ({
     ])
   ),
   commentCount: Number(data.commentCount ?? 0),
+  winnerBall: data.winnerBall === 'solids' || data.winnerBall === 'stripes' ? data.winnerBall : undefined,
 });
 
 interface LeagueState {
@@ -169,6 +171,7 @@ export async function addPlayer(params: {
   department?: string;
   title?: string;
   ballPreference: 'solids' | 'stripes' | 'any';
+  ball?: number;
 }): Promise<Player> {
   const playerRef = doc(playersCollection);
   const playerData = {
@@ -177,6 +180,7 @@ export async function addPlayer(params: {
     title: params.title?.trim() || (params.ballPreference === 'solids' ? 'Solids Specialist' : 'Stripes Tactician'),
     avatarUrl: '',
     ballPreference: params.ballPreference === 'stripes' ? 'stripes' : 'solids',
+    ...(params.ball ? { ball: params.ball } : {}),
     elo: 1000,
     peakElo: 1000,
     wins: 0,
@@ -195,7 +199,7 @@ export async function addPlayer(params: {
 
 export async function updatePlayer(
   playerId: string,
-  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference'>
+  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball'>
 ): Promise<void> {
   await updateDoc(doc(db, 'players', playerId), {
     name: updates.name.trim(),
@@ -203,6 +207,7 @@ export async function updatePlayer(
     title: updates.title?.trim() || 'Pool Contender',
     avatarUrl: updates.avatarUrl,
     ballPreference: updates.ballPreference,
+    ...(updates.ball ? { ball: updates.ball } : {}),
   });
 }
 
@@ -326,6 +331,10 @@ async function mutateMatch(
           eloExchanged: match.eloDelta,
           bountyCollected: match.bountyCollected,
           isUpset: match.isUpset,
+          // A new winner played the other group.
+          ...(match.id === matchId && target.winnerBall && target.winnerId !== winnerId
+            ? { winnerBall: target.winnerBall === 'solids' ? 'stripes' : 'solids' }
+            : {}),
         });
       }
     } else {
@@ -388,7 +397,8 @@ export async function logMatch(
   playerBId: string,
   winnerId: string,
   modifiers: MatchModifier = { eightOnBreak: false, scratchOnEight: false, tableRun: false },
-  challengeId?: string
+  challengeId?: string,
+  winnerBall?: 'solids' | 'stripes'
 ): Promise<LogMatchResult> {
   if (playerAId === playerBId) throw new Error('A player cannot play themselves');
   if (winnerId !== playerAId && winnerId !== playerBId) throw new Error('Winner must be one of the players');
@@ -484,6 +494,7 @@ export async function logMatch(
       bountyCollected: bounty,
       isUpset: elo.isUpset,
       ...(challengeId ? { challengeId } : {}),
+      ...(winnerBall ? { winnerBall } : {}),
       modifiers,
       timestamp: serverTimestamp(),
     };

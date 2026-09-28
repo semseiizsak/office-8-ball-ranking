@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Check, Clock, Crown, Swords, X } from 'lucide-react';
 import { Challenge, Player } from '../types';
+import { PlayerAvatar, Sheet, StakeTiles } from './ui';
 
 interface IncomingChallengeModalProps {
   challenge: Challenge;
@@ -45,85 +45,60 @@ export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
     }
   };
 
+  const opponent = players.find((player) => player.id === challenge.opponentId);
+  const them = isOutgoing ? opponent : challenger;
+  const themName = isOutgoing ? challenge.opponentName : challenge.challengerName;
+  const button = 'press h-12 rounded-full text-[13px] font-extrabold uppercase tracking-[0.06em] disabled:opacity-50';
+
   return (
-    <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-      <div className="anim-pop w-full max-w-sm rounded-2xl border border-[#10b981]/50 bg-gradient-to-b from-[#1c2026] to-[#10141a] p-6 text-center shadow-[0_0_32px_rgba(16,185,129,0.25)]">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#10b981] bg-[#10b981]/15 text-[#4edea3]">
-          <Swords className="h-7 w-7" />
-        </div>
-
-        <span className="font-['JetBrains_Mono'] text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#4edea3]">
-          {isOutgoing ? 'Pending challenge' : "You've been called out"}
-        </span>
-
-        <h2 className="mt-1 font-['Chivo'] text-2xl font-black tracking-tight text-white">
-          {isOutgoing ? challenge.opponentName : challenge.challengerName}
-        </h2>
-        {challenger?.department && (
-          <p className="font-['Space_Grotesk'] text-xs text-[#86948a]">{challenger.department}</p>
-        )}
-
-        <div className="my-5 space-y-2 rounded-xl border border-[#30363d] bg-[#161b22] p-4">
-          <div className="flex items-center justify-between font-['JetBrains_Mono'] text-sm font-bold">
-            <span className="text-[#4edea3]">+{challenge.stakes.opponentWinDelta} if you win</span>
-            <span className="text-[#ffb4ab]">-{challenge.stakes.challengerWinDelta} if you lose</span>
-          </div>
-          {challenge.stakes.crownBounty > 0 && (
-            <p className="flex items-center justify-center gap-1.5 border-t border-[#30363d] pt-2 font-['Space_Grotesk'] text-[11px] text-[#f59e0b]">
-              <Crown className="h-3.5 w-3.5" />
-              {challenge.stakes.crownBounty} crown bounty on the table
-            </p>
+    <Sheet
+      z={55}
+      title={isOutgoing ? `Waiting on ${themName.split(' ')[0]}` : `${themName.split(' ')[0]} called you out`}
+      onClose={() => onDismiss(challenge)}
+      closeDisabled={busy}
+      footer={
+        <div className="grid gap-2">
+          {isOutgoing ? (
+            <button type="button" disabled={busy || !onCancel} onClick={() => run(() => onCancel!(challenge))} className={`${button} bg-white text-bg`}>
+              Withdraw callout
+            </button>
+          ) : (
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <button type="button" disabled={busy || !onAccept} onClick={() => run(() => onAccept!(challenge))} className={`${button} bg-white text-bg`}>
+                Accept
+              </button>
+              <button type="button" disabled={busy || !onDecline} onClick={() => run(() => onDecline!(challenge))} className={`${button} bg-surface-alt px-5`}>
+                Duck it
+              </button>
+            </div>
           )}
-          <p className="flex items-center justify-center gap-1.5 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-            <Clock className="h-3.5 w-3.5" />
-            {hoursLeft > 0 ? `${hoursLeft}h to answer` : 'Expiring shortly'}
-          </p>
+          <button type="button" disabled={busy} onClick={() => onDismiss(challenge)} className={`${button} bg-surface-alt`}>
+            {isOutgoing ? 'Close' : 'Decide later'}
+          </button>
         </div>
-
-        {isOutgoing ? (
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              type="button"
-              disabled={busy || !onCancel}
-              onClick={() => run(() => onCancel!(challenge))}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#ef4444] px-3 py-3 font-['Chivo'] text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              <X className="h-4 w-4" />
-              Cancel challenge
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={busy || !onAccept}
-              onClick={() => run(() => onAccept!(challenge))}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-[#10b981] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              <Check className="h-4 w-4" />
-              Accept
-            </button>
-            <button
-              type="button"
-              disabled={busy || !onDecline}
-              onClick={() => run(() => onDecline!(challenge))}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-[#30363d] px-3 py-3 font-['Chivo'] text-sm font-bold text-[#86948a] transition-all hover:border-[#ef4444] hover:text-[#ffb4ab] active:scale-[0.98] disabled:opacity-50"
-            >
-              <X className="h-4 w-4" />
-              Duck it
-            </button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onDismiss(challenge)}
-          className="mt-3 w-full font-['Space_Grotesk'] text-[11px] text-[#86948a] hover:text-white disabled:opacity-50"
-        >
-          {isOutgoing ? 'Close' : 'Decide later'}
-        </button>
+      }
+    >
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="duel-in-left grid min-w-0 justify-items-center gap-1.5 text-center">
+          <PlayerAvatar player={them ?? { id: isOutgoing ? challenge.opponentId : challenge.challengerId, name: themName, avatarUrl: '' }} size={56} />
+          <span className="max-w-full truncate text-sm font-bold">{themName.split(' ')[0]}</span>
+          {them?.department && <span className="max-w-full truncate text-xs font-semibold text-white/55">{them.department}</span>}
+        </div>
+        <span className="font-display text-xl font-extrabold text-white/55">VS</span>
+        <div className="duel-in-right grid min-w-0 justify-items-center gap-1.5 text-center">
+          <PlayerAvatar player={(isOutgoing ? challenger : opponent) ?? { id: 'me', name: 'You', avatarUrl: '' }} size={56} />
+          <span className="text-sm font-bold">You</span>
+        </div>
       </div>
-    </div>
+      <StakeTiles
+        win={isOutgoing ? challenge.stakes.challengerWinDelta : challenge.stakes.opponentWinDelta}
+        lose={isOutgoing ? challenge.stakes.opponentWinDelta : challenge.stakes.challengerWinDelta}
+        winNote={!isOutgoing && challenge.stakes.crownBounty > 0 ? `incl. 👑 ${challenge.stakes.crownBounty} bounty` : undefined}
+      />
+      <p className="text-sm text-white/70">
+        {hoursLeft > 0 ? `${hoursLeft} hours to answer.` : 'Expiring shortly.'}
+        {isOutgoing ? ' The office can already call it.' : ' Ducking it counts as a duck, and the Duck title keeps count.'}
+      </p>
+    </Sheet>
   );
 };

@@ -333,7 +333,8 @@ export default function App() {
     playerAId: string,
     playerBId: string,
     winnerId: string,
-    modifiers: MatchModifier
+    modifiers: MatchModifier,
+    winnerBall?: 'solids' | 'stripes'
   ) => {
     if (loggingRef.current) return;
     loggingRef.current = true;
@@ -345,6 +346,7 @@ export default function App() {
         winnerId,
         modifiers,
         challengeId: activeChallengeId,
+        winnerBall,
       });
 
       // Everything the payoff screen needs is derivable from before and after.
@@ -761,20 +763,20 @@ export default function App() {
 
   if (showSplash || isLoading) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#10141a] flex flex-col items-center justify-center p-6 text-center select-none">
+      <div className="fixed inset-0 z-50 bg-[#0A0A0A] flex flex-col items-center justify-center p-6 text-center select-none">
         <div className="relative mb-6">
-          <div className="absolute inset-0 rounded-full bg-[#10b981]/20 blur-xl animate-pulse"></div>
+          <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse"></div>
           <EightBallIcon size={72} className="relative shadow-2xl" />
         </div>
-        <h1 className="font-['Chivo'] text-2xl sm:text-3xl font-black text-white tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl font-black text-white tracking-tight">
           OFFICE 8-BALL
         </h1>
-        <p className="font-['JetBrains_Mono'] text-xs font-bold tracking-widest text-[#4edea3] uppercase mt-1">
+        <p className="font-sans tabular-nums text-xs font-bold tracking-widest text-white uppercase mt-1">
           POWER RANKINGS & ELO
         </p>
 
-        <div className="mt-8 flex items-center gap-2 text-[11px] font-['Space_Grotesk'] text-[#86948a]">
-          <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
+        <div className="mt-8 flex items-center gap-2 text-[11px] font-sans text-white/55">
+          <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
           <span>CALIBRATING LEAGUE MATRIX...</span>
         </div>
       </div>
@@ -783,23 +785,23 @@ export default function App() {
 
   if (loadError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0d1117] p-6">
-        <div className="w-full max-w-md rounded-2xl border border-[#ef4444]/40 bg-[#161b22] p-6 text-center shadow-2xl">
+      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-white/40 bg-[#111111] p-6 text-center shadow-2xl">
           <EightBallIcon size={48} className="mx-auto" />
-          <h1 className="mt-4 font-['Chivo'] text-xl font-black tracking-tight text-white">
+          <h1 className="mt-4 font-display text-xl font-black tracking-tight text-white">
             Can't reach the league
           </h1>
-          <p className="mt-2 font-['Space_Grotesk'] text-sm leading-relaxed text-[#bbcabf]">
+          <p className="mt-2 font-sans text-sm leading-relaxed text-white/70">
             The app loaded, but the database did not answer. Check the Firebase project settings and
             that Firestore is enabled.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-[#30363d] bg-[#10141a] p-3 text-left font-['JetBrains_Mono'] text-[11px] text-[#ffb4ab]">
+          <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#0A0A0A] p-3 text-left font-sans tabular-nums text-[11px] text-[#FF6B7D]">
             {loadError}
           </pre>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-4 w-full rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113]"
+            className="mt-4 w-full rounded-xl bg-white px-4 py-2.5 font-display text-sm font-bold text-[#0A0A0A]"
           >
             Try again
           </button>
@@ -813,8 +815,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center selection:bg-[#10b981]/30 selection:text-[#4edea3]">
-      <div className="w-full max-w-md min-h-screen bg-[#10141a] border-x border-[#30363d]/40 flex flex-col relative shadow-2xl">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex justify-center selection:bg-white/30 selection:text-white">
+      <div className="w-full max-w-md min-h-screen bg-[#0A0A0A] border-x border-white/14 flex flex-col relative shadow-2xl">
         <Header
           activeTab={activeTab}
           currentUser={currentPlayer}

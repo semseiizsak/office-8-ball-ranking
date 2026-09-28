@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Swords } from 'lucide-react';
 import { Player } from '../types';
+import { playerBall } from '../utils/balls';
+import { Ball, PlayerAvatar } from './ui';
 
 interface CalloutSentOverlayProps {
   opponent: Player;
@@ -11,56 +12,32 @@ interface CalloutSentOverlayProps {
 }
 
 /**
- * Throwing down the gauntlet.
- *
- * Issuing a challenge used to close a sheet and drop you back on the board with
- * nothing to mark it, which is a strange way to treat the most confrontational
- * thing the app lets you do.
+ * Throwing down the gauntlet: the opponent's ball arcs in spinning, lands,
+ * a puff of chalk and a ring go out, then the words. Ease-in-out, no bounce.
  */
-export const CalloutSentOverlay: React.FC<CalloutSentOverlayProps> = ({
-  opponent,
-  winDelta,
-  crownBounty,
-  onComplete,
-}) => {
+export const CalloutSentOverlay: React.FC<CalloutSentOverlayProps> = ({ opponent, winDelta, crownBounty, onComplete }) => {
   useEffect(() => {
-    const timer = window.setTimeout(onComplete, 1400);
+    const timer = window.setTimeout(onComplete, 2600);
     return () => window.clearTimeout(timer);
   }, [onComplete]);
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      onClick={onComplete}
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#05070a]/95 p-6 text-center backdrop-blur-md"
-    >
-      <div className="relative flex h-32 w-32 items-center justify-center">
-        <span className="callout-dust absolute bottom-1 h-1.5 w-24 rounded-full bg-[#4edea3]/50 blur-[2px]" />
-        <Swords className="callout-throw h-20 w-20 text-[#4edea3] drop-shadow-[0_0_18px_rgba(78,222,163,0.7)]" />
-      </div>
-
-      <span className="callout-name mt-4 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-[0.3em] text-[#4edea3]">
-        Callout sent
-      </span>
-      <h2 className="callout-name mt-1 font-['Chivo'] text-2xl font-black tracking-tight text-white">
-        {opponent.name}
-      </h2>
-
-      <div className="callout-name mt-4 flex items-center gap-2">
-        <span className="rounded-full border border-[#10b981]/40 bg-[#10b981]/15 px-3 py-1 font-['JetBrains_Mono'] text-xs font-bold text-[#4edea3]">
-          +{winDelta} if you win
+    <div role="status" aria-live="polite" onClick={onComplete} className="anim-fade fixed inset-0 z-[60] grid place-items-center overflow-hidden bg-black p-6 text-center">
+      <div className="grid justify-items-center gap-3.5">
+        <div className="relative grid h-[150px] w-[180px] place-items-end justify-center">
+          <span className="callout-dust absolute -bottom-1.5 left-1/2 -ml-[95px] h-[18px] w-[190px] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,.4),rgba(255,255,255,0))] opacity-0" />
+          <span className="accept-ring absolute bottom-0 left-1/2 -ml-[52px] h-[104px] w-[104px] rounded-full shadow-[0_0_0_2px_#fff]" style={{ animationDuration: '1300ms' }} />
+          <Ball n={playerBall(opponent)} size={104} className="callout-throw relative z-10" />
+        </div>
+        <h1 className="after-1 text-[64px] leading-[.92] tracking-[-0.03em]">Callout sent</h1>
+        <span className="after-2 inline-flex h-11 items-center gap-2 rounded-full bg-surface-alt pl-1.5 pr-4 text-sm font-extrabold">
+          <PlayerAvatar player={opponent} size={32} />
+          {opponent.name.split(' ')[0]}
         </span>
-        {crownBounty > 0 && (
-          <span className="rounded-full border border-[#f59e0b]/40 bg-[#f59e0b]/15 px-3 py-1 font-['JetBrains_Mono'] text-xs font-bold text-[#f59e0b]">
-            👑 {crownBounty}
-          </span>
-        )}
+        <p className="after-2 max-w-[30ch] font-semibold text-white/70">
+          +{winDelta} if you win{crownBounty > 0 ? `, with a 👑 ${crownBounty} bounty` : ''}. 24 hours to answer, and the office can start calling it.
+        </p>
       </div>
-
-      <p className="callout-name mt-5 font-['Space_Grotesk'] text-xs text-[#86948a]">
-        The office can start calling it.
-      </p>
     </div>
   );
 };

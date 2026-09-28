@@ -16,17 +16,15 @@ interface MatchLoggerSheetProps {
     playerAId: string,
     playerBId: string,
     winnerId: string,
-    modifiers: MatchModifier
+    modifiers: MatchModifier,
+    winnerBall?: 'solids' | 'stripes'
   ) => void;
   onClose: () => void;
 }
 
 /**
- * Recording a result, as a sheet over whatever you were looking at.
- *
- * Logging used to be a tab, which made a one-off task sit permanently beside
- * the places you actually browse — and meant the form could be left half set up
- * and wandered away from. It opens, takes the result, and closes.
+ * Recording a result, as a sheet over whatever you were looking at. It opens,
+ * takes the result, and closes.
  */
 export const MatchLoggerSheet: React.FC<MatchLoggerSheetProps> = ({
   players,
@@ -39,35 +37,36 @@ export const MatchLoggerSheet: React.FC<MatchLoggerSheetProps> = ({
   onRecordMatch,
   onClose,
 }) => (
-  <div
-    role="dialog"
-    aria-label="Log a match"
-    className="fixed inset-0 z-50 flex flex-col bg-[#10141a]"
-  >
-    <div className="flex shrink-0 items-center justify-between border-b border-[#30363d] px-4 pb-3 pt-[calc(var(--safe-top)+0.75rem)]">
-      <h2 className="font-['Chivo'] text-base font-bold text-white">Log a match</h2>
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={isSubmitting}
-        className="rounded-full p-1.5 text-[#86948a] transition-colors hover:bg-[#1c2026] hover:text-white disabled:opacity-40"
-        aria-label="Close"
-      >
-        <X className="h-5 w-5" />
-      </button>
-    </div>
-
-    <div className="anim-sheet flex-1 overflow-y-auto px-4 pt-3 pb-[calc(var(--safe-bottom)+1.5rem)]">
-      <LogMatchView
-        players={players}
-        recentMatches={recentMatches}
-        crown={crown}
-        playerAId={playerAId}
-        playerBId={playerBId}
-        onChangePlayers={onChangePlayers}
-        isSubmitting={isSubmitting}
-        onRecordMatch={onRecordMatch}
-      />
+  <div role="dialog" aria-modal="true" aria-label="Log a match" className="fixed inset-0 z-50 flex items-end justify-center">
+    <button type="button" aria-label="Close" onClick={onClose} disabled={isSubmitting} className="anim-fade absolute inset-0 bg-black/60" />
+    <div className="anim-sheet relative flex max-h-[92vh] w-full max-w-md flex-col rounded-t-3xl bg-elev">
+      <div className="flex shrink-0 flex-col gap-2.5 px-4 pt-2.5">
+        <span className="mx-auto h-1 w-10 rounded-full bg-white/25" />
+        <div className="flex items-center justify-between">
+          <h2 className="text-[22px]">Log match</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label="Close"
+            className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt disabled:opacity-40"
+          >
+            <X className="h-5 w-5" strokeWidth={2.25} />
+          </button>
+        </div>
+      </div>
+      <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-3">
+        <LogMatchView
+          players={players}
+          recentMatches={recentMatches}
+          crown={crown}
+          playerAId={playerAId}
+          playerBId={playerBId}
+          onChangePlayers={onChangePlayers}
+          isSubmitting={isSubmitting}
+          onRecordMatch={onRecordMatch}
+        />
+      </div>
     </div>
   </div>
 );

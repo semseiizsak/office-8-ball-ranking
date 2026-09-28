@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Check, Crown, Lock, Medal, Pencil, Trash2, X } from 'lucide-react';
+import { Check, Flag, Lock, Pencil, Trash2, X } from 'lucide-react';
 import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
 import { CommentsThread, CommentsToggle, ReactionBar } from './MatchSocial';
+import { Ball, PlayerAvatar } from './ui';
 
 interface EventsViewProps {
   matches: MatchRecord[];
@@ -26,12 +27,6 @@ interface EventsViewProps {
 
 const formatDate = (value: number) =>
   new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-
-/** A little variety in how a result reads, picked deterministically per match
- * so the feed doesn't relabel the same result on every re-render. */
-const VERBS = ['beat', 'outlasted', 'handled', 'took down', 'got past', 'edged out', 'dispatched', 'ran over'];
-const pickVerb = (matchId: string): string =>
-  VERBS[[...matchId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % VERBS.length];
 
 export const EventsView: React.FC<EventsViewProps> = ({
   matches,
@@ -155,112 +150,103 @@ export const EventsView: React.FC<EventsViewProps> = ({
     }
   };
 
+  const byId = new Map(players.map((player) => [player.id, player]));
+  const [limit, setLimit] = useState(20);
+
   const renderMatch = (match: MatchRecord, editable: boolean) => {
     const winnerIsA = match.winnerId === match.playerAId;
     const winnerName = winnerIsA ? match.playerAName : match.playerBName;
     const loserName = winnerIsA ? match.playerBName : match.playerAName;
-    const crownTaken = match.bountyCollected > 0;
+    const winner = byId.get(match.winnerId) ?? { id: match.winnerId, name: winnerName, avatarUrl: '' };
+    const loser = byId.get(match.loserId) ?? { id: match.loserId, name: loserName, avatarUrl: '' };
+    const gain = match.eloDelta + match.bountyCollected;
     const isEditing = editingId === match.id;
     const isBusy = busyId === match.id;
+    const extras = [
+      match.isUpset && '😱 Upset',
+      match.modifiers.tableRun && '🏃 Ran the table',
+      match.modifiers.eightOnBreak && '💥 8 on the break',
+      match.modifiers.scratchOnEight && '❌ Scratched the 8',
+    ].filter(Boolean) as string[];
 
     return (
-      <div key={match.id} className={`rounded-2xl border border-[#30363d] bg-[#161b22] p-4 ${editable ? '' : 'opacity-70'}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-['JetBrains_Mono'] text-[10px] uppercase tracking-wider text-[#86948a]">
-              {new Date(match.timestamp).toLocaleString()}
-            </p>
-            <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 font-['Chivo'] text-sm font-bold">
-              <span className="text-[#4edea3]">{winnerName}</span>
-              <span className="font-['JetBrains_Mono'] text-[11px] font-bold text-[#4edea3]">+{match.eloDelta}</span>
-              <span className="font-normal text-[#86948a]">{pickVerb(match.id)}</span>
-              <span className="text-white">{loserName}</span>
-              <span className="font-['JetBrains_Mono'] text-[11px] font-bold text-[#ffb4ab]">-{match.eloDelta}</span>
-            </p>
-
-            {(match.isUpset || match.modifiers.tableRun || match.modifiers.eightOnBreak || match.modifiers.scratchOnEight) && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                {match.isUpset && (
-                  <span className="rounded-md border border-[#a78bfa]/40 bg-[#a78bfa]/10 px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] font-bold text-[#c4b5fd]">
-                    😱 Upset
-                  </span>
-                )}
-                {match.modifiers.tableRun && (
-                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    🏃 Ran the table
-                  </span>
-                )}
-                {match.modifiers.eightOnBreak && (
-                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    💥 8 on the break
-                  </span>
-                )}
-                {match.modifiers.scratchOnEight && (
-                  <span className="rounded-md border border-[#30363d] px-1.5 py-0.5 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    ❌ Scratched the 8
-                  </span>
-                )}
-              </div>
-            )}
-
-            {crownTaken && (
-              <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-[#f59e0b]/40 bg-gradient-to-r from-[#3d2a06] to-[#241a07] px-2.5 py-1.5">
-                <Crown className="h-3.5 w-3.5 shrink-0 fill-[#f59e0b] text-[#f59e0b]" />
-                <p className="font-['Chivo'] text-xs font-bold text-[#f59e0b]">
-                  Crown taken — {winnerName} wears it now
-                  <span className="font-normal text-[#f59e0b]/80"> (+{match.bountyCollected})</span>
-                </p>
-              </div>
+      <div key={match.id} className="card-drop grid gap-3 rounded-2xl bg-card p-3.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <div className="grid min-w-0 justify-items-center gap-1.5 text-center">
+            <PlayerAvatar player={winner} size={44} />
+            <span className="max-w-full truncate text-[13px] font-bold">{winnerName.split(' ')[0]}</span>
+            <span className="flex items-center gap-1">
+              <span className="rounded-full bg-felt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-white">W</span>
+              {match.winnerBall && <Ball n={match.winnerBall === 'solids' ? 1 : 9} size={20} />}
+            </span>
+          </div>
+          <div className="text-center font-display text-[38px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">
+            +{gain}
+            {match.bountyCollected > 0 && (
+              <small className="mt-1.5 block font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-crown">👑 {match.bountyCollected} bounty</small>
             )}
           </div>
-          <div className="flex shrink-0 gap-1">
+          <div className="grid min-w-0 justify-items-center gap-1.5 text-center">
+            <PlayerAvatar player={loser} size={44} />
+            <span className="max-w-full truncate text-[13px] font-bold text-white/55">{loserName.split(' ')[0]}</span>
+            <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">L</span>
+          </div>
+        </div>
+
+        {extras.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {extras.map((label) => (
+              <span key={label} className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-bold">{label}</span>
+            ))}
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="flex items-center gap-2 border-t border-white/10 pt-3">
+            <select
+              value={winnerId}
+              onChange={(event) => setWinnerId(event.target.value)}
+              aria-label="Winner"
+              className="h-11 min-w-0 flex-1 rounded-full bg-surface px-4 text-white outline-none"
+            >
+              {[match.playerAId, match.playerBId].map((playerId) => (
+                <option key={playerId} value={playerId}>
+                  {byId.get(playerId)?.name ?? (playerId === match.playerAId ? match.playerAName : match.playerBName)} won
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => saveEdit(match)} disabled={isBusy} aria-label="Save" className="press grid h-11 w-11 place-items-center rounded-full bg-white text-bg"><Check className="h-5 w-5" /></button>
+            <button type="button" onClick={() => setEditingId(null)} aria-label="Cancel" className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt"><X className="h-5 w-5" /></button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-3">
+          <ReactionBar
+            reactions={match.reactions ?? {}}
+            myReaction={match.reactions?.[currentPlayer.id]}
+            onReact={(emoji) => void onReact(match.id, match.reactions?.[currentPlayer.id] === emoji ? null : emoji)}
+          />
+        </div>
+        <div className="-mt-1 flex items-center justify-between gap-2">
+          <CommentsToggle count={match.commentCount ?? 0} open={expandedComments.has(match.id)} onToggle={() => toggleComments(match.id)} />
+          <span className="flex items-center gap-1">
+            <span className="mr-1 text-xs font-semibold text-white/55">{new Date(match.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
             {editable ? (
               <>
-                <button type="button" onClick={() => beginEdit(match)} disabled={isBusy} className="rounded-lg border border-[#30363d] p-2 text-[#86948a] hover:border-[#10b981] hover:text-[#4edea3] disabled:opacity-40" title="Edit event">
+                <button type="button" onClick={() => beginEdit(match)} disabled={isBusy} aria-label="Edit result" className="press grid h-9 w-9 place-items-center rounded-full text-white/55 hover:bg-surface-alt hover:text-white disabled:opacity-40">
                   <Pencil className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => remove(match)} disabled={isBusy} className="rounded-lg border border-[#30363d] p-2 text-[#86948a] hover:border-[#ef4444] hover:text-[#ffb4ab] disabled:opacity-40" title="Delete event">
+                <button type="button" onClick={() => remove(match)} disabled={isBusy} aria-label="Delete result" className="press grid h-9 w-9 place-items-center rounded-full text-white/55 hover:bg-surface-alt hover:text-white disabled:opacity-40">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </>
             ) : (
-              <span className="flex items-center gap-1 rounded-lg border border-[#30363d] px-2 py-1 font-['JetBrains_Mono'] text-[10px] text-[#86948a]" title="Archived seasons are a record and cannot be edited">
-                <Lock className="h-3 w-3" />
-                Archived
+              <span className="flex items-center gap-1 text-xs font-semibold text-white/55" title="Closed seasons are a record and cannot be edited">
+                <Lock className="h-3.5 w-3.5" />
+                Read only
               </span>
             )}
-          </div>
-        </div>
-        {isEditing && (
-          <div className="mt-3 flex items-center gap-2 border-t border-[#30363d] pt-3">
-            <select value={winnerId} onChange={(event) => setWinnerId(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-[#30363d] bg-[#10141a] px-2 py-2 text-xs text-white outline-none focus:border-[#10b981]">
-              {[match.playerAId, match.playerBId].map((playerId) => {
-                const player = players.find((entry) => entry.id === playerId);
-                return (
-                  <option key={playerId} value={playerId}>
-                    {player?.name ?? (playerId === match.playerAId ? match.playerAName : match.playerBName)}
-                  </option>
-                );
-              })}
-            </select>
-            <button type="button" onClick={() => saveEdit(match)} disabled={isBusy} className="rounded-lg bg-[#10b981] p-2 text-[#002113]" title="Save event"><Check className="h-4 w-4" /></button>
-            <button type="button" onClick={() => setEditingId(null)} className="rounded-lg border border-[#30363d] p-2 text-[#86948a]" title="Cancel edit"><X className="h-4 w-4" /></button>
-          </div>
-        )}
-
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#30363d] pt-3">
-          <ReactionBar
-            reactions={match.reactions ?? {}}
-            myReaction={match.reactions?.[currentPlayer.id]}
-            onReact={(emoji) =>
-              void onReact(match.id, match.reactions?.[currentPlayer.id] === emoji ? null : emoji)
-            }
-          />
-          <CommentsToggle
-            count={match.commentCount ?? 0}
-            open={expandedComments.has(match.id)}
-            onToggle={() => toggleComments(match.id)}
-          />
+          </span>
         </div>
 
         {expandedComments.has(match.id) && (
@@ -277,180 +263,145 @@ export const EventsView: React.FC<EventsViewProps> = ({
     );
   };
 
+  const button = 'press h-12 rounded-full px-5 text-[13px] font-extrabold uppercase tracking-[0.06em] disabled:opacity-50';
+
   return (
-    <div className="space-y-4 pb-24 pt-1">
-      <div className="px-1">
-        <h2 className="font-['Chivo'] text-2xl font-black text-white">{season.name}</h2>
-        <p className="mt-0.5 text-xs text-[#86948a]">
-          {season.startedAt === 0 ? 'Since the beginning' : `Started ${formatDate(season.startedAt)}`} ·{' '}
-          {currentMatches.length} {currentMatches.length === 1 ? 'match' : 'matches'}
-        </p>
+    <div className="stagger grid gap-3 pb-28 pt-1">
+      <div className="flex items-center justify-between px-1">
+        <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">{season.name}</span>
+        <span className="text-xs font-semibold text-white/55">
+          {season.startedAt === 0 ? 'Since the beginning' : `Started ${formatDate(season.startedAt)}`}. {currentMatches.length} {currentMatches.length === 1 ? 'match' : 'matches'}
+        </span>
       </div>
 
-      {error && <p className="rounded-xl border border-[#ef4444]/40 bg-[#ef4444]/10 p-3 text-xs text-[#ffb4ab]">{error}</p>}
+      {error && <p role="alert" className="rounded-xl bg-surface-alt p-3 text-sm font-semibold">{error}</p>}
+
+      <section className="grid gap-2">
+        {currentMatches.length === 0 ? (
+          <div className="grid justify-items-center gap-2.5 rounded-2xl bg-card px-4 py-7 text-center">
+            <Ball n={7} size={64} className="mb-1" />
+            <h3 className="text-lg">Clean slate</h3>
+            <p className="text-sm text-white/70">{season.name} just started. Somebody has to make history.</p>
+          </div>
+        ) : (
+          <>
+            {currentMatches.slice(0, limit).map((match) => renderMatch(match, true))}
+            {currentMatches.length > limit && (
+              <button type="button" onClick={() => setLimit((value) => value + 20)} className={`${button} bg-surface-alt`}>
+                Show {Math.min(20, currentMatches.length - limit)} more
+              </button>
+            )}
+          </>
+        )}
+      </section>
+
+      {pastSeasons.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          <h3 className="px-1 text-base">Hall of fame</h3>
+          {pastSeasons.map((entry) => (
+            <div key={entry.id} className="grid gap-3 rounded-2xl bg-card p-3.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-base">{entry.name}</h3>
+                <span className="text-xs font-semibold text-white/55">{formatDate(entry.startedAt)}{entry.endedAt ? `  ${formatDate(entry.endedAt)}` : ''}</span>
+              </div>
+              {entry.standings.length === 0 ? (
+                <p className="text-sm text-white/55">No matches were played.</p>
+              ) : (
+                <div className="grid gap-0.5">
+                  {entry.standings.slice(0, 3).map((standing, index) => (
+                    <div
+                      key={standing.playerId}
+                      className={`grid grid-cols-[22px_1fr_auto] items-center gap-3 rounded-xl px-3 py-2.5 ${index === 0 ? 'bg-crown text-bg' : 'bg-surface'}`}
+                    >
+                      <span className="text-[13px] font-black tabular-nums">{standing.rank}</span>
+                      <span className="truncate text-sm font-bold">{index === 0 ? '🏆 ' : ''}{standing.name}</span>
+                      <span className="text-[15px] font-black tabular-nums">{standing.elo}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {entry.titles.length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs font-semibold text-white/70">
+                  {entry.titles.map((title) => (
+                    <span key={title.key}>{title.emoji} {title.holderName.split(' ')[0]}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {archivedMatches.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-base">Earlier seasons</h3>
+            <span className="text-xs font-semibold text-white/55">Read only</span>
+          </div>
+          {archivedMatches.slice(0, 10).map((match) => renderMatch(match, false))}
+        </section>
+      )}
 
       {/* A deadline turns the season into a story with an ending everybody can see coming. */}
-      <div className={`rounded-2xl border p-4 ${season.endsAt ? 'border-[#f59e0b]/40 bg-gradient-to-br from-[#241a07] to-[#161b22]' : 'border-[#30363d] bg-[#161b22]'}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-['Chivo'] text-sm font-bold text-white">
-              {season.endsAt ? 'Season ends' : 'Set a season end'}
-            </p>
-            {season.endsAt ? (
-              <>
-                <p className="mt-0.5 font-['JetBrains_Mono'] text-xs text-[#f59e0b]">
-                  {new Date(season.endsAt).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p className="mt-1 font-['Space_Grotesk'] text-[11px] text-[#bbcabf]">
-                  {isFinalDay(season.endsAt, now)
-                    ? `Final day — ${describeTimeLeft(season.endsAt, now)} left.`
-                    : `${describeTimeLeft(season.endsAt, now)} left. It closes itself the moment the time passes.`}
-                </p>
-              </>
-            ) : (
-              <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-                Pick a date and time and it closes itself, crowns a champion and starts the next one.
-              </p>
-            )}
-          </div>
+      <section className="mt-2 grid gap-3 rounded-2xl bg-card p-3.5">
+        <h3 className="text-base">Season end</h3>
+        <p className="text-sm text-white/70">
+          {season.endsAt
+            ? isFinalDay(season.endsAt, now)
+              ? `Final day. ${describeTimeLeft(season.endsAt, now)} left, then it closes itself.`
+              : `Closes itself in ${describeTimeLeft(season.endsAt, now)}: ${new Date(season.endsAt).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}. Standings get archived, a champion is crowned, the next season opens.`
+            : 'No end date. Pick one and it closes itself, crowns a champion and starts the next one.'}
+        </p>
+        <label className="grid gap-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">End date and time</span>
+          <input
+            type="datetime-local"
+            value={deadlineDraft || (season.endsAt ? toLocalInput(season.endsAt) : '')}
+            min={toLocalInput(now)}
+            onChange={(event) => setDeadlineDraft(event.target.value)}
+            className="h-12 rounded-xl bg-surface px-4 text-white outline-none [color-scheme:dark] focus-visible:shadow-[inset_0_0_0_2px_#fff]"
+          />
+        </label>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <button type="button" onClick={saveDeadline} disabled={isScheduling || !deadlineDraft} className={`${button} bg-white text-bg`}>
+            {isScheduling ? 'Saving' : season.endsAt ? 'Change end' : 'Set end'}
+          </button>
           {season.endsAt && (
-            <button type="button" onClick={clearDeadline} disabled={isScheduling} className="shrink-0 rounded-xl border border-[#30363d] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#86948a] hover:text-white disabled:opacity-50">
+            <button type="button" onClick={clearDeadline} disabled={isScheduling} className={`${button} bg-surface-alt`}>
               Clear
             </button>
           )}
         </div>
-        <div className="mt-3 flex gap-2">
-          <input
-            type="datetime-local"
-            aria-label="Season end date and time"
-            value={deadlineDraft || (season.endsAt ? toLocalInput(season.endsAt) : '')}
-            min={toLocalInput(now)}
-            onChange={(event) => setDeadlineDraft(event.target.value)}
-            className="min-w-0 flex-1 rounded-xl border border-[#30363d] bg-[#10141a] px-3 py-2 font-['JetBrains_Mono'] text-xs text-white outline-none focus:border-[#f59e0b] [color-scheme:dark]"
-          />
-          <button type="button" onClick={saveDeadline} disabled={isScheduling || !deadlineDraft} className="shrink-0 rounded-xl bg-[#f59e0b] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#2a1700] disabled:opacity-50">
-            {isScheduling ? 'Saving…' : season.endsAt ? 'Move' : 'Set'}
-          </button>
-        </div>
-      </div>
+      </section>
 
       {/* Closing a season is the one destructive action in the app, so it states
           exactly what it will do before it does it. */}
-      <div className="rounded-2xl border border-[#30363d] bg-[#161b22] p-4">
-        {confirmingEnd ? (
-          <div className="space-y-3">
-            <p className="font-['Chivo'] text-sm font-bold text-white">Close {season.name}?</p>
-            <ul className="space-y-1 font-['Space_Grotesk'] text-xs text-[#bbcabf]">
-              <li>• Final standings and titles are archived to the hall of fame.</li>
-              <li>• Wins, losses, streaks and the crown reset to zero.</li>
-              <li>
-                • Ratings move halfway back to 1000 — a {players.length > 0 ? Math.max(...players.map((p) => p.elo)) : 1000} becomes{' '}
-                {softResetElo(players.length > 0 ? Math.max(...players.map((p) => p.elo)) : 1000)}.
-              </li>
-              <li>• This season's matches become read-only.</li>
-            </ul>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={endSeason} disabled={isEnding} className="rounded-xl bg-[#ef4444] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-white disabled:opacity-50">
-                {isEnding ? 'Closing...' : 'Close the season'}
-              </button>
-              <button type="button" onClick={() => setConfirmingEnd(false)} disabled={isEnding} className="rounded-xl border border-[#30363d] px-3 py-2.5 font-['Chivo'] text-xs font-bold text-[#86948a]">
-                Keep playing
-              </button>
-            </div>
+      {confirmingEnd ? (
+        <section className="grid gap-3 rounded-2xl bg-card p-3.5 shadow-[inset_0_0_0_1.5px_#fff]">
+          <h3 className="text-base">Close {season.name}?</h3>
+          <div className="grid gap-1.5 text-sm text-white/70">
+            <p>Final standings and titles go to the hall of fame.</p>
+            <p>Wins, losses, streaks and the crown reset.</p>
+            <p>
+              Ratings move halfway back to 1000: a {players.length > 0 ? Math.max(...players.map((p) => p.elo)) : 1000} becomes{' '}
+              {softResetElo(players.length > 0 ? Math.max(...players.map((p) => p.elo)) : 1000)}.
+            </p>
+            <p>This season's matches become read only.</p>
           </div>
-        ) : (
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-['Chivo'] text-sm font-bold text-white">End the season</p>
-              <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-                Crowns a champion and starts everyone closer together.
-              </p>
-            </div>
-            <button type="button" onClick={() => setConfirmingEnd(true)} className="shrink-0 rounded-xl border border-[#30363d] px-3 py-2 font-['Chivo'] text-xs font-bold text-[#ffb95f] hover:border-[#ffb95f]">
-              End season
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setConfirmingEnd(false)} disabled={isEnding} className={`${button} bg-surface-alt`}>
+              Keep playing
+            </button>
+            <button type="button" onClick={endSeason} disabled={isEnding} className={`${button} bg-white text-bg`}>
+              {isEnding ? 'Closing' : 'Close it'}
             </button>
           </div>
-        )}
-      </div>
-
-      {pastSeasons.length > 0 && (
-        <div className="space-y-2">
-          <span className="flex items-center gap-1.5 px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#f59e0b]">
-            <Medal className="h-3.5 w-3.5" />
-            Hall of fame
-          </span>
-          {pastSeasons.map((entry) => {
-            const champion = entry.standings[0] ?? null;
-            return (
-              <div key={entry.id} className="rounded-2xl border border-[#f59e0b]/30 bg-gradient-to-br from-[#241a07] to-[#161b22] p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <h3 className="font-['Chivo'] text-sm font-bold text-white">{entry.name}</h3>
-                  <span className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">
-                    {formatDate(entry.startedAt)} – {formatDate(entry.endedAt!)}
-                  </span>
-                </div>
-
-                {champion ? (
-                  <p className="mt-2 flex items-center gap-2 font-['Chivo'] text-base font-black text-[#f59e0b]">
-                    <Crown className="h-4 w-4 fill-[#f59e0b]" />
-                    {champion.name}
-                    <span className="font-['JetBrains_Mono'] text-xs font-bold text-[#86948a]">
-                      {champion.elo} · {champion.wins}W-{champion.losses}L
-                    </span>
-                  </p>
-                ) : (
-                  <p className="mt-2 font-['Space_Grotesk'] text-xs text-[#86948a]">No matches were played.</p>
-                )}
-
-                {entry.standings.length > 1 && (
-                  <ol className="mt-2 space-y-0.5 border-t border-[#f59e0b]/20 pt-2">
-                    {entry.standings.slice(1, 3).map((standing) => (
-                      <li key={standing.playerId} className="flex justify-between font-['Space_Grotesk'] text-[11px] text-[#bbcabf]">
-                        <span>{standing.rank}. {standing.name}</span>
-                        <span className="font-['JetBrains_Mono'] text-[#86948a]">{standing.elo}</span>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-
-                {entry.titles.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[#f59e0b]/20 pt-2">
-                    {entry.titles.map((title) => (
-                      <span key={title.key} className="inline-flex items-center gap-1 rounded-lg border border-[#3c4a42] bg-[#1c2026] px-2 py-1 font-['Space_Grotesk'] text-[10px] text-[#bbcabf]">
-                        <span>{title.emoji}</span>
-                        <span className="font-bold text-white">{title.label}</span>
-                        <span className="text-[#86948a]">{title.holderName.split(' ')[0]}</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-          This season
-        </span>
-        {currentMatches.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#30363d] bg-[#161b22] px-5 py-12 text-center">
-            <p className="font-['Chivo'] text-sm font-bold text-white">No matches yet this season</p>
-            <p className="mt-1 text-xs text-[#86948a]">Completed matches will appear here.</p>
-          </div>
-        ) : (
-          currentMatches.map((match) => renderMatch(match, true))
-        )}
-      </div>
-
-      {archivedMatches.length > 0 && (
-        <div className="space-y-2">
-          <span className="px-1 font-['JetBrains_Mono'] text-[11px] font-extrabold uppercase tracking-widest text-[#86948a]">
-            Earlier seasons
-          </span>
-          {archivedMatches.map((match) => renderMatch(match, false))}
-        </div>
+        </section>
+      ) : (
+        <button type="button" onClick={() => setConfirmingEnd(true)} className={`${button} flex items-center justify-center gap-2 bg-surface-alt`}>
+          <Flag className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          Close {season.name} now
+        </button>
       )}
     </div>
   );

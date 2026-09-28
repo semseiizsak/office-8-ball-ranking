@@ -10,19 +10,16 @@ interface TitleBadgesProps {
 /**
  * Orthogonal identities. A single rating means everyone but one person is
  * losing; these give the rest of the office something they can hold.
+ * Titles stay emojis, free standing and big, no frames.
  */
 export const TitleBadges: React.FC<TitleBadgesProps> = ({ titles, variant = 'chip' }) => {
   if (titles.length === 0) return null;
 
   if (variant === 'chip') {
     return (
-      <span className="flex shrink-0 items-center gap-1">
+      <span className="flex shrink-0 items-center gap-0.5 text-[13px] leading-none">
         {titles.map((title) => (
-          <span
-            key={title.key}
-            title={`${title.label} — ${title.blurb} (${title.valueLabel})`}
-            className="inline-flex items-center rounded bg-[#262a31] px-1 py-0.5 text-[11px] leading-none border border-[#3c4a42]"
-          >
+          <span key={title.key} title={`${title.label}: ${title.blurb} (${title.valueLabel})`} aria-label={title.label}>
             {title.emoji}
           </span>
         ))}
@@ -31,23 +28,14 @@ export const TitleBadges: React.FC<TitleBadgesProps> = ({ titles, variant = 'chi
   }
 
   return (
-    <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-x-2 gap-y-3.5 p-1">
       {titles.map((title) => (
-        <div
-          key={title.key}
-          className="flex items-start gap-2.5 rounded-xl border border-[#30363d] bg-[#161b22] p-3"
-        >
-          <span className="text-lg leading-none">{title.emoji}</span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <h4 className="font-['Chivo'] text-sm font-bold text-white">{title.label}</h4>
-              <span className="shrink-0 font-['JetBrains_Mono'] text-[11px] font-bold text-[#4edea3]">
-                {title.valueLabel}
-              </span>
-            </div>
-            <p className="mt-0.5 font-['Space_Grotesk'] text-[11px] leading-snug text-[#86948a]">
-              {title.blurb}
-            </p>
+        <div key={title.key} className="flex min-w-0 items-center gap-2.5">
+          <span aria-hidden="true" className="flex-none text-[56px] leading-none">{title.emoji}</span>
+          <div className="grid min-w-0 gap-0.5">
+            <span className="text-[11px] font-extrabold uppercase leading-tight tracking-[0.06em]">{title.label}</span>
+            <span className="text-[13px] font-semibold leading-tight">{title.holderName.split(' ')[0]}</span>
+            <span className="text-[11px] leading-tight text-white/55">{title.valueLabel}</span>
           </div>
         </div>
       ))}

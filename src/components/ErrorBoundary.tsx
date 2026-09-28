@@ -29,21 +29,21 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, 
     if (!error) return this.props.children;
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0d1117] p-6">
-        <div className="w-full max-w-md rounded-2xl border border-[#ef4444]/40 bg-[#161b22] p-6 shadow-2xl">
-          <h1 className="font-['Chivo'] text-xl font-black tracking-tight text-white">
+      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-white/40 bg-[#111111] p-6 shadow-2xl">
+          <h1 className="font-display text-xl font-black tracking-tight text-white">
             Something broke
           </h1>
-          <p className="mt-2 font-['Space_Grotesk'] text-sm text-[#bbcabf]">
+          <p className="mt-2 font-sans text-sm text-white/70">
             The app hit an error it could not recover from.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-[#30363d] bg-[#10141a] p-3 font-['JetBrains_Mono'] text-[11px] text-[#ffb4ab]">
+          <pre className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#0A0A0A] p-3 font-sans tabular-nums text-[11px] text-[#FF6B7D]">
             {error.message}
           </pre>
           <button
             type="button"
             onClick={() => hardRefresh()}
-            className="mt-4 w-full rounded-xl bg-[#10b981] px-4 py-2.5 font-['Chivo'] text-sm font-bold text-[#002113]"
+            className="mt-4 w-full rounded-xl bg-white px-4 py-2.5 font-display text-sm font-bold text-[#0A0A0A]"
           >
             Reload
           </button>

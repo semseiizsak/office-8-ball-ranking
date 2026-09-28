@@ -38,7 +38,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   defaultOpen = true,
   storageKey,
   accent = '#86948a',
-  containerClassName = 'rounded-2xl border border-[#30363d] bg-[#161b22]',
+  containerClassName = 'rounded-2xl border border-white/10 bg-[#111111]',
   children,
 }) => {
   const [isOpen, setIsOpen] = useState(() => readStored(storageKey, defaultOpen));
@@ -60,10 +60,10 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         type="button"
         onClick={toggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[#1c2026]"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[#171717]"
       >
         <span
-          className="shrink-0 font-['JetBrains_Mono'] text-[10px] font-extrabold uppercase tracking-widest"
+          className="shrink-0 font-sans tabular-nums text-[10px] font-extrabold uppercase tracking-widest"
           style={{ color: accent }}
         >
           {title}
@@ -71,7 +71,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         <span className="flex min-w-0 items-center gap-2">
           {!isOpen && summary}
           <ChevronDown
-            className={`h-4 w-4 shrink-0 text-[#86948a] transition-transform duration-200 ${
+            className={`h-4 w-4 shrink-0 text-white/55 transition-transform duration-200 ${
               isOpen ? 'rotate-180' : ''
             }`}
           />

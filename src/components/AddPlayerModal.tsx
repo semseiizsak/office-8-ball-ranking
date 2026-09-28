@@ -48,17 +48,17 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="anim-sheet w-full max-w-md rounded-t-2xl border border-[#30363d] bg-[#10141a] p-5 shadow-2xl sm:rounded-2xl"
+        className="anim-sheet w-full max-w-md rounded-t-2xl border border-white/10 bg-[#0A0A0A] p-5 shadow-2xl sm:rounded-2xl"
       >
-        <div className="flex items-center justify-between border-b border-[#30363d] pb-3">
-          <h3 className="flex items-center gap-2 font-['Chivo'] text-base font-bold text-white">
-            <UserPlus className="h-4 w-4 text-[#4edea3]" />
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 className="flex items-center gap-2 font-display text-base font-bold text-white">
+            <UserPlus className="h-4 w-4 text-white" />
             Enroll contender
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-[#86948a] hover:bg-[#1c2026] hover:text-white"
+            className="rounded-full p-1.5 text-white/55 hover:bg-[#171717] hover:text-white"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -67,7 +67,7 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
 
         <div className="space-y-3 py-4">
           <div>
-            <label className="mb-1 block font-['Space_Grotesk'] text-[11px] font-medium text-[#86948a]">
+            <label className="mb-1 block font-sans text-[11px] font-medium text-white/55">
               Player full name *
             </label>
             <input
@@ -77,12 +77,12 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. Roland Varga"
-              className="w-full rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Space_Grotesk'] text-xs text-white placeholder:text-[#86948a] focus:border-[#10b981] focus:outline-none"
+              className="w-full rounded-xl border border-white/10 bg-[#171717] px-3 py-2.5 font-sans text-xs text-white placeholder:text-white/55 focus:border-white focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-['Space_Grotesk'] text-[11px] font-medium text-[#86948a]">
+            <label className="mb-1 block font-sans text-[11px] font-medium text-white/55">
               Department / role (optional)
             </label>
             <input
@@ -90,12 +90,12 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
               value={department}
               onChange={(event) => setDepartment(event.target.value)}
               placeholder="e.g. Product Engineering"
-              className="w-full rounded-xl border border-[#30363d] bg-[#1c2026] px-3 py-2.5 font-['Space_Grotesk'] text-xs text-white placeholder:text-[#86948a] focus:border-[#10b981] focus:outline-none"
+              className="w-full rounded-xl border border-white/10 bg-[#171717] px-3 py-2.5 font-sans text-xs text-white placeholder:text-white/55 focus:border-white focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block font-['Space_Grotesk'] text-[11px] font-medium text-[#86948a]">
+            <label className="mb-1 block font-sans text-[11px] font-medium text-white/55">
               Ball preference
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -104,17 +104,17 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
                   key={preference}
                   type="button"
                   onClick={() => setBallPreference(preference)}
-                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 font-['Chivo'] text-xs font-bold capitalize transition-all ${
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs font-bold capitalize transition-all ${
                     ballPreference === preference
                       ? preference === 'solids'
-                        ? 'border-[#10b981] bg-[#10b981]/20 text-[#4edea3]'
-                        : 'border-[#ffb95f] bg-[#ffb95f]/20 text-[#ffb95f]'
-                      : 'border-[#30363d] bg-[#1c2026] text-[#86948a]'
+                        ? 'border-white bg-white/20 text-white'
+                        : 'border-[#F2B705] bg-white/20 text-[#F2B705]'
+                      : 'border-white/10 bg-[#171717] text-white/55'
                   }`}
                 >
                   <span
                     className={`h-2.5 w-2.5 rounded-full ${
-                      preference === 'solids' ? 'bg-[#d97706]' : 'bg-[#38bdf8]'
+                      preference === 'solids' ? 'bg-[#F2B705]' : 'bg-[#7D97F0]'
                     }`}
                   />
                   {preference}
@@ -124,7 +124,7 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
           </div>
 
           {error && (
-            <p className="rounded-xl border border-[#ef4444]/40 bg-[#ef4444]/10 p-3 text-xs text-[#ffb4ab]">
+            <p className="rounded-xl border border-white/40 bg-white/10 p-3 text-xs text-[#FF6B7D]">
               {error}
             </p>
           )}
@@ -133,7 +133,7 @@ export const AddPlayerModal: React.FC<AddPlayerModalProps> = ({ onAdd, onClose }
         <button
           type="submit"
           disabled={isSubmitting || !name.trim()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10b981] px-4 py-3 font-['Chivo'] text-sm font-bold text-[#002113] transition-all active:scale-[0.98] disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 font-display text-sm font-bold text-[#0A0A0A] transition-all active:scale-[0.98] disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" />
           {isSubmitting ? 'Adding...' : 'Add contender (1000 Elo)'}

@@ -1,23 +1,14 @@
 import React, { useState } from 'react';
-import {
-  ArrowLeftRight,
-  Sparkles,
-  ShieldCheck,
-  Flame,
-  Trophy,
-  Award,
-  History,
-  Check,
-  UserCheck,
-  Zap,
-} from 'lucide-react';
-import { Player, MatchRecord, MatchModifier, BallPreference } from '../types';
+import { ArrowLeftRight, History } from 'lucide-react';
+import { Player, MatchRecord, MatchModifier } from '../types';
 import { calculateProjectedStakes } from '../utils/elo';
 import { CrownState } from '../utils/league';
+import { Ball, PlayerAvatar } from './ui';
 
 /**
- * Nothing about how a match was played is recorded, so these stay at their
- * defaults. The rating gap is the only thing that scales the exchange.
+ * Nothing about how a match was played is recorded beyond the winner and the
+ * group they were on, so these stay at their defaults. The rating gap is the
+ * only thing that scales the exchange.
  */
 const NO_MODIFIERS: MatchModifier = { eightOnBreak: false, scratchOnEight: false, tableRun: false };
 
@@ -46,11 +37,16 @@ interface LogMatchViewProps {
     playerAId: string,
     playerBId: string,
     winnerId: string,
-    modifiers: MatchModifier
+    modifiers: MatchModifier,
+    winnerBall?: 'solids' | 'stripes'
   ) => void;
   isSubmitting?: boolean;
 }
 
+/**
+ * Tap the winner, then say which balls they were on, and it is logged. Two
+ * taps for the whole thing, because it gets done standing next to the table.
+ */
 export const LogMatchView: React.FC<LogMatchViewProps> = ({
   players,
   recentMatches,
@@ -61,490 +57,200 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
   onRecordMatch,
   isSubmitting = false,
 }) => {
-  // Sort players by rating to get proper ranking indices
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo);
-
-  // Modal selectors for picking player
   const [selectingFor, setSelectingFor] = useState<'A' | 'B' | null>(null);
-
-  // Custom ball override for the match
-  const [ballTypeA, setBallTypeA] = useState<BallPreference>('solids');
-  const [ballTypeB, setBallTypeB] = useState<BallPreference>('stripes');
+  const [winnerId, setWinnerId] = useState<string | null>(null);
 
   // No silent fallback to the top of the table. If a selection is missing the
-  // view says so rather than quietly substituting somebody the user never
-  // picked and leaving the win buttons armed.
+  // view says so rather than quietly substituting somebody the user never picked.
   const playerA = players.find((p) => p.id === playerAId) ?? null;
   const playerB = players.find((p) => p.id === playerBId) ?? null;
+  const ready = Boolean(playerA && playerB && playerA.id !== playerB.id);
 
-  const rankA = sortedPlayers.findIndex((p) => p.id === playerA?.id) + 1;
-  const rankB = sortedPlayers.findIndex((p) => p.id === playerB?.id) + 1;
-
-  // Swap players
   const handleSwap = () => {
     if (!playerA || !playerB) return;
     onChangePlayers(playerB.id, playerA.id);
-
-    const tempBall = ballTypeA;
-    setBallTypeA(ballTypeB);
-    setBallTypeB(tempBall);
   };
 
-  // Recent match rematch check
   const lastMatch = recentMatches[0];
-  const lastMatchTimeAgo = lastMatch ? describeElapsed(Date.now() - lastMatch.timestamp) : null;
-
-  const handleRematchClick = () => {
-    if (lastMatch) onChangePlayers(lastMatch.playerAId, lastMatch.playerBId);
-  };
+  const showRematch = lastMatch && !(
+    [lastMatch.playerAId, lastMatch.playerBId].includes(playerAId ?? '') &&
+    [lastMatch.playerAId, lastMatch.playerBId].includes(playerBId ?? '')
+  );
 
   // Beating the crown holder also collects their reign bounty, so the numbers
   // on the buttons have to include it or they are a lie.
   const bountyOnA = playerA && crown.holderId === playerA.id ? crown.bounty : 0;
   const bountyOnB = playerB && crown.holderId === playerB.id ? crown.bounty : 0;
-  const stakes = calculateProjectedStakes(
-    playerA ? playerA.elo : 1000,
-    playerB ? playerB.elo : 1000,
-    bountyOnA,
-    bountyOnB
+  const stakes = calculateProjectedStakes(playerA ? playerA.elo : 1000, playerB ? playerB.elo : 1000, bountyOnA, bountyOnB);
+
+  const winner = winnerId === playerA?.id ? playerA : winnerId === playerB?.id ? playerB : null;
+
+  const record = (group?: 'solids' | 'stripes') => {
+    if (!playerA || !playerB || !winner || isSubmitting) return;
+    onRecordMatch(playerA.id, playerB.id, winner.id, NO_MODIFIERS, group);
+  };
+
+  const slot = (player: Player | null, side: 'A' | 'B') => (
+    <button
+      type="button"
+      onClick={() => {
+        setSelectingFor(side);
+        setWinnerId(null);
+      }}
+      className="press grid min-w-0 justify-items-center gap-2 rounded-2xl bg-surface px-2 py-4 text-center"
+    >
+      {player ? <PlayerAvatar player={player} size={56} /> : <span className="grid h-14 w-14 place-items-center rounded-full bg-surface-alt text-2xl text-white/55">?</span>}
+      <span className="max-w-full truncate text-sm font-bold">{player?.name ?? 'Pick a player'}</span>
+      <span className="text-xs font-semibold tabular-nums text-white/55">{player ? player.elo : 'Tap to choose'}</span>
+    </button>
   );
 
-  const isAFavorite = (playerA?.elo || 1000) >= (playerB?.elo || 1000);
-
   return (
-    <div id="log-match-view" className="space-y-4 pb-20 pt-1">
-      {/* Rematch Banner matching Stitch design */}
-      {lastMatch && (
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#161b22] border border-[#30363d] shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center text-[#4edea3]">
-              <History className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="font-['Chivo'] text-xs font-bold text-white tracking-tight">
-                Rematch {lastMatch.playerAName.split(' ')[0]} vs {lastMatch.playerBName.split(' ')[0]}?
-              </h4>
-              <p className="text-[10px] text-[#86948a] font-['Space_Grotesk']">
-                Last played {lastMatchTimeAgo}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleRematchClick}
-            className="px-3 py-1.5 rounded-xl bg-[#1c2026] hover:bg-[#262a31] border border-[#30363d] text-xs font-['Chivo'] font-bold text-[#4edea3] flex items-center gap-1 transition-all active:scale-95"
-          >
-            <span>Replay</span>
-            <Zap className="w-3.5 h-3.5 fill-[#4edea3]" />
-          </button>
-        </div>
+    <div id="log-match-view" className="stagger grid gap-4 pb-6">
+      {showRematch && (
+        <button
+          type="button"
+          onClick={() => {
+            onChangePlayers(lastMatch.playerAId, lastMatch.playerBId);
+            setWinnerId(null);
+          }}
+          className="press flex items-center justify-between gap-3 rounded-2xl bg-card p-3 text-left"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-surface-alt">
+              <History className="h-5 w-5" strokeWidth={2.25} />
+            </span>
+            <span className="grid min-w-0">
+              <span className="truncate text-sm font-bold">
+                Rematch {lastMatch.playerAName.split(' ')[0]} and {lastMatch.playerBName.split(' ')[0]}
+              </span>
+              <span className="text-xs font-semibold text-white/55">Last played {describeElapsed(Date.now() - lastMatch.timestamp)}</span>
+            </span>
+          </span>
+          <span className="flex h-9 flex-none items-center rounded-full bg-white px-3.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-bg">Replay</span>
+        </button>
       )}
 
-      {/* Matchup Arena Cards */}
-      <div className="relative space-y-2">
-        {/* Player A Card */}
-        <div
-          id="player-a-card"
-          className="relative p-4 rounded-2xl bg-[#161b22] border border-[#30363d] shadow-md flex items-center justify-between transition-all"
-        >
-          <div
-            className="flex items-center gap-3.5 flex-1 cursor-pointer"
-            onClick={() => setSelectingFor('A')}
-          >
-            {/* Avatar with Rank Badge */}
-            <div className="relative shrink-0">
-              {playerA?.avatarUrl ? (
-                <img
-                  src={playerA.avatarUrl}
-                  alt={playerA.name}
-                  referrerPolicy="no-referrer"
-                  className="w-14 h-14 rounded-full object-cover border-2 border-[#10b981]/60 shadow-md"
-                />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#10b981]/60 bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#4edea3] shadow-md">
-                  {playerA?.name.charAt(0).toUpperCase() ?? '?'}
-                </div>
-              )}
-              <span className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#10b981] text-[#002113] text-[10px] font-['JetBrains_Mono'] font-black flex items-center justify-center border border-[#10141a]">
-                {rankA}
-              </span>
-            </div>
-
-            {/* Info */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-['Chivo'] text-lg font-bold text-white tracking-tight truncate">
-                  {playerA?.name}
-                </h3>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBallTypeA(ballTypeA === 'solids' ? 'stripes' : 'solids');
-                  }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-['JetBrains_Mono'] font-extrabold uppercase tracking-wider ${
-                    ballTypeA === 'solids'
-                      ? 'bg-[#10b981]/20 text-[#4edea3] border border-[#10b981]/30'
-                      : 'bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30'
-                  }`}
-                >
-                  {ballTypeA}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 mt-1">
-                <span className="font-['JetBrains_Mono'] text-sm font-black text-[#4edea3]">
-                  {playerA?.elo} <span className="text-[10px] font-medium text-[#86948a]">ELO</span>
-                </span>
-                {/* Form dots */}
-                <div className="flex items-center gap-1">
-                  {playerA?.recentForm.slice(0, 5).map((f, i) => (
-                    <span
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        f === 'W' ? 'bg-[#10b981]' : 'bg-[#ef4444]'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Change Player button */}
+      <div className="grid gap-2">
+        <span className="px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Who played</span>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          {slot(playerA, 'A')}
           <button
-            onClick={() => setSelectingFor('A')}
-            title="Switch Player A"
-            className="w-10 h-10 rounded-xl bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#bbcabf] hover:text-white hover:border-[#10b981] transition-colors"
-          >
-            <ArrowLeftRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Central VS Badge */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-          <button
+            type="button"
             onClick={handleSwap}
-            title="Swap Player A and B"
-            className="w-10 h-10 rounded-full bg-[#0a1210] border-2 border-[#10b981] text-[#4edea3] font-['Chivo'] font-black text-xs flex items-center justify-center shadow-[0_0_14px_rgba(16,185,129,0.35)] hover:scale-110 active:rotate-180 transition-all duration-200"
+            aria-label="Swap players"
+            className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt text-white transition-transform duration-300 ease-[var(--ease)] active:rotate-180"
           >
-            VS
+            <ArrowLeftRight className="h-4 w-4" strokeWidth={2.25} />
           </button>
-        </div>
-
-        {/* Player B Card */}
-        <div
-          id="player-b-card"
-          className="relative p-4 rounded-2xl bg-[#161b22] border border-[#30363d] shadow-md flex items-center justify-between transition-all"
-        >
-          <div
-            className="flex items-center gap-3.5 flex-1 cursor-pointer"
-            onClick={() => setSelectingFor('B')}
-          >
-            {/* Avatar with Rank Badge */}
-            <div className="relative shrink-0">
-              {playerB?.avatarUrl ? (
-                <img
-                  src={playerB.avatarUrl}
-                  alt={playerB.name}
-                  referrerPolicy="no-referrer"
-                  className="w-14 h-14 rounded-full object-cover border-2 border-[#ffb95f]/60 shadow-md"
-                />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#ffb95f]/60 bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#ffb95f] shadow-md">
-                  {playerB?.name.charAt(0).toUpperCase() ?? '?'}
-                </div>
-              )}
-              <span className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-[#ffb95f] text-[#2a1700] text-[10px] font-['JetBrains_Mono'] font-black flex items-center justify-center border border-[#10141a]">
-                {rankB}
-              </span>
-            </div>
-
-            {/* Info */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-['Chivo'] text-lg font-bold text-white tracking-tight truncate">
-                  {playerB?.name}
-                </h3>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBallTypeB(ballTypeB === 'stripes' ? 'solids' : 'stripes');
-                  }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-['JetBrains_Mono'] font-extrabold uppercase tracking-wider ${
-                    ballTypeB === 'stripes'
-                      ? 'bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30'
-                      : 'bg-[#10b981]/20 text-[#4edea3] border border-[#10b981]/30'
-                  }`}
-                >
-                  {ballTypeB}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 mt-1">
-                <span className="font-['JetBrains_Mono'] text-sm font-black text-[#ffb95f]">
-                  {playerB?.elo} <span className="text-[10px] font-medium text-[#86948a]">ELO</span>
-                </span>
-                {/* Form dots */}
-                <div className="flex items-center gap-1">
-                  {playerB?.recentForm.slice(0, 5).map((f, i) => (
-                    <span
-                      key={i}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        f === 'W' ? 'bg-[#10b981]' : 'bg-[#ef4444]'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Change Player button */}
-          <button
-            onClick={() => setSelectingFor('B')}
-            title="Switch Player B"
-            className="w-10 h-10 rounded-xl bg-[#21262d] border border-[#30363d] flex items-center justify-center text-[#bbcabf] hover:text-white hover:border-[#ffb95f] transition-colors"
-          >
-            <ArrowLeftRight className="w-4 h-4" />
-          </button>
+          {slot(playerB, 'B')}
         </div>
       </div>
 
-      {/* PROJECTED STAKES Card (Matching Stitch spec) */}
-      <div className="rounded-2xl bg-[#161b22] border border-[#30363d] p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between pb-1 border-b border-[#30363d]/50">
-          <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase">
-            PROJECTED STAKES
-          </span>
-          {bountyOnA + bountyOnB > 0 ? (
-            <span className="text-xs font-['JetBrains_Mono'] text-[#f59e0b] flex items-center gap-1 font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              +{bountyOnA + bountyOnB} crown bounty
-            </span>
-          ) : (
-            <span className="text-xs font-['JetBrains_Mono'] text-[#4edea3] flex items-center gap-1 font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              Realtime Elo Model
-            </span>
-          )}
-        </div>
-
-        {/* Stake Line 1: If Player A Wins */}
-        <div className="flex items-center justify-between py-1 text-xs">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#4edea3]" />
-            <span className="font-['Space_Grotesk'] text-white">
-              If {playerA?.name.split(' ')[0]} wins
-            </span>
-            {stakes.isAUpset && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-bold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30">
-                UPSET!
-              </span>
-            )}
-          </div>
-          <div className="font-['JetBrains_Mono'] font-bold text-right">
-            <span className="text-[#4edea3]">
-              +{stakes.playerAWinsDelta}{' '}
-              <span className="text-[#86948a] font-normal">({stakes.playerAWinNewA})</span>
-            </span>
-            <span className="text-[#86948a] mx-1.5">/</span>
-            <span className="text-[#ffb4ab]">
-              -{stakes.playerAWinsDelta}{' '}
-              <span className="text-[#86948a] font-normal">({stakes.playerAWinNewB})</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Stake Line 2: If Player B Wins */}
-        <div className="flex items-center justify-between py-1 text-xs border-t border-[#30363d]/40">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-[#ffb95f]" />
-            <span className="font-['Space_Grotesk'] text-white">
-              If {playerB?.name.split(' ')[0]} wins
-            </span>
-            {stakes.isBUpset && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-['JetBrains_Mono'] font-bold bg-[#ffb95f]/20 text-[#ffb95f] border border-[#ffb95f]/30">
-                UPSET!
-              </span>
-            )}
-          </div>
-          <div className="font-['JetBrains_Mono'] font-bold text-right">
-            <span className="text-[#ffb95f]">
-              +{stakes.playerBWinsDelta}{' '}
-              <span className="text-[#86948a] font-normal">({stakes.playerBWinNewB})</span>
-            </span>
-            <span className="text-[#86948a] mx-1.5">/</span>
-            <span className="text-[#ffb4ab]">
-              -{stakes.playerBWinsDelta}{' '}
-              <span className="text-[#86948a] font-normal">({stakes.playerBWinNewA})</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* DECLARE WINNER (1-TAP) Massive Satisfying Action Buttons */}
-      <div className="space-y-2 pt-2">
-        <span className="font-['JetBrains_Mono'] text-[11px] font-extrabold tracking-widest text-[#86948a] uppercase px-1">
-          {isSubmitting ? 'RECORDING RESULT...' : 'DECLARE WINNER (1-TAP)'}
-        </span>
-
-        {(!playerA || !playerB) && (
-          <p className="rounded-xl border border-[#ffb95f]/40 bg-[#ffb95f]/10 px-3 py-2.5 font-['Space_Grotesk'] text-xs text-[#ffb95f]">
-            Pick both players before recording a result.
-          </p>
-        )}
-
-        {playerA && playerB && (
-          <p className="px-1 font-['Space_Grotesk'] text-[11px] text-[#86948a]">
-            Recording <span className="font-bold text-[#bbcabf]">{playerA.name}</span> vs{' '}
-            <span className="font-bold text-[#bbcabf]">{playerB.name}</span>.
-          </p>
-        )}
-
-        {/* Massive Button 1: Player A Won */}
-        <button
-          id="btn-player-a-won"
-          disabled={isSubmitting || !playerA || !playerB || playerA.id === playerB.id}
-          onClick={() => {
-            if (playerA && playerB) {
-              onRecordMatch(playerA.id, playerB.id, playerA.id, NO_MODIFIERS);
-            }
-          }}
-          className="w-full min-h-[72px] p-4 rounded-2xl bg-gradient-to-r from-[#10b981] to-[#4edea3] hover:brightness-105 active:scale-[0.98] text-[#002113] shadow-[0_4px_20px_rgba(16,185,129,0.35)] transition-all flex items-center justify-between group disabled:opacity-50 disabled:pointer-events-none"
-        >
-          <div className="flex items-center gap-3.5 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#002113]/15 flex items-center justify-center text-[#002113]">
-              <Trophy className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="font-['Chivo'] text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
-                {playerA?.name ?? 'Player A'} WON
-              </div>
-              <div className="font-['JetBrains_Mono'] text-[10px] font-extrabold tracking-wider opacity-80 uppercase mt-0.5">
-                {isSubmitting ? 'RECORDING...' : isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
-              </div>
-            </div>
-          </div>
-
-          <div className="font-['JetBrains_Mono'] text-xl font-black flex items-center gap-1 shrink-0">
-            <span>+{stakes.playerAWinsDelta}</span>
-            <span className="text-sm">↑</span>
-          </div>
-        </button>
-
-        {/* Massive Button 2: Player B Won */}
-        <button
-          id="btn-player-b-won"
-          disabled={isSubmitting || !playerA || !playerB || playerA.id === playerB.id}
-          onClick={() => {
-            if (playerA && playerB) {
-              onRecordMatch(playerA.id, playerB.id, playerB.id, NO_MODIFIERS);
-            }
-          }}
-          className="w-full min-h-[72px] p-4 rounded-2xl bg-[#1c2026] hover:bg-[#262a31] border border-[#30363d] active:scale-[0.98] text-white shadow-md transition-all flex items-center justify-between group disabled:opacity-50 disabled:pointer-events-none"
-        >
-          <div className="flex items-center gap-3.5 text-left">
-            <div className="w-12 h-12 rounded-xl bg-[#ffb95f]/15 border border-[#ffb95f]/30 flex items-center justify-center text-[#ffb95f]">
-              <Award className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="font-['Chivo'] text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
-                {playerB?.name ?? 'Player B'} WON
-              </div>
-              <div className="font-['JetBrains_Mono'] text-[10px] font-extrabold tracking-wider text-[#ffb95f] uppercase mt-0.5">
-                {isSubmitting ? 'RECORDING...' : !isAFavorite ? 'RANKED FAVORITE' : 'UPSET GLORY'}
-              </div>
-            </div>
-          </div>
-
-          <div className="font-['JetBrains_Mono'] text-xl font-black text-[#ffb95f] flex items-center gap-1 shrink-0">
-            <span>+{stakes.playerBWinsDelta}</span>
-            <span className="text-sm">↑</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Contender Selection Drawer/Modal */}
-      {selectingFor && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-          <div className="w-full max-w-md bg-[#161b22] border border-[#30363d] rounded-t-2xl sm:rounded-2xl max-h-[75vh] flex flex-col p-4 shadow-2xl anim-sheet">
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="font-['Chivo'] text-base font-bold text-white">
-                Select {selectingFor === 'A' ? 'Player A' : 'Player B'}
-              </h3>
-              <button
-                onClick={() => setSelectingFor(null)}
-                className="text-xs text-[#86948a] hover:text-white px-2 py-1"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2 py-3">
-              {sortedPlayers.map((player) => {
-                const isCurrent =
-                  selectingFor === 'A' ? player.id === playerAId : player.id === playerBId;
-                const isOther =
-                  selectingFor === 'A' ? player.id === playerBId : player.id === playerAId;
-
+      {!ready ? (
+        <p className="rounded-xl bg-surface-alt px-3 py-2.5 text-center text-sm font-semibold">Pick both players first.</p>
+      ) : (
+        <>
+          <div className="grid gap-2">
+            <span className="px-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Who won</span>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { player: playerA!, delta: stakes.playerAWinsDelta, upset: stakes.isAUpset },
+                { player: playerB!, delta: stakes.playerBWinsDelta, upset: stakes.isBUpset },
+              ].map(({ player, delta, upset }) => {
+                const on = winnerId === player.id;
                 return (
                   <button
                     key={player.id}
-                    disabled={isOther}
-                    onClick={() => {
-                      if (selectingFor === 'A') {
-                        onChangePlayers(player.id, playerBId ?? '');
-                      } else {
-                        onChangePlayers(playerAId ?? '', player.id);
-                      }
-                      setSelectingFor(null);
-                    }}
-                    className={`w-full p-3 rounded-xl flex items-center justify-between transition-all text-left ${
-                      isCurrent
-                        ? 'bg-[#10b981]/15 border border-[#10b981] text-white'
-                        : isOther
-                        ? 'opacity-40 cursor-not-allowed bg-[#10141a]'
-                        : 'bg-[#1c2026] hover:bg-[#262a31] border border-[#30363d] text-white'
+                    id={player.id === playerA!.id ? 'btn-player-a-won' : 'btn-player-b-won'}
+                    type="button"
+                    aria-pressed={on}
+                    disabled={isSubmitting}
+                    onClick={() => setWinnerId(player.id)}
+                    className={`press grid justify-items-center gap-2 rounded-2xl px-2 py-4 transition-colors duration-300 ease-[var(--ease)] ${
+                      on ? 'bg-felt text-white' : 'bg-surface hover:bg-[#1C1C1C]'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      {player.avatarUrl ? (
-                        <img
-                          src={player.avatarUrl}
-                          alt={player.name}
-                          referrerPolicy="no-referrer"
-                          className="w-10 h-10 rounded-full object-cover border border-[#30363d]"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#30363d] bg-[#262a31] font-['Chivo'] text-sm font-bold text-[#4edea3]">
-                          {player.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-['Chivo'] font-bold text-sm">{player.name}</div>
-                        <div className="text-[11px] text-[#86948a]">
-                          {player.department} • {player.ballPreference}
-                        </div>
-                      </div>
-                    </div>
+                    <PlayerAvatar player={player} size={68} />
+                    <span className="max-w-full truncate text-sm font-bold">{player.name.split(' ')[0]}</span>
+                    <span className={`text-[13px] font-extrabold tabular-nums ${on ? 'text-white' : 'text-white/55'}`}>
+                      +{delta}{upset ? ' upset' : ''}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {bountyOnA + bountyOnB > 0 && (
+              <span className="justify-self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+                👑 {bountyOnA + bountyOnB} bounty included
+              </span>
+            )}
+          </div>
 
-                    <div className="text-right">
-                      <div className="font-['JetBrains_Mono'] font-bold text-sm text-[#4edea3]">
-                        {player.elo}
-                      </div>
-                      {isCurrent && (
-                        <div className="text-[10px] text-[#4edea3] font-['Space_Grotesk'] font-bold">
-                          Selected
-                        </div>
-                      )}
-                      {isOther && (
-                        <div className="text-[10px] text-[#86948a] font-['Space_Grotesk']">
-                          Opponent
-                        </div>
-                      )}
-                    </div>
+          {winner ? (
+            <div key={winner.id} className="anim-rise grid gap-3">
+              <p className="text-center font-display text-lg font-extrabold uppercase">What was {winner.name.split(' ')[0]}'s ball?</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ['solids', 1, 'Solids'],
+                  ['stripes', 9, 'Stripes'],
+                ] as const).map(([group, n, label], index) => (
+                  <button
+                    key={group}
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => record(group)}
+                    className="press grid justify-items-center gap-2.5 rounded-2xl bg-surface py-[18px] text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#1C1C1C] disabled:opacity-50"
+                  >
+                    <Ball n={n} size={64} className="callout-throw" style={{ animationDuration: '520ms', animationDelay: `${index * 80}ms` }} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => record()}
+                className="press h-11 rounded-full text-xs font-extrabold uppercase tracking-[0.06em] text-white/55 hover:text-white disabled:opacity-50"
+              >
+                {isSubmitting ? 'Logging' : 'Not sure, log it anyway'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-center text-sm text-white/55">Tap the winner</p>
+          )}
+        </>
+      )}
+
+      {selectingFor && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={`Pick player ${selectingFor}`}>
+          <button type="button" aria-label="Close" onClick={() => setSelectingFor(null)} className="anim-fade absolute inset-0 bg-black/60" />
+          <div className="anim-sheet relative flex max-h-[80vh] w-full max-w-md flex-col gap-3 rounded-t-3xl bg-elev px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-2.5">
+            <span className="mx-auto h-1 w-10 rounded-full bg-white/25" />
+            <h2 className="text-[22px]">{selectingFor === 'A' ? 'First player' : 'Second player'}</h2>
+            <div className="no-scrollbar grid grid-cols-4 gap-1.5 overflow-y-auto pb-1">
+              {sortedPlayers.map((player) => {
+                const isCurrent = selectingFor === 'A' ? player.id === playerAId : player.id === playerBId;
+                const isOther = selectingFor === 'A' ? player.id === playerBId : player.id === playerAId;
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    disabled={isOther}
+                    aria-pressed={isCurrent}
+                    onClick={() => {
+                      if (selectingFor === 'A') onChangePlayers(player.id, playerBId ?? '');
+                      else onChangePlayers(playerAId ?? '', player.id);
+                      setSelectingFor(null);
+                    }}
+                    className={`press grid min-w-0 justify-items-center gap-1.5 rounded-xl px-0.5 py-2.5 ${
+                      isCurrent ? 'bg-surface-alt shadow-[inset_0_0_0_1.5px_#fff]' : 'hover:bg-surface'
+                    } disabled:cursor-default disabled:[&>span]:text-white/40`}
+                  >
+                    <PlayerAvatar player={player} size={44} />
+                    <span className="max-w-full truncate text-xs font-bold">{player.name.split(' ')[0]}</span>
+                    <span className="text-[11px] font-semibold tabular-nums text-white/55">{isOther ? 'Playing' : player.elo}</span>
                   </button>
                 );
               })}

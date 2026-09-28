@@ -221,26 +221,26 @@ const Harness: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#dfe2eb] flex justify-center">
-      <div className="w-full max-w-md min-h-screen bg-[#10141a] flex flex-col">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex justify-center">
+      <div className="w-full max-w-md min-h-screen bg-[#0A0A0A] flex flex-col">
         <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
           onOpenProfile={() => {}} onQuickMatch={() => {}} activityBadge={3} onOpenActivity={() => setShowActivity(true)} />
         <div className="flex gap-2 p-2">
           <button id="demo-incoming" onClick={() => setShowIncoming(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">incoming</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">incoming</button>
           <button id="demo-duel" onClick={() => setShowDuel(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">duel</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">duel</button>
           <button id="demo-sent" onClick={() => setShowSent(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">sent</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">sent</button>
           <button id="demo-recap" onClick={() => setShowRecap(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">recap</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">recap</button>
           <button id="demo-activity" onClick={() => setShowActivity(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">activity</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">activity</button>
           <button id="demo-toast" onClick={() => setShowToast(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">toast</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">toast</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
-            className="rounded bg-[#1c2026] px-2 py-1 text-[11px] text-white">accept</button>
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
         <main className="flex-1 px-4 pt-3">
           {tab === 'events' ? (

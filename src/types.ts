@@ -7,6 +7,8 @@ export interface Player {
   title?: string;
   avatarUrl: string;
   ballPreference: BallPreference;
+  /** The ball the player plays under (1-15): the ring on their avatar, their colour in chat. */
+  ball?: number;
   elo: number;
   peakElo: number;
   wins: number;
@@ -55,6 +57,8 @@ export interface MatchRecord {
   reactions?: Record<string, string>;
   /** Denormalized so the feed can show a count without reading the thread. */
   commentCount?: number;
+  /** Which group the winner was on. The loser had the other one. */
+  winnerBall?: 'solids' | 'stripes';
 }
 
 export interface MatchComment {

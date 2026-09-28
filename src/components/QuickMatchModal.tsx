@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Dices, Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Player } from '../types';
+import { Ball, PlayerAvatar } from './ui';
 
 interface QuickMatchModalProps {
   player: Player;
@@ -40,51 +41,29 @@ export const QuickMatchModal: React.FC<QuickMatchModalProps> = ({ player, oppone
   }, [onComplete, opponents]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#10b981]/50 bg-[#10141a] p-6 text-center shadow-[0_0_40px_rgba(16,185,129,0.2)]">
-        <button type="button" onClick={onClose} disabled={isSpinning} className="absolute right-3 top-3 rounded-full p-2 text-[#86948a] hover:bg-[#1c2026] hover:text-white disabled:opacity-40" aria-label="Close quick match">
-          <X className="h-4 w-4" />
-        </button>
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#10b981] bg-[#10b981]/15 text-[#4edea3]">
-          <Dices className={`h-7 w-7 ${isSpinning ? 'animate-spin' : ''}`} />
+    <div role="dialog" aria-modal="true" aria-label="Quick match" className="anim-fade fixed inset-0 z-50 grid place-items-center overflow-hidden bg-black p-6 text-center">
+      <button type="button" onClick={onClose} disabled={isSpinning} aria-label="Close" className="press absolute right-4 top-[calc(var(--safe-top)+1rem)] grid h-11 w-11 place-items-center rounded-full bg-surface-alt disabled:opacity-30">
+        <X className="h-5 w-5" strokeWidth={2.25} />
+      </button>
+      <div className="grid justify-items-center gap-4">
+        <span className={`anim-pop block ${isSpinning ? '[&>span]:animate-spin' : ''}`}>
+          <Ball n={8} size={96} />
+        </span>
+        <h1 className="text-[44px] leading-[.92]">Quick match</h1>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="grid justify-items-center gap-2">
+            <PlayerAvatar player={player} size={64} />
+            <span className="text-sm font-bold">You</span>
+          </div>
+          <span className="font-display text-2xl font-extrabold text-white/55">VS</span>
+          <div className="grid justify-items-center gap-2">
+            {displayedOpponent ? <PlayerAvatar player={displayedOpponent} size={64} /> : <span className="h-16 w-16 rounded-full bg-surface-alt" />}
+            <span className="max-w-[120px] truncate text-sm font-bold">{displayedOpponent?.name.split(' ')[0] ?? ''}</span>
+          </div>
         </div>
-        <p className="font-['JetBrains_Mono'] text-[10px] font-bold uppercase tracking-[0.2em] text-[#4edea3]">
-          {isSpinning ? 'Finding your opponent' : 'Match found'}
+        <p className="font-semibold text-white/70">
+          {opponents.length === 0 ? 'Add another player before a quick match.' : isSpinning ? 'Finding your opponent' : 'Match found. Setting it up.'}
         </p>
-        <h2 className="mt-1 font-['Chivo'] text-2xl font-black text-white">Quick Match</h2>
-        <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <div className="rounded-xl border border-[#10b981]/40 bg-[#10b981]/10 p-3">
-            {player.avatarUrl ? (
-              <img src={player.avatarUrl} alt={player.name} className="mx-auto h-12 w-12 rounded-full border border-[#10b981]/50 object-cover" />
-            ) : (
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#4edea3]">
-                {player.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <p className="mt-2 truncate font-['Chivo'] text-xs font-bold text-white">{player.name}</p>
-            <p className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">YOU</p>
-          </div>
-          <span className="font-['JetBrains_Mono'] text-xs font-black text-[#86948a]">VS</span>
-          <div className={`rounded-xl border p-3 transition-all ${isSpinning ? 'border-[#ffb95f]/60 bg-[#ffb95f]/10' : 'border-[#10b981]/40 bg-[#10b981]/10'}`}>
-            {displayedOpponent ? (
-              <>
-                {displayedOpponent.avatarUrl ? (
-                  <img src={displayedOpponent.avatarUrl} alt={displayedOpponent.name} className="mx-auto h-12 w-12 rounded-full border border-[#ffb95f]/60 object-cover" />
-                ) : (
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#262a31] font-['Chivo'] text-xl font-bold text-[#ffb95f]">
-                    {displayedOpponent.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <p className="mt-2 truncate font-['Chivo'] text-xs font-bold text-white">{displayedOpponent.name}</p>
-                <p className="font-['JetBrains_Mono'] text-[10px] text-[#86948a]">{isSpinning ? 'ROLLING...' : 'OPPONENT'}</p>
-              </>
-            ) : (
-              <div className="flex h-[76px] items-center justify-center text-[#86948a]"><Sparkles className="h-6 w-6 animate-pulse" /></div>
-            )}
-          </div>
-        </div>
-        {!isSpinning && <p className="mt-5 text-xs text-[#bbcabf]">Setting up your match...</p>}
-        {opponents.length === 0 && <p className="mt-5 text-xs text-[#ffb4ab]">Add another player before starting a Quick Match.</p>}
       </div>
     </div>
   );

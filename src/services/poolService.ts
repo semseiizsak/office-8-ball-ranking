@@ -76,7 +76,8 @@ export const poolService = {
     winnerId: string;
     modifiers: MatchModifier;
     challengeId?: string;
-  }) => logMatch(params.playerAId, params.playerBId, params.winnerId, params.modifiers, params.challengeId),
+    winnerBall?: 'solids' | 'stripes';
+  }) => logMatch(params.playerAId, params.playerBId, params.winnerId, params.modifiers, params.challengeId, params.winnerBall),
   setMatchReaction,
   subscribeToMatches,
   subscribeToMatchComments,

@@ -1,7 +1,8 @@
 import React from 'react';
-import { ArrowUpRight, BellOff, Crown, Eye, Swords, Trophy, X } from 'lucide-react';
-import { LeagueNotification, LeagueNotificationType } from '../services/notifications';
+import { X } from 'lucide-react';
+import { LeagueNotification } from '../services/notifications';
 import { Challenge } from '../types';
+import { Ball, Sheet } from './ui';
 
 interface ActivitySheetProps {
   items: LeagueNotification[];
@@ -13,19 +14,19 @@ interface ActivitySheetProps {
   onClose: () => void;
 }
 
-const ICONS: Record<LeagueNotificationType, { icon: React.ElementType; colour: string }> = {
-  challenge: { icon: Swords, colour: 'text-[#ffb95f]' },
-  challenge_answered: { icon: Swords, colour: 'text-[#4edea3]' },
-  match_live: { icon: Eye, colour: 'text-[#ff6b6b]' },
-  match_result: { icon: Trophy, colour: 'text-[#bbcabf]' },
-  rank_change: { icon: ArrowUpRight, colour: 'text-[#ffb4ab]' },
-  prediction_result: { icon: Eye, colour: 'text-[#4edea3]' },
-  crown_taken: { icon: Crown, colour: 'text-[#f59e0b]' },
+const EMOJI: Record<string, string> = {
+  challenge: '⚔️',
+  challenge_answered: '🤝',
+  match_live: '📺',
+  match_result: '🎱',
+  rank_change: '📈',
+  prediction_result: '🔮',
+  crown_taken: '👑',
 };
 
 export const describeAgo = (createdAt: number, now: number): string => {
   const minutes = Math.max(0, Math.round((now - createdAt) / 60_000));
-  if (minutes < 1) return 'just now';
+  if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h`;
@@ -45,77 +46,49 @@ export const ActivitySheet: React.FC<ActivitySheetProps> = ({
   onSelect,
   onClose,
 }) => (
-  <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center" onClick={onClose}>
-    <div
-      className="anim-sheet flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl border border-[#30363d] bg-[#10141a] pb-[var(--safe-bottom)] shadow-2xl sm:rounded-2xl"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <div className="flex items-center justify-between border-b border-[#30363d]/60 px-4 py-3">
-        <h2 className="font-['Chivo'] text-sm font-black uppercase tracking-wider text-white">Activity</h2>
-        <button onClick={onClose} className="rounded-full p-1.5 text-[#86948a] hover:text-white" aria-label="Close">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+  <Sheet title="Activity" onClose={onClose}>
+    {pendingChallenge && (
+      <button
+        type="button"
+        onClick={onOpenChallenge}
+        className="press flex items-center justify-between gap-3 rounded-2xl bg-card p-3.5 text-left shadow-[inset_0_0_0_1.5px_#fff]"
+      >
+        <span className="grid min-w-0 gap-0.5">
+          <b className="truncate text-sm">{pendingChallenge.challengerName.split(' ')[0]} called you out</b>
+          <span className="text-xs font-semibold text-white/55">Waiting on your answer</span>
+        </span>
+        <span className="flex h-9 flex-none items-center rounded-full bg-white px-3.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-bg">Answer</span>
+      </button>
+    )}
 
-      <div className="overflow-y-auto">
-        {pendingChallenge && (
+    {items.length === 0 && !pendingChallenge ? (
+      <div className="grid justify-items-center gap-2 rounded-2xl bg-card px-4 py-7 text-center">
+        <Ball n={8} size={64} className="mb-1" />
+        <h3 className="text-lg">All quiet</h3>
+        <p className="text-sm text-white/70">You hear about it here when you lose, get passed, get called out, or a call of yours settles.</p>
+      </div>
+    ) : (
+      <div className="stagger-rows grid gap-0.5">
+        {items.map((item, index) => (
           <button
-            onClick={onOpenChallenge}
-            className="flex w-full items-center gap-3 border-b border-[#ffb95f]/30 bg-[#ffb95f]/10 px-4 py-3 text-left"
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item)}
+            style={{ ['--j' as string]: Math.min(index, 12) }}
+            className={`press relative grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-xl p-3 text-left ${item.read ? 'bg-card' : 'bg-surface-alt'}`}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#ffb95f]/40 bg-[#ffb95f]/20 text-[#ffb95f]">
-              <Swords className="h-4 w-4" />
+            {!item.read && <span className="absolute left-1 top-1/2 h-[5px] w-[5px] -translate-y-1/2 rounded-full bg-white" />}
+            <span aria-hidden="true" className="text-[28px] leading-none">{EMOJI[item.type] ?? '🎱'}</span>
+            <span className="grid min-w-0 gap-0.5 [overflow-wrap:anywhere]">
+              <b className="text-sm">{item.title}</b>
+              {item.body && <span className="text-[13px] text-white/70">{item.body}</span>}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-['Chivo'] text-sm font-bold text-white">
-                {pendingChallenge.challengerName.split(' ')[0]} called you out
-              </span>
-              <span className="block font-['Space_Grotesk'] text-xs text-[#ffb95f]">Waiting on your answer · tap to respond</span>
-            </span>
+            <span className="text-xs font-semibold tabular-nums text-white/55">{describeAgo(item.createdAt, now)}</span>
           </button>
-        )}
-
-        {items.length === 0 && !pendingChallenge && (
-          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-            <BellOff className="h-6 w-6 text-[#3c4a42]" />
-            <p className="font-['Space_Grotesk'] text-sm text-[#86948a]">
-              Nothing yet. You hear about it here when you lose, get passed, get called out, or a call of yours settles.
-            </p>
-          </div>
-        )}
-
-        <ul className="divide-y divide-[#30363d]/50">
-          {items.map((item) => {
-            const { icon: Icon, colour } = ICONS[item.type] ?? ICONS.match_result;
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => onSelect(item)}
-                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[#161b22] ${item.read ? '' : 'bg-[#161b22]/70'}`}
-                >
-                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#30363d] bg-[#1c2026] ${colour}`}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-baseline justify-between gap-2">
-                      <span className={`truncate font-['Chivo'] text-sm ${item.read ? 'font-semibold text-[#bbcabf]' : 'font-bold text-white'}`}>
-                        {item.title}
-                      </span>
-                      <span className="shrink-0 font-['JetBrains_Mono'] text-[10px] text-[#86948a]">{describeAgo(item.createdAt, now)}</span>
-                    </span>
-                    {item.body && (
-                      <span className="mt-0.5 block font-['Space_Grotesk'] text-xs leading-snug text-[#86948a]">{item.body}</span>
-                    )}
-                  </span>
-                  {!item.read && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#4edea3]" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        ))}
       </div>
-    </div>
-  </div>
+    )}
+  </Sheet>
 );
 
 /** The in-app landing for a message that arrives while the app is open. */
@@ -123,33 +96,17 @@ export const ActivityToast: React.FC<{ item: LeagueNotification; onOpen: () => v
   item,
   onOpen,
   onDismiss,
-}) => {
-  const { icon: Icon, colour } = ICONS[item.type] ?? ICONS.match_result;
-  return (
-    <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--safe-top)+4.5rem)] z-[60] flex justify-center px-4">
-      <button
-        onClick={onOpen}
-        className="anim-pop pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border border-[#30363d] bg-[#1c2026]/95 p-3 text-left shadow-2xl backdrop-blur-md"
-      >
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#30363d] bg-[#10141a] ${colour}`}>
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-['Chivo'] text-sm font-bold text-white">{item.title}</span>
-          {item.body && <span className="block font-['Space_Grotesk'] text-xs text-[#bbcabf]">{item.body}</span>}
-        </span>
-        <span
-          role="button"
-          aria-label="Dismiss"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDismiss();
-          }}
-          className="p-1 text-[#86948a] hover:text-white"
-        >
-          <X className="h-3.5 w-3.5" />
-        </span>
+}) => (
+  <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--safe-top)+1rem)] z-[60] flex justify-center px-4">
+    <div role="status" aria-live="polite" className="anim-pop pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-[20px] bg-white p-3 pl-4 text-bg">
+      <span aria-hidden="true" className="text-2xl leading-none">{EMOJI[item.type] ?? '🎱'}</span>
+      <button type="button" onClick={onOpen} className="grid min-w-0 flex-1 text-left">
+        <b className="truncate text-sm">{item.title}</b>
+        {item.body && <span className="truncate text-xs">{item.body}</span>}
+      </button>
+      <button type="button" aria-label="Dismiss" onClick={onDismiss} className="grid h-9 w-9 flex-none place-items-center rounded-full bg-bg text-white">
+        <X className="h-4 w-4" strokeWidth={2.5} />
       </button>
     </div>
-  );
-};
+  </div>
+);
