@@ -104,6 +104,31 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const archivedMatches = matches.filter((match) => !currentIds.has(match.id));
   const pastSeasons = seasons.filter((entry) => entry.endedAt !== null);
 
+  // All time: every season added together. The Elo starts at 1000 and takes
+  // every rating change from every match, with no soft reset between seasons.
+  const allSeasons = seasons.some((entry) => entry.id === season.id) ? seasons : [...seasons, season];
+  const seasonOf = (match: MatchRecord) => allSeasons.find((entry) => matchesInSeason([match], entry).length > 0)?.id ?? season.id;
+  const allTime = new Map<string, { id: string; name: string; elo: number; wins: number; losses: number; peak: number; seasons: Set<string> }>();
+  [...matches]
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .forEach((match) => {
+      const sides = [
+        { id: match.playerAId, name: match.playerAName, before: match.playerAEloBefore, after: match.playerAEloAfter },
+        { id: match.playerBId, name: match.playerBName, before: match.playerBEloBefore, after: match.playerBEloAfter },
+      ];
+      for (const side of sides) {
+        const row = allTime.get(side.id) ?? { id: side.id, name: side.name, elo: 1000, wins: 0, losses: 0, peak: 1000, seasons: new Set<string>() };
+        row.elo += side.after - side.before;
+        row.peak = Math.max(row.peak, row.elo);
+        if (match.winnerId === side.id) row.wins++;
+        else row.losses++;
+        row.seasons.add(seasonOf(match));
+        allTime.set(side.id, row);
+      }
+    });
+  const allTimeRows = [...allTime.values()].sort((a, b) => b.elo - a.elo || b.wins - a.wins);
+  const [showAllTime, setShowAllTime] = useState(false);
+
   const beginEdit = (match: MatchRecord) => {
     setEditingId(match.id);
     setWinnerId(match.winnerId);
@@ -294,6 +319,57 @@ export const EventsView: React.FC<EventsViewProps> = ({
           </>
         )}
       </section>
+
+      {allTimeRows.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-base">All time</h3>
+            <span className="text-xs font-semibold text-white/55">
+              {allSeasons.length} {allSeasons.length === 1 ? 'season' : 'seasons'} added up
+            </span>
+          </div>
+          <div className="stagger-rows grid gap-0.5">
+            {(showAllTime ? allTimeRows : allTimeRows.slice(0, 5)).map((row, index) => {
+              const games = row.wins + row.losses;
+              const medal = index < 3;
+              return (
+                <div
+                  key={row.id}
+                  style={{ ['--j' as string]: Math.min(index, 12) }}
+                  className={`grid min-h-[54px] grid-cols-[22px_auto_1fr_auto] items-center gap-3 rounded-xl px-3 py-2.5 ${index === 0 ? 'bg-crown text-bg' : 'bg-card'} ${
+                    index === 1 ? 'shadow-[inset_0_0_0_1.5px_#C9CCD1]' : index === 2 ? 'shadow-[inset_0_0_0_1.5px_#A8622C]' : ''
+                  } ${row.id === currentPlayer.id && index > 2 ? 'shadow-[inset_0_0_0_1.5px_rgba(255,255,255,.26)]' : ''}`}
+                >
+                  {medal ? (
+                    <span className={`grid h-[22px] w-[22px] place-items-center rounded-full text-xs font-black tabular-nums ${index === 0 ? 'bg-bg text-crown' : index === 1 ? 'bg-silver text-bg' : 'bg-bronze text-white'}`}>
+                      {index + 1}
+                    </span>
+                  ) : (
+                    <span className="text-center text-[13px] font-black tabular-nums text-white/55">{index + 1}</span>
+                  )}
+                  <PlayerAvatar player={byId.get(row.id) ?? { id: row.id, name: row.name, avatarUrl: '' }} size={34} />
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="truncate text-sm font-bold">{index === 0 ? '👑 ' : ''}{byId.get(row.id)?.name ?? row.name}</span>
+                    <span className={`text-xs font-semibold ${index === 0 ? 'text-bg' : 'text-white/55'}`}>
+                      {row.wins}W {row.losses}L, {games ? Math.round((row.wins / games) * 100) : 0}%, {row.seasons.size} {row.seasons.size === 1 ? 'season' : 'seasons'}
+                    </span>
+                  </span>
+                  <span className="grid justify-items-end">
+                    <span className="text-[17px] font-black tabular-nums">{row.elo}</span>
+                    <span className={`text-[10px] font-extrabold uppercase tracking-[0.1em] ${index === 0 ? 'text-bg' : 'text-white/55'}`}>Peak {row.peak}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {allTimeRows.length > 5 && (
+            <button type="button" onClick={() => setShowAllTime((value) => !value)} className={`${button} bg-surface-alt`}>
+              {showAllTime ? 'Show top 5' : `Show all ${allTimeRows.length}`}
+            </button>
+          )}
+          <p className="px-1 text-xs font-semibold text-white/55">Starts everyone on 1000 and adds every rating change from every season, with no reset in between.</p>
+        </section>
+      )}
 
       {pastSeasons.length > 0 && (
         <section className="mt-2 grid gap-2">
