@@ -46,6 +46,7 @@ import {
   CHALLENGE_EXPIRY_HOURS,
   IMPLICIT_SEASON,
   seasonDocId,
+  callsOpen,
 } from '../utils/league';
 
 const app = initializeApp(firebaseConfig);
@@ -537,6 +538,9 @@ const toPredictions = (data: Record<string, unknown> | undefined): Prediction[] 
       predictorName: String(entry?.predictorName ?? 'Someone'),
       predictedWinnerId: String(entry?.predictedWinnerId ?? ''),
       createdAt: timestampToMillis(entry?.createdAt) ?? 0,
+      // Written since the lock shipped, but never read back — so the lock paid
+      // single and never counted as used.
+      isLock: entry?.isLock === true,
     }))
     .filter((prediction) => prediction.predictedWinnerId !== '')
     .sort((left, right) => left.createdAt - right.createdAt);
@@ -828,11 +832,15 @@ export async function addPrediction(params: {
 }): Promise<void> {
   const challengeRef = doc(db, 'challenges', params.challengeId);
   const snap = await getDoc(challengeRef);
-  if (snap.exists()) {
-    const existing = snap.data()?.predictions?.[params.predictorId];
-    if (existing) {
-      return;
-    }
+  if (!snap.exists()) throw new Error('That match is gone.');
+  const data = snap.data();
+  if (data?.predictions?.[params.predictorId]) {
+    return;
+  }
+  // The window is enforced here, not only in the view. A stale tab, or anyone
+  // with the console open, could otherwise call a match after watching it end.
+  if (!callsOpen({ status: String(data?.status ?? ''), startedAt: timestampToMillis(data?.startedAt) }, Date.now())) {
+    throw new Error('Calls are closed on this match.');
   }
   await updateDoc(challengeRef, {
     [`predictions.${params.predictorId}`]: {

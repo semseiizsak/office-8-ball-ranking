@@ -2,7 +2,7 @@ import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, 
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
-import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, NERVE_BASE } from '../src/utils/league';
+import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 
@@ -265,6 +265,14 @@ eq('deadline: passed reads as now', describeTimeLeft(T0, T0 + 1), 'now');
 eq('deadline: final day is the same calendar day', isFinalDay(at('2026-09-15T22:00:00'), at('2026-09-15T09:00:00')), true);
 eq('deadline: tomorrow is not the final day', isFinalDay(at('2026-09-16T01:00:00'), at('2026-09-15T23:00:00')), false);
 eq('deadline: once passed it is no longer the final day', isFinalDay(at('2026-09-15T09:00:00'), at('2026-09-15T10:00:00')), false);
+
+// --- the call window is a rule, not a view ---
+eq('calls: open while pending', callsOpen({ status: 'pending', startedAt: null }, T0), true);
+eq('calls: open while accepted', callsOpen({ status: 'accepted', startedAt: null }, T0), true);
+eq('calls: open just after the match starts', callsOpen({ status: 'live', startedAt: T0 }, T0 + 1000), true);
+eq('calls: still open at the last second of the window', callsOpen({ status: 'live', startedAt: T0 }, T0 + VOTE_WINDOW_MS - 1), true);
+eq('calls: closed once the window is up', callsOpen({ status: 'live', startedAt: T0 }, T0 + VOTE_WINDOW_MS), false);
+eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: T0 }, T0 + 1000), false);
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

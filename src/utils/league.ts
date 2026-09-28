@@ -730,6 +730,23 @@ export const NERVE_BASE = 1000;
 export const NERVE_K = 32;
 /** A lock settles for double, win or lose. */
 export const LOCK_MULTIPLIER = 2;
+/**
+ * How long calls stay open once a match is on the table. Long enough that the
+ * room can react to the game starting, short enough that nobody can watch it
+ * finish and still get a call in.
+ */
+export const VOTE_WINDOW_MS = 4 * 60_000;
+
+/** Whether a call on this challenge would be accepted right now. */
+export function callsOpen(
+  challenge: { status: string; startedAt: number | null },
+  now: number
+): boolean {
+  if (challenge.status === 'pending' || challenge.status === 'accepted') return true;
+  if (challenge.status !== 'live' || challenge.startedAt === null) return false;
+  return now < challenge.startedAt + VOTE_WINDOW_MS;
+}
+
 /** Calls needed before a nerve rating counts for a title. */
 export const NERVE_MIN_CALLS = 5;
 

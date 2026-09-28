@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ClipboardCheck, Clock, Crown, Lock, PlayCircle, Send, Swords, Target, Trophy, X, Zap } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
-import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS } from '../utils/league';
+import { hasLockOnDay, NerveRecord, NERVE_BASE, NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
 
 /** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
 const CHEER_EMOJI = ['🔥', '💪', '😱', '👏', '😂', '💀'];
@@ -218,7 +218,6 @@ const timeLeft = (expiresAt: number, now: number): string => {
  * watch the game finish and still get a call in — the timer gives the room a
  * real window to call it live without turning into a loophole.
  */
-const VOTE_WINDOW_MS = 4 * 60_000;
 
 /** Milliseconds left to call a live match, or Infinity if it isn't live yet. */
 const voteWindowRemaining = (challenge: Challenge, now: number): number => {

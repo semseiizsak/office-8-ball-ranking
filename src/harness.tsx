@@ -182,7 +182,7 @@ const Harness: React.FC = () => {
   const league = deriveLeagueInsights(players, seasonMatches, challengesList, now);
   const me = players[2];
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string) => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, isLock: boolean) => {
     setChallengesList((prev) =>
       prev.map((c) => {
         if (c.id !== challenge.id) return c;
@@ -196,6 +196,7 @@ const Harness: React.FC = () => {
               predictorId: me.id,
               predictorName: me.name,
               predictedWinnerId,
+              isLock,
               createdAt: Date.now(),
             },
           ],

@@ -720,13 +720,7 @@ export default function App() {
             <div className="anim-fade">
               <ArenaView
                 players={players}
-                challenges={challenges.filter(
-                  (challenge) =>
-                    challenge.status === 'pending' ||
-                    challenge.status === 'accepted' ||
-                    challenge.status === 'live' ||
-                    challenge.status === 'played'
-                )}
+                challenges={challenges}
                 currentPlayer={currentPlayer}
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onIssueChallenge={() => setChallengeTarget({})}
