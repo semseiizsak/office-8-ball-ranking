@@ -50,7 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
-import { Tournament, drawBracket, withCloseOverride } from '../utils/tournament';
+import { Tournament, drawBracket, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1234,7 +1234,7 @@ export async function ensureDaily(pairing: DailyPairing): Promise<DailyPairing> 
 
 const tournamentsCollection = collection(db, 'tournaments');
 
-const toTournament = (id: string, data: Record<string, unknown>): Tournament => withCloseOverride({
+const toTournament = (id: string, data: Record<string, unknown>): Tournament => withRedraw(withCloseOverride({
   week: String(data.week ?? id),
   opensAt: Number(data.opensAt ?? 0),
   closesAt: Number(data.closesAt ?? 0),
@@ -1244,7 +1244,7 @@ const toTournament = (id: string, data: Record<string, unknown>): Tournament => 
     : [],
   bracket: Array.isArray(data.bracket) ? (data.bracket as string[]).map(String) : null,
   drawnAt: data.drawnAt ? Number(data.drawnAt) : null,
-});
+}));
 
 export async function getTournaments(): Promise<Tournament[]> {
   const snapshot = await getDocs(tournamentsCollection);

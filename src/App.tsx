@@ -417,10 +417,10 @@ export default function App() {
         upsertCup(cup);
         // Only the phone that actually made the draw tells the field.
         if (cup.bracket && cup.bracket.length >= 4 && cup.drawnAt && !thisCup.drawnAt && cup.bracket.includes(currentPlayer.id)) {
-          void notifyMany(cup.bracket.filter((id) => id !== currentPlayer.id), {
+          void notifyMany(cup.bracket.filter((id) => id && id !== currentPlayer.id), {
             type: 'tournament',
             title: '🏆 The weekly cup is drawn',
-            body: `${cup.bracket.length} in, knockout until Friday. Check who you got.`,
+            body: `${cup.bracket.filter(Boolean).length} in, knockout until Friday. Check who you got.`,
           });
         }
       })

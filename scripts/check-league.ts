@@ -451,9 +451,15 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('cup: week key is the Monday', cup.week, '2026-09-28');
   const entrants = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, at: at + i }));
   const eight = drawBracket({ ...cup, entrants });
-  eq('cup: first 8 make the field', [...eight].sort(), entrants.slice(0, 8).map((e) => e.id).sort());
-  eq('cup: 5 entrants play a 4-player cup', drawBracket({ ...cup, entrants: entrants.slice(0, 5) }).length, 4);
-  eq('cup: 3 entrants, no cup', drawBracket({ ...cup, entrants: entrants.slice(0, 3) }).length, 0);
+  eq('cup: 10 entrants all play in a 16 bracket', [eight.length, eight.filter(Boolean).sort().join()], [16, entrants.map((e) => e.id).sort().join()]);
+  const six = drawBracket({ ...cup, entrants: entrants.slice(0, 6) });
+  eq('cup: 6 entrants, 8 slots, 2 byes', [six.length, six.filter((id) => id === '').length], [8, 2]);
+  eq('cup: a bye never meets a bye', [0, 2, 4, 6].every((i) => six[i] !== '' || six[i + 1] !== ''), true);
+  eq('cup: 2 entrants, no cup', drawBracket({ ...cup, entrants: entrants.slice(0, 2) }).length, 0);
+  const byeCup = { ...cup, entrants: entrants.slice(0, 3), bracket: ['p0', '', 'p1', 'p2'], drawnAt: cup.closesAt };
+  const byeState = resolveCup(byeCup, [], cup.closesAt + 1)!;
+  eq('cup: a bye goes through with no match', [byeState.rounds[0][0].winnerId, byeState.rounds[0][0].bye, byeState.rounds[0][0].matchId], ['p0', true, null]);
+  eq('cup: a bye is not a cup win', deriveCups([byeCup], [], cup.closesAt + 1).get('p0')!.matchWins, 0);
   const bracket = ['a', 'b', 'c', 'd'];
   const drawn = { ...cup, entrants: bracket.map((id, i) => ({ id, at: at + i })), bracket, drawnAt: cup.closesAt };
   const m = (id: string, w: string, l: string, t: number) => ({

@@ -99,7 +99,7 @@ export const CupCard: React.FC<{
                     <span className={`flex min-w-0 items-center gap-2 ${side === 1 ? 'flex-row-reverse text-right' : ''}`}>
                       {id ? <PlayerAvatar player={byId.get(id) ?? null} size={24} /> : <span className="h-6 w-6 flex-none rounded-full bg-surface-alt" />}
                       <span className={`truncate text-sm font-bold ${game.winnerId && game.winnerId !== id ? 'text-white/40' : ''}`}>
-                        {id && game.winnerId === id ? '✓ ' : ''}{name(id)}
+                        {id && game.winnerId === id ? '✓ ' : ''}{!id && game.bye ? 'Bye' : name(id)}
                       </span>
                     </span>
                   </React.Fragment>
