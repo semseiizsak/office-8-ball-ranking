@@ -173,8 +173,8 @@ export const MatchDetailSheet: React.FC<MatchDetailProps> = (props) => {
     if (daily?.pairs.some(([x, y]) => [x, y].includes(match.winnerId) && [x, y].includes(match.loserId))) out.push('📅 Match of the day');
     for (const cup of tournaments) {
       const state = resolveCup(cup, allMatches, Date.now());
-      const round = state?.rounds.findIndex((games) => games.some((game) => game.matchId === match.id)) ?? -1;
-      if (state && round >= 0) out.push(`🏆 Weekly cup ${roundName(round, state.rounds.length).toLowerCase()}`);
+      const game = state && [...state.rounds.flat(), ...(state.final ? [state.final] : [])].find((entry) => entry.matchId === match.id);
+      if (game) out.push(`🏆 Weekly cup ${roundName(game.round).toLowerCase()}`);
     }
     return out;
   }, [match, dailies, tournaments, allMatches]);

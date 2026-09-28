@@ -12,7 +12,7 @@ import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
-import { deriveCups, drawBracket, resolveCup, weekTournament, withCloseOverride } from '../src/utils/tournament';
+import { deriveCups, drawField, firstRound, resolveCup, weekTournament, withCloseOverride } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -449,32 +449,41 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const at = new Date(2026, 8, 28, 9).getTime(); // a Monday
   const cup = weekTournament(at);
   eq('cup: week key is the Monday', cup.week, '2026-09-28');
-  const entrants = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, at: at + i }));
-  const eight = drawBracket({ ...cup, entrants });
-  eq('cup: 10 entrants all play in a 16 bracket', [eight.length, eight.filter(Boolean).sort().join()], [16, entrants.map((e) => e.id).sort().join()]);
-  const six = drawBracket({ ...cup, entrants: entrants.slice(0, 6) });
-  eq('cup: 6 entrants, 8 slots, 2 byes', [six.length, six.filter((id) => id === '').length], [8, 2]);
-  eq('cup: a bye never meets a bye', [0, 2, 4, 6].every((i) => six[i] !== '' || six[i + 1] !== ''), true);
-  eq('cup: 2 entrants, no cup', drawBracket({ ...cup, entrants: entrants.slice(0, 2) }).length, 0);
-  const byeCup = { ...cup, entrants: entrants.slice(0, 3), bracket: ['p0', '', 'p1', 'p2'], drawnAt: cup.closesAt };
-  const byeState = resolveCup(byeCup, [], cup.closesAt + 1)!;
-  eq('cup: a bye goes through with no match', [byeState.rounds[0][0].winnerId, byeState.rounds[0][0].bye, byeState.rounds[0][0].matchId], ['p0', true, null]);
-  eq('cup: a bye is not a cup win', deriveCups([byeCup], [], cup.closesAt + 1).get('p0')!.matchWins, 0);
-  const bracket = ['a', 'b', 'c', 'd'];
-  const drawn = { ...cup, entrants: bracket.map((id, i) => ({ id, at: at + i })), bracket, drawnAt: cup.closesAt };
+  const entrants = Array.from({ length: 20 }, (_, i) => ({ id: `p${i}`, at: at + i }));
+  eq('cup: everyone plays, up to 16', [drawField({ ...cup, entrants: entrants.slice(0, 9) }).length, drawField({ ...cup, entrants }).length], [9, 16]);
+  eq('cup: 2 entrants, no cup', drawField({ ...cup, entrants: entrants.slice(0, 2) }).length, 0);
+  const r1 = firstRound(['a', 'b', 'c', 'd', 'e'], cup.closesAt);
+  eq('cup: odd field, one bye in round 1', [r1.length, r1.filter((p) => !p.b).map((p) => p.a)], [3, ['e']]);
+
   const m = (id: string, w: string, l: string, t: number) => ({
     id, timestamp: t, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
     playerAEloBefore: 1000, playerAEloAfter: 1016, playerBEloBefore: 1000, playerBEloAfter: 984,
     eloDelta: 16, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: false },
   });
   const h = (n: number) => cup.closesAt + n * 3600_000;
-  const games = [m('x', 'b', 'a', cup.closesAt - 1000), m('1', 'a', 'b', h(1)), m('2', 'd', 'c', h(2)), m('3', 'a', 'd', h(3))];
-  const state = resolveCup(drawn, games, h(4))!;
+  let t = { ...cup, entrants: ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({ id, at: at + i })), field: ['a', 'b', 'c', 'd', 'e'], drawnAt: cup.closesAt, pairings: r1 };
+  const games = [m('x', 'b', 'a', cup.closesAt - 1000), m('1', 'a', 'b', h(1)), m('2', 'c', 'd', h(2))];
+  let state = resolveCup(t, games, h(3))!;
   eq('cup: a match before the draw does not count', state.rounds[0][0].matchId, '1');
-  eq('cup: champion and runner-up', [state.champion, state.runnerUp], ['a', 'd']);
-  const records = deriveCups([drawn], games, h(4));
-  eq('cup: champion takes the title and chips', [records.get('a')!.titles, records.get('a')!.bonus, records.get('d')!.bonus], [1, 300, 100]);
-  eq('cup: past the deadline with no final is unfinished', resolveCup(drawn, games.slice(0, 3), cup.deadline + 1)!.unfinished, true);
+  eq('cup: round 1 done, round 2 is due', [state.current, state.next?.[0].round], [1, 1]);
+  const r2 = state.next!;
+  const met = (x: string, y: string) => r2.some((p) => [p.a, p.b].includes(x) && [p.a, p.b].includes(y));
+  eq('cup: round 2 has no rematches', met('a', 'b') || met('c', 'd'), false);
+  eq('cup: the round 1 bye does not sit out again', r2.find((p) => !p.b)!.a !== 'e', true);
+  t = { ...t, pairings: [...t.pairings, ...r2.map((p) => ({ ...p, at: h(4) }))] };
+  const r2games = r2.filter((p) => p.b).map((p, i) => m(`r2-${i}`, p.a, p.b, h(5 + i)));
+  state = resolveCup(t, [...games, ...r2games], h(8))!;
+  eq('cup: after two rounds the top two go to the final', [state.next?.[0].round, state.next?.[0].a, state.next?.[0].b], [2, state.standings[0].id, state.standings[1].id]);
+  eq('cup: nobody plays more than two Swiss games', state.standings.every((s) => s.played + s.byes <= 2), true);
+  const fin = state.next![0];
+  t = { ...t, pairings: [...t.pairings, { ...fin, at: h(9) }] };
+  const all = [...games, ...r2games, m('f', fin.b, fin.a, h(10))];
+  state = resolveCup(t, all, h(11))!;
+  eq('cup: champion and runner-up', [state.champion, state.runnerUp], [fin.b, fin.a]);
+  const records = deriveCups([t], all, h(11));
+  eq('cup: champion takes the title and chips', [records.get(fin.b)!.titles, records.get(fin.b)!.bonus, records.get(fin.a)!.bonus], [1, 300, 100]);
+  eq('cup: a bye is not a cup win', records.get('e')!.matchWins, state.standings.find((s) => s.id === 'e')!.wins + (fin.b === 'e' ? 1 : 0));
+  eq('cup: past the deadline with no final is unfinished', resolveCup({ ...t, pairings: t.pairings.filter((p) => p.round < 2) }, [...games, ...r2games], cup.deadline + 1)!.unfinished, true);
 }
 
 {
@@ -501,8 +510,8 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const today = weekTournament(new Date(2026, 8, 28, 9).getTime());
   eq('cup override: this week closes 16:00', new Date(today.closesAt).getHours(), 16);
   eq('cup override: next week back to noon', new Date(weekTournament(new Date(2026, 9, 5, 9).getTime()).closesAt).getHours(), 12);
-  const drawnAtNoon = withCloseOverride({ ...today, bracket: [], drawnAt: new Date(2026, 8, 28, 12, 5).getTime() });
-  eq('cup override: an early draw is undone', [drawnAtNoon.bracket, drawnAtNoon.drawnAt], [null, null]);
+  const drawnAtNoon = withCloseOverride({ ...today, field: [], drawnAt: new Date(2026, 8, 28, 12, 5).getTime() });
+  eq('cup override: an early draw is undone', [drawnAtNoon.field, drawnAtNoon.drawnAt], [null, null]);
 }
 
 {

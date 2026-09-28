@@ -37,7 +37,7 @@ import { GRANTS, addBonus, leftToday } from './utils/chips';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { CupView } from './components/CupView';
-import { Tournament, deriveCups, resolveCup, weekTournament } from './utils/tournament';
+import { FINAL_ROUND, Tournament, deriveCups, resolveCup, roundName, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
 import { FightPoster, posterReason } from './components/FightPoster';
 import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
@@ -402,7 +402,7 @@ export default function App() {
   // The week's cup: created on a weekday's first open, drawn on the first open after noon Monday.
   const upsertCup = (cup: Tournament) => setTournaments((prev) => [...prev.filter((entry) => entry.week !== cup.week), cup]);
   const cupWeek = weekTournament(clock);
-  const cupDue = !!thisCup && thisCup.bracket === null && clock >= thisCup.closesAt;
+  const cupDue = !!thisCup && thisCup.field === null && clock >= thisCup.closesAt;
   useEffect(() => {
     if (!currentPlayer || isLoading) return;
     const weekday = new Date(clock).getDay();
@@ -416,11 +416,11 @@ export default function App() {
       .then((cup) => {
         upsertCup(cup);
         // Only the phone that actually made the draw tells the field.
-        if (cup.bracket && cup.bracket.length >= 4 && cup.drawnAt && !thisCup.drawnAt && cup.bracket.includes(currentPlayer.id)) {
-          void notifyMany(cup.bracket.filter((id) => id && id !== currentPlayer.id), {
+        if (cup.field && cup.field.length > 0 && cup.drawnAt && !thisCup.drawnAt) {
+          void notifyMany(cup.field.filter((id) => id !== currentPlayer.id), {
             type: 'tournament',
             title: '🏆 The weekly cup is drawn',
-            body: `${cup.bracket.filter(Boolean).length} in, knockout until Friday. Check who you got.`,
+            body: `${cup.field.length} in. Round 1 until Tuesday 17:00. Check who you got.`,
           });
         }
       })
@@ -475,6 +475,28 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, latestAwards?.week]);
+
+  // When a round is over, the first phone to notice pairs the next one and tells the players.
+  const nextKey = cupState?.next ? `${thisCup?.week}:${cupState.next[0].round}` : null;
+  useEffect(() => {
+    if (!thisCup || !cupState?.next || !currentPlayer) return;
+    const next = cupState.next;
+    poolService
+      .advanceTournament(thisCup.week, next)
+      .then(({ tournament, stored }) => {
+        upsertCup(tournament);
+        if (!stored) return;
+        const final = next[0].round === FINAL_ROUND;
+        const name = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? '?';
+        void notifyMany(next.flatMap((pairing) => [pairing.a, pairing.b]).filter((id) => id && id !== currentPlayer.id), {
+          type: 'tournament',
+          title: final ? `🏆 Cup final: ${name(next[0].a)} vs ${name(next[0].b)}` : `🏆 Cup ${roundName(next[0].round)} is paired`,
+          body: final ? 'Friday 17:00 is the deadline. Winner takes the cup.' : 'Check who you got. Thursday 12:00 is the deadline.',
+        });
+      })
+      .catch((error) => console.warn('Cup round not paired:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextKey]);
 
   const handleJoinCup = async () => {
     if (!currentPlayer || !thisCup) return;
@@ -972,7 +994,7 @@ export default function App() {
     !!currentPlayer &&
     !!thisCup &&
     ((clock >= thisCup.opensAt && clock < thisCup.closesAt && !thisCup.entrants.some((entry) => entry.id === currentPlayer.id)) ||
-      !!cupState?.rounds.flat().some((game) => !game.winnerId && game.a && game.b && [game.a, game.b].includes(currentPlayer.id)));
+      !!cupState && [...(cupState.rounds[cupState.current] ?? []), ...(cupState.current === FINAL_ROUND && cupState.final ? [cupState.final] : [])].some((game) => !game.winnerId && !game.bye && [game.a, game.b].includes(currentPlayer.id)));
   const arenaBadge = currentPlayer
     ? challenges.filter(
         (challenge) =>

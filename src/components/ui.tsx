@@ -221,8 +221,8 @@ export const labelClass = 'grid gap-2 text-[11px] font-extrabold uppercase track
 export const CountUp: React.FC<{ to: number; from?: number; delay?: number }> = ({ to, from = 0, delay = 0 }) => {
   const [value, setValue] = React.useState(from);
   React.useEffect(() => {
-    // A hidden tab never paints a frame, so land on the number straight away.
-    if (document.hidden) {
+    // A hidden tab never paints a frame, and reduced motion wants no count, so land on the number straight away.
+    if (document.hidden || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       setValue(to);
       return;
     }

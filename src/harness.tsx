@@ -12,7 +12,7 @@ import { ArenaView } from './components/ArenaView';
 import { CupView } from './components/CupView';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { weekAwards } from './utils/awards';
-import { resolveCup, weekTournament } from './utils/tournament';
+import { Tournament, deriveCups, firstRound, resolveCup, weekTournament } from './utils/tournament';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { Navigation } from './components/Navigation';
@@ -71,15 +71,105 @@ const seasonMatches = replay.matches;
 const harnessCup = (() => {
   const cup = weekTournament(Date.now());
   const ids = basePlayers.slice(0, 8).map((p) => p.id);
-  return { ...cup, entrants: ids.map((id, i) => ({ id, at: i })), bracket: ids, drawnAt: cup.closesAt };
+  return { ...cup, entrants: ids.map((id, i) => ({ id, at: i })), field: ids, drawnAt: cup.closesAt, pairings: firstRound(ids, cup.closesAt) };
 })();
-const players = basePlayers.map((player) => {
+const playersBase = basePlayers.map((player) => {
   const member = replay.members.get(player.id)!;
   return { ...player, elo: member.elo, peakElo: member.peakElo, wins: member.wins,
     losses: member.losses, currentStreak: member.currentStreak,
     bestWinStreak: member.bestWinStreak, recentForm: member.recentForm,
     lastPlayedAt: member.lastPlayedAt };
 });
+const players = playersBase;
+
+// ---------- Cup fixtures: a bigger field than the league above, one per phase. ----------
+const CUP_EXTRA = ['Anna Kiss', 'Ben Ortiz', 'Chloe Wu', 'Dan Novak', 'Eszter Tóth', 'Felix Grant', 'Gina Rossi', 'Anna Varga'];
+const cupPlayers: Player[] = [
+  ...players,
+  ...CUP_EXTRA.map((name, index) => ({
+    ...basePlayers[0], id: `c${index}`, name, elo: 960 + index * 17, ball: ((index * 4) % 15) + 1,
+  })),
+];
+const HOUR = 3_600_000;
+type CupDemo = 'open' | 'before' | 'drawing' | 'off' | 'weekend' | 'round1' | 'round2' | 'final' | 'champion' | 'unfinished';
+const CUP_DEMOS: CupDemo[] = ['open', 'before', 'drawing', 'off', 'weekend', 'round1', 'round2', 'final', 'champion', 'unfinished'];
+
+/** A Swiss cup for the week starting `monday`: results per round, null for not played yet. */
+const swissCup = (key: string, monday: number, field: string[], rounds: Array<Array<[string, string, string | null]>>, final?: 'top2' | [string | null]) => {
+  const base = weekTournament(monday);
+  const cup: Tournament = { ...base, week: key, opensAt: monday + 8 * HOUR, closesAt: monday + 12 * HOUR, entrants: field.map((id, i) => ({ id, at: monday + 8 * HOUR + i * 60_000 })), field, drawnAt: monday + 12 * HOUR, pairings: [] };
+  const starts = [monday + 12 * HOUR, monday + 18 * HOUR, monday + 3 * DAY_MS + 13 * HOUR];
+  const played: MatchRecord[] = [];
+  const add = (round: number, i: number, a: string, b: string, winner: string | null) => {
+    cup.pairings.push({ round, a, b, at: starts[round] });
+    if (!winner || !b) return;
+    played.push({ ...matches[0], id: `${key}-r${round}-${i}`, timestamp: starts[round] + (i + 1) * 20 * 60_000,
+      playerAId: a, playerAName: a, playerBId: b, playerBName: b, winnerId: winner, loserId: winner === a ? b : a });
+  };
+  rounds.forEach((games, round) => games.forEach(([a, b, winner], i) => add(round, i, a, b, winner)));
+  if (final) {
+    const table = resolveCup(cup, played, starts[2])!.standings;
+    add(2, 0, table[0].id, table[1].id, final === 'top2' ? null : final[0] === null ? null : table[final[0] === 'a' ? 0 : 1].id);
+  }
+  return { cup, played };
+};
+
+// Nine players, so every round has a bye. Dave (p2) is "me"; two Annas share a first name.
+const FIELD = ['p2', 'c0', 'p0', 'c1', 'p1', 'c2', 'p3', 'c7', 'p4'];
+const ROUND_1: Array<[string, string, string | null]> = [['p2', 'c0', 'p2'], ['p0', 'c1', 'c1'], ['p1', 'c2', 'p1'], ['p3', 'c7', 'p3'], ['p4', '', 'p4']];
+const ROUND_2_PART: Array<[string, string, string | null]> = [['p2', 'c1', null], ['p1', 'p3', 'p1'], ['p4', 'p0', 'p0'], ['c0', 'c2', null], ['c7', '', 'c7']];
+const ROUND_2_DONE: Array<[string, string, string | null]> = [['p2', 'c1', 'p2'], ['p1', 'p3', 'p1'], ['p4', 'p0', 'p0'], ['c0', 'c2', 'c0'], ['c7', '', 'c7']];
+const cupMonday = (() => {
+  // A week whose Thursday is still ahead, so the countdowns have something to count.
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday.getTime() + (now > monday.getTime() + 3 * DAY_MS + 11 * HOUR ? 7 * DAY_MS : 0);
+})();
+
+/** The cup for a demo, the matches it reads and the moment it is shown at. */
+const cupFixture = (demo: CupDemo, joined: boolean): { current: Tournament | null; played: MatchRecord[]; at: number } => {
+  const signup: Tournament = {
+    week: `harness-${demo}`, opensAt: now - 2 * HOUR, closesAt: now + 2 * HOUR + 40 * 60_000,
+    deadline: now + 4 * DAY_MS, entrants: [], field: null, drawnAt: null, pairings: [],
+  };
+  const entrants = ['p0', 'c0', 'p1', 'c1', 'p3', 'c2', 'c7'].map((id, i) => ({ id, at: now - (10 - i) * 600_000 }));
+  const withMe = joined ? [...entrants, { id: 'p2', at: now - 60_000 }] : entrants;
+  const day = (d: number, h: number) => cupMonday + d * DAY_MS + h * HOUR;
+  switch (demo) {
+    case 'weekend': return { current: null, played: [], at: now };
+    case 'before': return { current: { ...signup, opensAt: now + 5 * HOUR + 12 * 60_000, closesAt: now + 9 * HOUR }, played: [], at: now };
+    case 'off': return { current: { ...signup, closesAt: now - HOUR, entrants: entrants.slice(0, 2), field: [], drawnAt: now - HOUR }, played: [], at: now };
+    case 'drawing': return { current: { ...signup, closesAt: now - 60_000, entrants: withMe }, played: [], at: now };
+    case 'open': return { current: { ...signup, entrants: withMe }, played: [], at: now };
+    case 'round1': {
+      const r1 = ROUND_1.map(([a, b, w], i): [string, string, string | null] => [a, b, i === 0 || i === 3 ? null : w]);
+      const { cup, played } = swissCup('harness-round1', cupMonday, FIELD, [r1]);
+      return { current: cup, played, at: day(0, 16) };
+    }
+    case 'round2': {
+      const { cup, played } = swissCup('harness-round2', cupMonday, FIELD, [ROUND_1, ROUND_2_PART]);
+      return { current: cup, played, at: day(1, 20) };
+    }
+    case 'final': {
+      const { cup, played } = swissCup('harness-final', cupMonday, FIELD, [ROUND_1, ROUND_2_DONE], 'top2');
+      return { current: cup, played, at: day(3, 15) };
+    }
+    case 'champion': {
+      const { cup, played } = swissCup('harness-champion', cupMonday, FIELD, [ROUND_1, ROUND_2_DONE], ['b']);
+      return { current: cup, played, at: day(4, 12) };
+    }
+    case 'unfinished': {
+      const { cup, played } = swissCup('harness-unfinished', cupMonday, FIELD, [ROUND_1, ROUND_2_DONE], 'top2');
+      return { current: cup, played, at: day(4, 18) };
+    }
+  }
+};
+// Two finished cups for the cabinet, the reigning champion and the past list.
+const pastCups = [
+  swissCup('2026-harness-past-1', cupMonday - 7 * DAY_MS, ['p1', 'p0', 'c0', 'p3'], [[['p1', 'p0', 'p1'], ['c0', 'p3', 'c0']], [['p1', 'c0', 'p1'], ['p0', 'p3', 'p3']]], ['a']),
+  swissCup('2026-harness-past-2', cupMonday - 14 * DAY_MS, ['p0', 'p2', 'c1', 'p1', 'c3'], [[['p0', 'p2', 'p0'], ['c1', 'p1', 'p1'], ['c3', '', 'c3']], [['p0', 'p1', 'p0'], ['c3', 'c1', 'c3'], ['p2', '', 'p2']]], ['a']),
+];
 
 const challenges: Challenge[] = [
   {
@@ -175,6 +265,8 @@ const inboxFixture: LeagueNotification[] = [
 
 const Harness: React.FC = () => {
   const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'events' | 'log'>('leaderboard');
+  const [cupDemo, setCupDemo] = useState<CupDemo>('round2');
+  const [cupJoined, setCupJoined] = useState(false);
   // Mirrors the app's submission lock so the double-tap guard is exercised.
   const [logged, setLogged] = useState<string[]>([]);
   const [isLogging, setIsLogging] = useState(false);
@@ -239,7 +331,7 @@ const Harness: React.FC = () => {
         <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab === 'cup' ? 'cup' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
           onOpenProfile={() => {}} onQuickMatch={() => {}} activityBadge={3} onOpenActivity={() => setShowActivity(true)} />
-        <div className="flex gap-2 p-2">
+        <div className="flex flex-wrap gap-2 p-2">
           <button id="demo-incoming" onClick={() => setShowIncoming(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">incoming</button>
           <button id="demo-duel" onClick={() => setShowDuel(true)}
@@ -258,13 +350,25 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">awards</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">accept</button>
+          {CUP_DEMOS.map((demo) => (
+            <button key={demo} id={`demo-cup-${demo}`} onClick={() => { setCupDemo(demo); setTab('cup'); }}
+              className={`rounded px-2 py-1 text-[11px] ${cupDemo === demo && tab === 'cup' ? 'bg-white text-[#0A0A0A]' : 'bg-[#171717] text-white'}`}>cup {demo}</button>
+          ))}
+          <button id="demo-cup-reset" onClick={() => { try { Object.keys(localStorage).filter((k) => k.startsWith('cup-seen-')).forEach((k) => localStorage.removeItem(k)); } catch { /* blocked */ } setCupJoined(false); setTab('leaderboard'); setTimeout(() => setTab('cup')); }}
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">cup reset</button>
         </div>
-        <main className="flex-1 px-4 pt-3">
-          {tab === 'cup' ? (
-            <CupView tournaments={[harnessCup]} current={harnessCup} currentState={resolveCup(harnessCup, [], Date.now())}
-              records={new Map([[players[0].id, { entered: 3, titles: 2, finals: 3, matchWins: 7, bonus: 0 }], [players[2].id, { entered: 2, titles: 0, finals: 1, matchWins: 2, bonus: 0 }]])}
-              matches={seasonMatches} players={players} currentPlayer={me} now={Date.now()} onJoin={() => {}} onPlay={() => setChallenging(true)} onSelectPlayer={setDossier} />
-          ) : tab === 'events' ? (
+        <main className="flex-1 overflow-x-hidden px-3 pt-3">
+          {tab === 'cup' ? (() => {
+            const { current, played, at } = cupFixture(cupDemo, cupJoined);
+            const cupMatches = [...pastCups.flatMap((entry) => entry.played), ...played];
+            const all = [...pastCups.map((entry) => entry.cup), ...(current ? [current] : [])];
+            return (
+              <CupView key={cupDemo} tournaments={all} current={current} currentState={current ? resolveCup(current, cupMatches, at) : null}
+                records={deriveCups(all, cupMatches, at)}
+                matches={[...seasonMatches, ...cupMatches]} players={cupPlayers} currentPlayer={me} now={at}
+                onJoin={() => setTimeout(() => setCupJoined(true), 700)} onPlay={() => setChallenging(true)} onSelectPlayer={setDossier} />
+            );
+          })() : tab === 'events' ? (
             <EventsView matches={seasonMatches} players={players} season={currentSeason}
               seasons={[currentSeason, pastSeason]} currentPlayer={me} onEditWinner={async () => {}}
               onDelete={async () => {}} onEndSeason={async () => {}} onScheduleSeasonEnd={async () => {}} now={now}

@@ -50,7 +50,7 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
-import { Tournament, drawBracket, withCloseOverride, withRedraw } from '../utils/tournament';
+import { Pairing, Tournament, drawField, firstRound, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
@@ -1242,8 +1242,17 @@ const toTournament = (id: string, data: Record<string, unknown>): Tournament => 
   entrants: Array.isArray(data.entrants)
     ? (data.entrants as Array<{ id: string; at: number }>).map((entry) => ({ id: String(entry.id), at: Number(entry.at) }))
     : [],
-  bracket: Array.isArray(data.bracket) ? (data.bracket as string[]).map(String) : null,
-  drawnAt: data.drawnAt ? Number(data.drawnAt) : null,
+  // A document from before the cup went Swiss has a bracket and no field: it counts as undrawn.
+  field: Array.isArray(data.field) ? (data.field as string[]).map(String) : null,
+  drawnAt: Array.isArray(data.field) && data.drawnAt ? Number(data.drawnAt) : null,
+  pairings: Array.isArray(data.pairings)
+    ? (data.pairings as Array<Record<string, unknown>>).map((entry) => ({
+        round: Number(entry.round ?? 0),
+        a: String(entry.a ?? ''),
+        b: String(entry.b ?? ''),
+        at: Number(entry.at ?? 0),
+      }))
+    : [],
 }));
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -1285,11 +1294,29 @@ export async function drawTournament(week: string): Promise<Tournament> {
     const existing = await transaction.get(ref);
     if (!existing.exists()) throw new Error('There is no cup this week.');
     const tournament = toTournament(existing.id, existing.data());
-    if (tournament.bracket !== null || Date.now() < tournament.closesAt) return tournament;
-    const bracket = drawBracket(tournament);
+    if (tournament.field !== null || Date.now() < tournament.closesAt) return tournament;
+    const field = drawField(tournament);
     const drawnAt = Date.now();
-    transaction.update(ref, { bracket, drawnAt });
-    return { ...tournament, bracket, drawnAt };
+    const pairings = firstRound(field, drawnAt);
+    transaction.update(ref, { field, drawnAt, pairings, bracket: null });
+    return { ...tournament, field, drawnAt, pairings };
+  });
+}
+
+/** Stores the next round's pairings, unless another phone already did. */
+export async function advanceTournament(week: string, next: Pairing[]): Promise<{ tournament: Tournament; stored: boolean }> {
+  const ref = doc(tournamentsCollection, week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (!existing.exists()) throw new Error('There is no cup this week.');
+    const tournament = toTournament(existing.id, existing.data());
+    const round = next[0]?.round;
+    if (round === undefined || tournament.field === null || tournament.pairings.some((pairing) => pairing.round === round)) {
+      return { tournament, stored: false };
+    }
+    const pairings = [...tournament.pairings, ...next];
+    transaction.update(ref, { pairings });
+    return { tournament: { ...tournament, pairings }, stored: true };
   });
 }
 

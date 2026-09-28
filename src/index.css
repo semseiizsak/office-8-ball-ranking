@@ -210,7 +210,52 @@ input, textarea, select { font-size: 16px; }
 .wa-podium { transform-origin: bottom; animation: wa-podium 700ms var(--ease) both; }
 .wa-rain { position: absolute; top: 0; animation: wa-rain var(--t, 2.6s) var(--ease) var(--d, 0ms) both; }
 
+/* Weekly cup: the play off poster. Every entrance runs on one timeline set inline (--k, --d, --dur). */
+@keyframes cup-crest-in { from { opacity: 0; transform: translateY(-24px) scale(.9); } }
+@keyframes cup-shine { 0% { transform: translateX(0) skewX(-20deg); } 22%, 100% { transform: translateX(170px) skewX(-20deg); } }
+@keyframes cup-shine-x { 0% { transform: translateX(-80px); } 30%, 100% { transform: translateX(460px); } }
+@keyframes cup-glow { 0%, 100% { opacity: .7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes cup-beam { 0%, 100% { rotate: 0deg; } 50% { rotate: 4deg; } }
+@keyframes cup-digit { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes cup-pill-l { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes cup-pill-r { from { opacity: 0; transform: translateX(24px); } }
+@keyframes cup-pill-flip { from { opacity: 0; transform: perspective(600px) rotateX(90deg); } }
+@keyframes cup-final-in { from { opacity: 0; transform: scale(.94); } }
+@keyframes cup-slot-fill-l { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes cup-slot-fill-r { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes cup-fade-out { to { opacity: 0; } }
+@keyframes cup-travel { 0% { offset-distance: 0%; opacity: 0; } 10%, 90% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+@keyframes cup-live-ring { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.06); } }
+@keyframes cup-seat-pop { from { opacity: 0; transform: scale(.9); } }
+/* Turns edge on and back, so a name is never shown mirrored. */
+@keyframes cup-seat-shuffle { 0%, 100% { transform: perspective(500px) rotateY(0); } 50% { transform: perspective(500px) rotateY(88deg); } }
+@keyframes cup-trophy-rise { from { opacity: 0; transform: translateY(30px) scale(.8); } }
+@keyframes cup-grow-x { from { transform: scaleX(0); } }
+@keyframes cup-gold-in { from { background-color: #222222; color: #FFFFFF; } }
+/* A result landing on a slot: the winner lifts to the lighter surface, the loser sinks and greys out. */
+@keyframes cup-win { from { background-color: #171717; } }
+@keyframes cup-lose { from { background-color: #171717; } }
+@keyframes cup-lose-final { from { background-color: #222222; } }
+@keyframes cup-dim { from { opacity: 1; filter: none; } }
+@keyframes cup-dim-text { from { color: #FFFFFF; } }
+
+.cup-in { animation: var(--k, rise-in) var(--dur, 360ms) var(--ease) var(--d, 0ms) both; }
+.cup-shine { animation: cup-shine 5s var(--ease) 1100ms infinite; transform-box: fill-box; }
+.cup-shine-x {
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.55), rgba(255,255,255,0));
+  transform: translateX(-80px);
+  animation: cup-shine-x 6s var(--ease) 900ms infinite;
+}
+.cup-glow { animation: cup-glow 3.6s var(--ease) infinite; }
+.cup-beam { animation: cup-beam 7s var(--ease) infinite; }
+.cup-live { animation: cup-live-ring 1.6s var(--ease) infinite both; }
+.cup-line { stroke-dasharray: 1; animation: draw-line var(--dur, 420ms) var(--ease) var(--d, 0ms) both; }
+.cup-digit { animation: cup-digit 220ms var(--ease) both; }
+.cup-seat-shuffle { animation: cup-seat-shuffle 1200ms var(--ease) infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition: none !important; }
   .burst-ball, .cheer-float, .wa-rain { display: none; }
+  .cup-traveller, .cup-confetti, .cup-shine, .cup-shine-x, .cup-live { display: none; }
+  .cup-live-static { box-shadow: 0 0 0 1.5px #FFFFFF; }
 }
