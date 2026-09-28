@@ -34,6 +34,8 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { addBonus, leftToday } from './utils/chips';
+import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
+import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { Tournament, deriveCups, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
 import { FightPoster, posterReason } from './components/FightPoster';
@@ -123,6 +125,8 @@ export default function App() {
   const [unlockQueue, setUnlockQueue] = useState<string[]>([]);
   /** The fight poster on screen, if any. */
   const [posterId, setPosterId] = useState<string | null>(null);
+  /** The weekly awards on screen, if any. */
+  const [awardsShown, setAwardsShown] = useState<WeekAwards | null>(null);
 
   // Everything is scoped to the running season, so closing one genuinely
   // starts the table over instead of just relabelling it.
@@ -421,6 +425,49 @@ export default function App() {
       .catch((error) => console.warn('Cup not drawn:', error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cupWeek.week, !!thisCup, cupDue]);
+
+  // Friday's awards: every finished week, and the latest one shown once on its own.
+  const awards = useMemo(
+    () => awardsArchive(players, matches, challenges, chips, clock),
+    // The clock only matters when a Friday rolls over, so key it by the week.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [players, matches, challenges, chips, dayKeyOf(latestReleasedMonday(clock).getTime())]
+  );
+  const latestAwards = awards[0]?.week === dayKeyOf(latestReleasedMonday(clock).getTime()) ? awards[0] : null;
+  useEffect(() => {
+    if (!currentPlayer || isLoading || !latestAwards) return;
+    const SEEN = 'office_8ball_awards_seen';
+    let seen: string | null = null;
+    try {
+      seen = localStorage.getItem(SEEN);
+    } catch {
+      // Private mode: show it, worst case twice.
+    }
+    if (seen === latestAwards.week) return;
+    try {
+      localStorage.setItem(SEEN, latestAwards.week);
+    } catch {
+      // As above.
+    }
+    setAwardsShown(latestAwards);
+    // The first phone to open after the release tells the office, if it is still fresh news.
+    if (Date.now() - latestAwards.releasedAt < 3 * 86_400_000) {
+      poolService
+        .claimAwardsAnnouncement(latestAwards.week)
+        .then((claimed) => {
+          if (!claimed) return;
+          const lead = latestAwards.awards[0];
+          const name = players.find((player) => player.id === lead.playerId)?.name.split(' ')[0] ?? '';
+          void notifyMany(players.map((player) => player.id).filter((id) => id !== currentPlayer.id), {
+            type: 'weekly_awards',
+            title: '🎖️ The weekly awards are out',
+            body: `${lead.e} ${lead.title}: ${name}, and ${latestAwards.awards.length - 1} more. Open the app to see who got what.`,
+          });
+        })
+        .catch((error) => console.warn('Awards not announced:', error));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, latestAwards?.week]);
 
   const handleJoinCup = async () => {
     if (!currentPlayer || !thisCup) return;
@@ -1042,6 +1089,8 @@ export default function App() {
                 onOpenComments={poolService.subscribeToMatchComments}
                 onSubmitComment={handleSubmitComment}
                 onDeleteComment={(matchId, commentId) => poolService.deleteMatchComment(matchId, commentId)}
+                awards={awards}
+                onOpenAwards={setAwardsShown}
               />
             </div>
           )}
@@ -1163,6 +1212,8 @@ export default function App() {
             />
           );
         })()}
+
+        {awardsShown && <WeeklyAwardsScene week={awardsShown} players={players} onClose={() => setAwardsShown(null)} />}
 
         {posterId && !acceptedDuel && (() => {
           const challenge = challenges.find((entry) => entry.id === posterId);

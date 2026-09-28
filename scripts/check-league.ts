@@ -10,6 +10,7 @@ import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
+import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
 import { deriveCups, drawBracket, resolveCup, weekTournament } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
@@ -467,6 +468,26 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const records = deriveCups([drawn], games, h(4));
   eq('cup: champion takes the title and chips', [records.get('a')!.titles, records.get('a')!.bonus, records.get('d')!.bonus], [1, 300, 100]);
   eq('cup: past the deadline with no final is unfinished', resolveCup(drawn, games.slice(0, 3), cup.deadline + 1)!.unfinished, true);
+}
+
+{
+  const monday = new Date(2026, 8, 21);
+  eq('awards: out Friday 16:00', new Date(releaseOf(monday)).toString(), new Date(2026, 8, 25, 16).toString());
+  eq('awards: Friday 15:59 still shows last week', latestReleasedMonday(new Date(2026, 8, 25, 15, 59).getTime()).getDate(), 14);
+  eq('awards: Friday 16:00 shows this week', latestReleasedMonday(new Date(2026, 8, 25, 16).getTime()).getDate(), 21);
+  const m = (id: string, w: string, l: string, t: number, wd: number, scratch = false) => ({
+    id, timestamp: t, playerAId: w, playerAName: w, playerBId: l, playerBName: l, winnerId: w, loserId: l,
+    playerAEloBefore: 1000, playerAEloAfter: 1000 + wd, playerBEloBefore: 1000, playerBEloAfter: 1000 - wd,
+    eloDelta: wd, isUpset: false, bountyCollected: 0, modifiers: { eightOnBreak: false, scratchOnEight: scratch },
+  });
+  const at = (d: number, h: number) => new Date(2026, 8, d, h).getTime();
+  const ps = ['a', 'b', 'c'].map((id) => ({ id, name: id.toUpperCase(), elo: 1000 })) as any[];
+  const games = [m('1', 'a', 'b', at(21, 9), 16), m('2', 'a', 'b', at(22, 10), 16), m('3', 'a', 'b', at(23, 18), 16, true), m('4', 'b', 'a', at(25, 17), 16)];
+  const week = weekAwards(monday, ps, [...games, m('0', 'c', 'a', at(10, 12), 16)], [], deriveChips([], []));
+  const who = (key: string) => week.awards.find((award) => award.key === key)?.playerId;
+  eq('awards: after Friday 16:00 does not count', week.matches, 3);
+  eq('awards: MVP, generous, landlord, butterfingers', [who('mvp'), who('clown'), who('bully'), who('butter')], ['a', 'b', 'a', 'b']);
+  eq('awards: a regular who skipped the week is the ghost', who('ghost'), 'c');
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

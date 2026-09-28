@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Flag, Lock, Pencil, Trash2, X } from 'lucide-react';
+import { WeekAwards } from '../utils/awards';
 import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
 import { CommentsThread, CommentsToggle, ReactionBar } from './MatchSocial';
@@ -24,6 +25,8 @@ interface EventsViewProps {
   onDeleteComment: (matchId: string, commentId: string) => Promise<void>;
   onScheduleSeasonEnd: (endsAt: number | null) => Promise<void>;
   now: number;
+  awards?: WeekAwards[];
+  onOpenAwards?: (week: WeekAwards) => void;
 }
 
 const formatDate = (value: number) =>
@@ -40,6 +43,8 @@ export const EventsView: React.FC<EventsViewProps> = ({
   onEndSeason,
   onScheduleSeasonEnd,
   now,
+  awards = [],
+  onOpenAwards,
   onReact,
   onOpenComments,
   onSubmitComment,
@@ -369,6 +374,33 @@ export const EventsView: React.FC<EventsViewProps> = ({
             </button>
           )}
           <p className="px-1 text-xs font-semibold text-white/55">Starts everyone on 1000 and adds every rating change from every season, with no reset in between.</p>
+        </section>
+      )}
+
+      {awards.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          <h3 className="px-1 text-base">Weekly awards</h3>
+          {awards.slice(0, 8).map((week) => (
+            <button
+              key={week.week}
+              type="button"
+              onClick={() => onOpenAwards?.(week)}
+              className="press lift flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 text-left"
+            >
+              <span className="grid min-w-0 gap-0.5">
+                <b className="text-sm">Week of {new Date(week.from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</b>
+                <span className="truncate text-xs font-semibold text-white/55">
+                  {week.matches} {week.matches === 1 ? 'match' : 'matches'}, {week.awards.length} awards
+                </span>
+              </span>
+              <span className="flex flex-none items-center gap-1 text-lg" aria-hidden>
+                {week.awards.slice(0, 4).map((award) => (
+                  <span key={award.key}>{award.e}</span>
+                ))}
+                <span className="pl-1 text-white/55">›</span>
+              </span>
+            </button>
+          ))}
         </section>
       )}
 

@@ -1292,3 +1292,20 @@ export async function drawTournament(week: string): Promise<Tournament> {
     return { ...tournament, bracket, drawnAt };
   });
 }
+
+// ── Weekly awards ───────────────────────────────────────────────────────────
+// The awards themselves are derived; this only records that a week was
+// announced, so exactly one phone sends the Friday push.
+
+const awardsCollection = collection(db, 'awards');
+
+/** True for the one caller that claims the week's announcement. */
+export async function claimAwardsAnnouncement(week: string): Promise<boolean> {
+  const ref = doc(awardsCollection, week);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return false;
+    transaction.set(ref, { week, announcedAt: serverTimestamp() });
+    return true;
+  });
+}

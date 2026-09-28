@@ -9,6 +9,8 @@ import { buildMatchRecap } from './utils/recap';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
+import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
+import { weekAwards } from './utils/awards';
 import { resolveCup, weekTournament } from './utils/tournament';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { ChallengeModal } from './components/ChallengeModal';
@@ -181,6 +183,7 @@ const Harness: React.FC = () => {
   const [showSent, setShowSent] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
   const [showPoster, setShowPoster] = useState(false);
+  const [showAwards, setShowAwards] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -250,6 +253,8 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">toast</button>
           <button id="demo-poster" onClick={() => setShowPoster(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">poster</button>
+          <button id="demo-awards" onClick={() => setShowAwards(true)}
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">awards</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">accept</button>
         </div>
@@ -312,6 +317,9 @@ const Harness: React.FC = () => {
               onClose={() => setShowRecap(false)} onViewLeaderboard={() => setShowRecap(false)} />
           );
         })()}
+        {showAwards && (
+          <WeeklyAwardsScene week={weekAwards(new Date(Date.now() - 6 * 86_400_000), players, matches, [], league.chips)} players={players} onClose={() => setShowAwards(false)} />
+        )}
         {showPoster && (
           <FightPoster challenge={liveChallenge} players={players} matches={seasonMatches} crown={league.crown} pot={140} onClose={() => setShowPoster(false)} />
         )}
