@@ -273,12 +273,12 @@ input, textarea, select { font-size: 16px; }
 @keyframes pc-breathe { 0%, 100% { filter: drop-shadow(0 0 calc(12 * var(--k, 1px)) var(--glow)); } 50% { filter: drop-shadow(0 0 calc(26 * var(--k, 1px)) var(--glow)); } }
 
 .pc-text { position: absolute; inset: 0; transform: translateZ(12px); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); }
-.pc-corner { position: absolute; top: calc(30 * var(--k)); left: calc(26 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(6 * var(--k)); }
-.pc-ovr { font: 800 calc(54 * var(--k)) / calc(44 * var(--k)) var(--font-display); height: calc(44 * var(--k)); color: var(--acc); font-variant-numeric: tabular-nums; }
+.pc-corner { position: absolute; top: calc(40 * var(--k)); left: calc(30 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(6 * var(--k)); }
+.pc-ovr { font: 800 calc(50 * var(--k)) / calc(46 * var(--k)) var(--font-display); height: calc(46 * var(--k)); color: var(--acc); font-variant-numeric: tabular-nums; }
 .pc-pos { font: 800 calc(13 * var(--k)) / 1 var(--font-sans); letter-spacing: .14em; padding-left: .14em; }
 .pc-rule { width: calc(36 * var(--k)); height: calc(2 * var(--k)); background: var(--acc); }
 .pc-ball { width: calc(30 * var(--k)); height: calc(30 * var(--k)); border-radius: 50%; display: grid; place-items: center; font: 800 calc(12 * var(--k)) / 1 var(--font-display); color: #0A0A0A; background: radial-gradient(circle, #F4F1E8 0 40%, var(--c) 41%); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
-.pc-crest { position: absolute; top: calc(34 * var(--k)); right: calc(26 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(12 * var(--k)); }
+.pc-crest { position: absolute; top: calc(44 * var(--k)); right: calc(30 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(12 * var(--k)); }
 .pc-gem { width: calc(30 * var(--k)); height: calc(30 * var(--k)); transform: rotate(45deg); border-radius: calc(6 * var(--k)); background: var(--gem, var(--acc)); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
 .pc-icon { width: calc(34 * var(--k)); height: calc(34 * var(--k)); border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--on-acc, #0A0A0A); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
 .pc-icon svg { width: 58%; height: 58%; }
