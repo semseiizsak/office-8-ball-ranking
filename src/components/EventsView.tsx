@@ -27,6 +27,7 @@ interface EventsViewProps {
   now: number;
   awards?: WeekAwards[];
   onOpenAwards?: (week: WeekAwards) => void;
+  onOpenWrap?: (season: Season) => void;
   /** For the match detail sheet. */
   detail: Pick<MatchDetailProps, 'challenges' | 'payouts' | 'dailies' | 'tournaments' | 'subscribeChat' | 'subscribeCheers'>;
 }
@@ -50,6 +51,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
   now,
   awards = [],
   onOpenAwards,
+  onOpenWrap,
   detail,
   onReact,
   onOpenComments,
@@ -313,6 +315,11 @@ export const EventsView: React.FC<EventsViewProps> = ({
             <div key={entry.id} className="grid gap-3 rounded-2xl bg-card p-3.5">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="text-base">{entry.name}</h3>
+                {onOpenWrap && (
+                  <button type="button" onClick={() => onOpenWrap(entry)} className="press ml-auto mr-2 h-8 rounded-full bg-white px-3 text-[10px] font-extrabold uppercase tracking-[0.1em] text-bg">
+                    Wrap
+                  </button>
+                )}
                 <span className="text-xs font-semibold text-white/55">{formatDate(entry.startedAt)}{entry.endedAt ? `  ${formatDate(entry.endedAt)}` : ''}</span>
               </div>
               {entry.standings.length === 0 ? (

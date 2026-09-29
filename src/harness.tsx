@@ -11,6 +11,7 @@ import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
 import { CupView } from './components/CupView';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
+import { SeasonWrapScene } from './components/SeasonWrapScene';
 import { weekAwards } from './utils/awards';
 import { CupGame, Tournament, allGames, bracketShape, deriveCups, resolveCup, weekTournament } from './utils/tournament';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
@@ -356,6 +357,7 @@ const Harness: React.FC = () => {
   const [showAccept, setShowAccept] = useState(false);
   const [showPoster, setShowPoster] = useState(false);
   const [showAwards, setShowAwards] = useState(false);
+  const [showWrap, setShowWrap] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -425,6 +427,8 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">toast</button>
           <button id="demo-poster" onClick={() => setShowPoster(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">poster</button>
+          <button id="demo-wrap" onClick={() => setShowWrap(true)}
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">wrap</button>
           <button id="demo-awards" onClick={() => setShowAwards(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">awards</button>
           <button id="demo-accept" onClick={() => setShowAccept(true)}
@@ -533,6 +537,9 @@ const Harness: React.FC = () => {
               onClose={() => setShowRecap(false)} onViewLeaderboard={() => setShowRecap(false)} />
           );
         })()}
+        {showWrap && (
+          <SeasonWrapScene season={{ ...pastSeason, startedAt: 0, endedAt: now + 1 }} matches={matches} players={players} currentPlayer={me} onClose={() => setShowWrap(false)} />
+        )}
         {showAwards && (
           <WeeklyAwardsScene week={weekAwards(new Date(Date.now() - 6 * 86_400_000), players, matches, [], league.chips)} players={players} onClose={() => setShowAwards(false)} />
         )}

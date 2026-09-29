@@ -38,6 +38,7 @@ import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, ph
 import { CollectionView } from './components/cards/CollectionView';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
+import { SeasonWrapScene } from './components/SeasonWrapScene';
 import { CupView } from './components/CupView';
 import { Tournament, allGames, deriveCups, mondayOf, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
@@ -137,6 +138,8 @@ export default function App() {
   const [posterId, setPosterId] = useState<string | null>(null);
   /** The weekly awards on screen, if any. */
   const [awardsShown, setAwardsShown] = useState<WeekAwards | null>(null);
+  /** The season wrap on screen, if any. */
+  const [wrapSeason, setWrapSeason] = useState<Season | null>(null);
 
   // Everything is scoped to the running season, so closing one genuinely
   // starts the table over instead of just relabelling it.
@@ -645,6 +648,24 @@ export default function App() {
       console.warn('Could not claim the walkover:', error);
     }
   };
+
+  // When a season closes, everyone sees its wrap once, on their first open after.
+  const lastEnded = useMemo(
+    () => seasons.filter((entry) => entry.endedAt !== null).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null,
+    [seasons]
+  );
+  useEffect(() => {
+    if (!currentPlayer || isLoading || !lastEnded?.endedAt || Date.now() - lastEnded.endedAt > 21 * 86_400_000) return;
+    const SEEN = 'office_8ball_wrap_seen';
+    try {
+      if (localStorage.getItem(SEEN) === lastEnded.id) return;
+      localStorage.setItem(SEEN, lastEnded.id);
+    } catch {
+      // Private mode: show it, worst case twice.
+    }
+    setWrapSeason(lastEnded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, lastEnded?.id]);
 
   const handleJoinCup = async () => {
     if (!currentPlayer || !thisCup) return;
@@ -1312,6 +1333,7 @@ export default function App() {
                 onDeleteComment={(matchId, commentId) => poolService.deleteMatchComment(matchId, commentId)}
                 awards={awards}
                 onOpenAwards={setAwardsShown}
+                onOpenWrap={setWrapSeason}
                 detail={{
                   challenges,
                   payouts: chips.payouts,
@@ -1449,6 +1471,9 @@ export default function App() {
           );
         })()}
 
+        {wrapSeason && currentPlayer && (
+          <SeasonWrapScene season={wrapSeason} matches={matches} players={players} currentPlayer={currentPlayer} onClose={() => setWrapSeason(null)} />
+        )}
         {awardsShown && <WeeklyAwardsScene week={awardsShown} players={players} onClose={() => setAwardsShown(null)} />}
 
         {posterId && !acceptedDuel && (() => {
