@@ -307,7 +307,16 @@ input, textarea, select { font-size: 16px; }
 .pc-rare .pc-bg { background: linear-gradient(160deg, #F2B705, #b88900); }
 .pc-rare .pc-center { box-shadow: inset 0 0 0 calc(5 * var(--k)) var(--c), inset 0 0 0 calc(9 * var(--k)) #0A0A0A; }
 .pc-epic { --acc: #F2B705; --ink: #F2B705; --gem: #F2B705; --glow: rgba(242,183,5,.5); }
-.pc-epic .pc-bg { background: radial-gradient(90% 60% at 50% 30%, #2a2208, #0A0A0A 70%); box-shadow: inset 0 0 0 calc(2 * var(--k)) #F2B705; }
+.pc-epic .pc-bg { --rim: #F2B705; --fill: radial-gradient(90% 60% at 50% 30%, #2a2208, #0A0A0A 70%); }
+/* A rim that follows the whole shield, slanted edges included: the shape is
+   painted in the rim colour and the fill sits inset on top. An inset shadow
+   would only draw the straight sides, since the clip cuts the corners away. */
+.pc-epic .pc-bg, .pc-t-crown .pc-bg, .pc-t-cup .pc-bg, .pc-t-totw .pc-bg { background: var(--rim); }
+.pc-epic .pc-bg::after, .pc-t-crown .pc-bg::after, .pc-t-cup .pc-bg::after, .pc-t-totw .pc-bg::after {
+  content: ""; position: absolute; inset: calc(2 * var(--k)); z-index: 0;
+  clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: var(--fill);
+}
+.pc-epic .pc-bg::before { z-index: 1; }
 .pc-epic .pc-bg::before { content: ""; position: absolute; inset: calc(4 * var(--k)); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); box-shadow: inset 0 0 0 calc(1.5 * var(--k)) #F2B705; }
 .pc-epic .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #F2B705; }
 .pc-legendary, .pc-mythic { --acc: #F2B705; }
@@ -336,12 +345,12 @@ input, textarea, select { font-size: 16px; }
 
 /* Special editions */
 .pc-t-crown { --acc: #F2B705; --ink: #F2B705; }
-.pc-t-crown .pc-bg { background: linear-gradient(160deg, #3a0d12, #0A0A0A); box-shadow: inset 0 0 0 calc(2 * var(--k)) #F2B705; }
+.pc-t-crown .pc-bg { --rim: #F2B705; --fill: linear-gradient(160deg, #3a0d12, #0A0A0A); }
 .pc-t-cup { --acc: #F2B705; --ink: #fff; }
-.pc-t-cup .pc-bg { background: radial-gradient(80% 55% at 50% 30%, #0f5a33, #0A0A0A 75%); box-shadow: inset 0 0 0 calc(2 * var(--k)) #F2B705; }
+.pc-t-cup .pc-bg { --rim: #F2B705; --fill: radial-gradient(80% 55% at 50% 30%, #0f5a33, #0A0A0A 75%); }
 .pc-t-crown .pc-center, .pc-t-cup .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #F2B705; }
 .pc-t-totw { --acc: #fff; --ink: #fff; }
-.pc-t-totw .pc-bg { background: linear-gradient(160deg, #111, #000); box-shadow: inset 0 0 0 calc(2 * var(--k)) #fff; }
+.pc-t-totw .pc-bg { --rim: #FFFFFF; --fill: linear-gradient(160deg, #111, #000); }
 .pc-t-totw .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #fff; }
 .pc-t-clown { --acc: #fff; --ink: #fff; --on-acc: #C8102E; }
 .pc-t-clown .pc-bg { background: repeating-conic-gradient(#C8102E 0 15deg, #F4F1E8 15deg 30deg); }
