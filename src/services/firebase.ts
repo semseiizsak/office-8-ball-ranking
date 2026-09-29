@@ -12,6 +12,9 @@ import {
   getDocs,
   getDocsFromServer,
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   onSnapshot,
   orderBy,
   query,
@@ -75,7 +78,21 @@ import {
 import { Tournament, gameDeadline, seedField, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+/**
+ * Firestore with an on-device cache. Every open used to start from nothing and
+ * pay for every document again; with the cache, a listener that picks up again
+ * within half an hour pays only for what changed. Browsers that cannot keep
+ * one (private tabs, locked-down storage) fall back to the old in-memory cache.
+ */
+const createDb = () => {
+  try {
+    return initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+  } catch (error) {
+    console.warn('Offline cache unavailable, using memory:', error);
+    return getFirestore(app);
+  }
+};
+export const db = createDb();
 
 // Local development only: point at the Firestore emulator so nothing here can
 // touch the real league. Never set in a Vercel build.
@@ -287,10 +304,19 @@ export async function getMatches(): Promise<MatchRecord[]> {
  * else shows up without a reload — the whole point of a feed people gather
  * around rather than a static history list.
  */
-export function subscribeToMatches(onChange: (matches: MatchRecord[]) => void): () => void {
-  return onSnapshot(query(matchesCollection, orderBy('timestamp', 'desc')), (snapshot) => {
-    onChange(snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data())));
-  });
+export function subscribeToMatches(
+  onChange: (matches: MatchRecord[], fromServer: boolean) => void,
+  onError?: (error: Error) => void
+): () => void {
+  let lastFromServer: boolean | null = null;
+  return onSnapshot(query(matchesCollection, orderBy('timestamp', 'desc')), { includeMetadataChanges: true }, (snapshot) => {
+    // Metadata is watched only to learn when the server has answered; a
+    // metadata-only change with nothing new is not worth a re-render.
+    const fromServer = !snapshot.metadata.fromCache;
+    if (snapshot.docChanges().length === 0 && fromServer === lastFromServer) return;
+    lastFromServer = fromServer;
+    onChange(snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data())), fromServer);
+  }, onError);
 }
 
 
@@ -823,28 +849,27 @@ export async function getChallenges(): Promise<Challenge[]> {
   return snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now));
 }
 
-/** Cancels challenges whose settled match was removed from the event log. */
-export async function reconcileChallengesWithMatches(): Promise<void> {
-  const [challengeSnapshot, matchSnapshot] = await Promise.all([
-    getDocs(challengesCollection),
-    getDocs(matchesCollection),
-  ]);
-  const matchIds = new Set(matchSnapshot.docs.map((matchDoc) => matchDoc.id));
+/**
+ * Cancels challenges whose settled match was removed from the event log.
+ * Works on what the app already loaded: it used to read both collections in
+ * full again on every open just to find, almost always, nothing.
+ */
+export async function reconcileChallengesWithMatches(challenges: Challenge[], matches: MatchRecord[]): Promise<void> {
+  const matchIds = new Set(matches.map((match) => match.id));
+  const orphans = challenges.filter(
+    (challenge) => challenge.status === 'played' && challenge.matchId && !matchIds.has(challenge.matchId)
+  );
+  if (orphans.length === 0) return;
   const batch = writeBatch(db);
-  let changes = 0;
-  for (const challengeDoc of challengeSnapshot.docs) {
-    const challenge = toChallenge(challengeDoc.id, challengeDoc.data(), Date.now());
-    if (challenge.status === 'played' && challenge.matchId && !matchIds.has(challenge.matchId)) {
-      batch.update(challengeDoc.ref, {
-        status: 'cancelled' satisfies ChallengeStatus,
-        matchId: null,
-        resolvedWinnerId: null,
-        respondedAt: Date.now(),
-      });
-      changes += 1;
-    }
+  for (const challenge of orphans) {
+    batch.update(doc(challengesCollection, challenge.id), {
+      status: 'cancelled' satisfies ChallengeStatus,
+      matchId: null,
+      resolvedWinnerId: null,
+      respondedAt: Date.now(),
+    });
   }
-  if (changes > 0) await batch.commit();
+  await batch.commit();
 }
 
 /**
@@ -852,11 +877,23 @@ export async function reconcileChallengesWithMatches(): Promise<void> {
  * single listener carries the whole arena, and one player can only ever hold one
  * open call per match.
  */
-export function subscribeToChallenges(onChange: (challenges: Challenge[]) => void): () => void {
-  return onSnapshot(query(challengesCollection, orderBy('createdAt', 'desc')), (snapshot) => {
-    const now = Date.now();
-    onChange(snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now)));
-  });
+export function subscribeToChallenges(
+  onChange: (challenges: Challenge[], fromServer: boolean) => void,
+  onError?: (error: Error) => void
+): () => void {
+  let lastFromServer: boolean | null = null;
+  return onSnapshot(
+    query(challengesCollection, orderBy('createdAt', 'desc')),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      const fromServer = !snapshot.metadata.fromCache;
+      if (snapshot.docChanges().length === 0 && fromServer === lastFromServer) return;
+      lastFromServer = fromServer;
+      const now = Date.now();
+      onChange(snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now)), fromServer);
+    },
+    onError
+  );
 }
 
 export async function createChallenge(params: {

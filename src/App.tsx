@@ -216,21 +216,40 @@ export default function App() {
         ),
       ]);
 
+    const liveFeeds: Array<() => void> = [];
+    /** Opens a live feed and resolves with its first answer from the server, not the cache. */
+    const firstFromServer = <T,>(
+      subscribe: (onChange: (items: T[], fromServer: boolean) => void, onError: (error: Error) => void) => () => void,
+      set: (items: T[]) => void
+    ) =>
+      new Promise<T[]>((resolve, reject) => {
+        liveFeeds.push(
+          subscribe((items, fromServer) => {
+            if (cancelled) return;
+            set(items);
+            if (fromServer) resolve(items);
+          }, reject)
+        );
+      });
+
     async function loadData() {
       try {
+        // Matches and challenges arrive through the live feeds the app keeps
+        // open anyway. Reading them once up front and then again through the
+        // feeds paid for every document twice on every open.
         const [loadedPlayers, loadedMatches, loadedChallenges, loadedSeasons] = await withTimeout(
           Promise.all([
             poolService.getPlayers(),
-            poolService.getMatches(),
-            poolService.getChallenges(),
+            firstFromServer(poolService.subscribeToMatches, setMatches),
+            firstFromServer(poolService.subscribeToChallenges, setChallenges),
             poolService.getSeasons(),
           ])
         );
-          await poolService.reconcileChallengesWithMatches();
+        void poolService
+          .reconcileChallengesWithMatches(loadedChallenges, loadedMatches)
+          .catch((error) => console.warn('Challenges not reconciled:', error));
         if (cancelled) return;
         setPlayers(loadedPlayers);
-        setMatches(loadedMatches);
-        setChallenges(loadedChallenges);
         setSeasons(loadedSeasons);
         poolService.getDailies().then((loaded) => !cancelled && setDailies(loaded)).catch((error) => console.warn('Daily pairings not loaded:', error));
         poolService.getTournaments().then((loaded) => !cancelled && setTournaments(loaded)).catch((error) => console.warn('Cups not loaded:', error));
@@ -299,6 +318,7 @@ export default function App() {
     loadData();
     return () => {
       cancelled = true;
+      liveFeeds.forEach((stop) => stop());
     };
   }, []);
 
@@ -307,34 +327,43 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  // The arena is only fun if it updates while people are watching it.
-  useEffect(() => {
-    if (!currentPlayer) return;
-    return poolService.subscribeToChallenges(setChallenges);
-  }, [currentPlayer]);
+  // The arena and the match feed stay live through the feeds opened at load.
 
-  // Cards change hands between people, so the collection listens live too.
+  // Your packs, the collectors (chips) and the trades are small and feed the
+  // nav badges, so they stay live.
   useEffect(() => {
     if (!currentPlayer) return;
     const off = [
-      poolService.subscribeToCards((next) => {
-        setCards(next);
-        setCardsSeen((seen) => ({ ...seen, cards: true }));
-      }),
       poolService.subscribeToPacks(currentPlayer.id, (next) => {
         setPacks(next);
         setCardsSeen((seen) => ({ ...seen, packs: true }));
       }),
       poolService.subscribeToCollectors(setCollectors),
       poolService.subscribeToTrades(setTrades),
+    ];
+    return () => off.forEach((stop) => stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id]);
+
+  // Every card in the office and every photo printed on them are the heavy
+  // part: thousands of documents and the images themselves. Every phone used
+  // to follow them all the time, so each pack opened anywhere was paid for by
+  // every open phone. Now only a phone looking at the cards listens.
+  const watchingCards = !!currentPlayer && activeTab === 'collection';
+  useEffect(() => {
+    if (!watchingCards) return;
+    const off = [
+      poolService.subscribeToCards((next) => {
+        setCards(next);
+        setCardsSeen((seen) => ({ ...seen, cards: true }));
+      }),
       poolService.subscribeToPhotos((next) => {
         setPhotos(next);
         setCardsSeen((seen) => ({ ...seen, photos: true }));
       }),
     ];
     return () => off.forEach((stop) => stop());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id]);
+  }, [watchingCards]);
 
   /**
    * Pulls both players into the live screen the instant their match starts,
@@ -363,12 +392,6 @@ export default function App() {
     previousChallengeStatusesRef.current = new Map(challenges.map((c) => [c.id, c.status]));
   }, [challenges, currentPlayer]);
 
-  // Reactions and comments on a match should land for everyone watching the
-  // feed, not just the person who posted them.
-  useEffect(() => {
-    if (!currentPlayer) return;
-    return poolService.subscribeToMatches(setMatches);
-  }, [currentPlayer]);
 
   useEffect(() => {
     if (!currentPlayer) return;
@@ -523,7 +546,7 @@ export default function App() {
   }, [currentPlayer?.id, matches, challenges, dailyRecords, cardWeek]);
   const champion = !!currentPlayer && cupState?.champion === currentPlayer.id;
   useEffect(() => {
-    if (!currentPlayer || isLoading || cardsLoading) return;
+    if (!currentPlayer || isLoading || !cardsSeen.packs) return;
     // Only ask the database for a pack this phone does not already see.
     const make = (kind: PackKind, reason?: string) =>
       packs.some((pack) => pack.id === `${currentPlayer.id}_${cardWeek}_${kind}`)
@@ -533,7 +556,7 @@ export default function App() {
     if (earned) void make('earned', earned.reason);
     if (champion) void make('champion', 'Weekly cup champion');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, cardsLoading, cardWeek, earned?.reason, champion]);
+  }, [currentPlayer?.id, isLoading, cardsSeen.packs, cardWeek, earned?.reason, champion]);
 
   // What a card of each player says right now.
   const cardStatsById = useMemo(
