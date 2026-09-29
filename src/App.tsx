@@ -97,7 +97,12 @@ export default function App() {
   const closingSeasonRef = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   /** Set when the database would not answer at load: the app runs as an offline logger. */
-  const [offlineReason, setOfflineReason] = useState<string | null>(null);
+  const [offlineReason, setOfflineReason] = useState<string | null>(() =>
+    // ?offline opens the offline logger straight away, whatever the database
+    // does. Needed because an exhausted quota still lets the odd request
+    // through, so a load can half-succeed and never reach the offline screen.
+    new URLSearchParams(window.location.search).has('offline') ? 'Opened in offline mode.' : null
+  );
   /** Results logged while the database could not take them, kept on this phone. */
   const [outbox, setOutbox] = useState<OfflineMatch[]>(() => loadOutbox());
   const [checkingDb, setCheckingDb] = useState(false);
@@ -233,6 +238,10 @@ export default function App() {
       });
 
     async function loadData() {
+      if (new URLSearchParams(window.location.search).has('offline')) {
+        setIsLoading(false);
+        return;
+      }
       try {
         // Matches and challenges arrive through the live feeds the app keeps
         // open anyway. Reading them once up front and then again through the
@@ -845,7 +854,7 @@ export default function App() {
     setCheckingDb(true);
     try {
       await poolService.pingLeague();
-      window.location.reload();
+      window.location.replace(window.location.pathname);
     } catch (error) {
       console.warn('League still unavailable:', error);
       setCheckingDb(false);
@@ -854,7 +863,8 @@ export default function App() {
 
   // Offline, look again every ten minutes and whenever the phone comes back to the app.
   useEffect(() => {
-    if (!offlineReason) return;
+    // Opened with ?offline on purpose: stay put until someone taps "Try the league now".
+    if (!offlineReason || new URLSearchParams(window.location.search).has('offline')) return;
     const check = () => {
       if (document.visibilityState === 'visible') void retryLeague();
     };
