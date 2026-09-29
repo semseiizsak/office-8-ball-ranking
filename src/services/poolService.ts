@@ -61,6 +61,7 @@ import {
   subscribeToMatchComments,
   updateMatchWinner,
   updatePlayer,
+  lockSeasonLook,
 } from './firebase';
 
 export const poolService = {
@@ -68,6 +69,7 @@ export const poolService = {
   getMatches,
   addPlayer,
   updatePlayer,
+  lockSeasonLook,
   updateMatchWinner: (matchId: string, season: Season, winnerId: string) =>
     updateMatchWinner(matchId, season, winnerId),
   deleteMatch: (matchId: string, season: Season) => deleteMatch(matchId, season),

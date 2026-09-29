@@ -10,11 +10,14 @@ interface ProfileModalProps {
   player: Player | null;
   onClose: () => void;
   onSwitchPlayer: () => void;
-  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt'>) => Promise<void>;
+  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt' | 'nextBall' | 'nextSponsor'>) => Promise<void>;
+  /** Ball and sponsor are fixed for this season: picks now are for the next one. */
+  locked?: boolean;
+  seasonName?: string;
 }
 
 /** Editing your own profile: photo, name, team, title and the ball you play under. */
-export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onSwitchPlayer, onSave }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onSwitchPlayer, onSave, locked = false, seasonName = 'this season' }) => {
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [title, setTitle] = useState('');
@@ -29,8 +32,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
     setName(player.name);
     setDepartment(player.department ?? '');
     setTitle(player.title ?? '');
-    setBall(playerBall(player));
-    setSponsor(player.sponsor ?? '');
+    // While fixed, the pickers show what is picked for next season.
+    setBall(locked && player.nextBall ? player.nextBall : playerBall(player));
+    setSponsor(locked && player.nextSponsor !== undefined ? player.nextSponsor : player.sponsor ?? '');
     setAvatarUrl(player.avatarUrl);
     setError('');
   }, [player]);
@@ -58,7 +62,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
       setIsSaving(true);
       setError('');
       await onSave({
-        name, department, title, avatarUrl, ball, sponsor, ballPreference: ball > 8 ? 'stripes' : 'solids',
+        name, department, title, avatarUrl,
+        // Mid-season the picks wait for the next season; the worn ones stay.
+        ...(locked
+          ? { ball: player.ball, sponsor: player.sponsor ?? '', ballPreference: player.ballPreference, nextBall: ball, nextSponsor: sponsor }
+          : { ball, sponsor, ballPreference: ball > 8 ? 'stripes' : 'solids' }),
         ...(avatarUrl !== player.avatarUrl ? { avatarChangedAt: Date.now() } : {}),
       });
       onClose();
@@ -107,6 +115,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
         Your sponsor
         <SponsorPicker value={sponsor} onChange={setSponsor} />
       </div>
+      {locked && (
+        <p className="rounded-xl bg-surface p-3 text-sm font-semibold normal-case tracking-normal text-white/70">
+          Your ball and sponsor are fixed for {seasonName}. What you pick now is worn from the start of next season.
+        </p>
+      )}
       {error && <p role="alert" className="rounded-xl bg-surface-alt p-3 text-sm font-semibold normal-case tracking-normal text-white">{error}</p>}
       <button type="button" onClick={onSwitchPlayer} disabled={isSaving} className={`${button} bg-surface-alt`}>
         <Repeat className="h-[18px] w-[18px]" strokeWidth={2.25} />

@@ -13,6 +13,11 @@ export interface Player {
   sponsor?: string;
   /** When the profile photo last changed: once a day, since every photo is stored and printed. */
   avatarChangedAt?: number;
+  /** Ball and sponsor are fixed for a season: the season they were fixed for. */
+  lockedSeason?: string;
+  /** Picked mid-season, worn from the next one ('' for no sponsor). */
+  nextBall?: number;
+  nextSponsor?: string;
   elo: number;
   peakElo: number;
   wins: number;

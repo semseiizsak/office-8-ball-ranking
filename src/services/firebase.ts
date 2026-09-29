@@ -126,6 +126,9 @@ const toPlayer = (id: string, data: Record<string, unknown>): Player => ({
   title: String(data.title ?? 'Pool Contender'),
   avatarUrl: String(data.avatarUrl ?? ''),
   avatarChangedAt: data.avatarChangedAt ? Number(data.avatarChangedAt) : undefined,
+  lockedSeason: data.lockedSeason ? String(data.lockedSeason) : undefined,
+  nextBall: Number.isInteger(data.nextBall) ? Number(data.nextBall) : undefined,
+  nextSponsor: typeof data.nextSponsor === 'string' ? data.nextSponsor : undefined,
   ballPreference: data.ballPreference === 'stripes' ? 'stripes' : 'solids',
   ball: Number.isInteger(data.ball) && Number(data.ball) >= 1 && Number(data.ball) <= 15 ? Number(data.ball) : undefined,
   sponsor: typeof data.sponsor === 'string' && data.sponsor ? data.sponsor : undefined,
@@ -222,7 +225,7 @@ export async function addPlayer(params: {
 
 export async function updatePlayer(
   playerId: string,
-  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt'>
+  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt' | 'nextBall' | 'nextSponsor'>
 ): Promise<void> {
   await updateDoc(doc(db, 'players', playerId), {
     name: updates.name.trim(),
@@ -233,6 +236,19 @@ export async function updatePlayer(
     ...(updates.ball ? { ball: updates.ball } : {}),
     ...(updates.sponsor !== undefined ? { sponsor: updates.sponsor || deleteField() } : {}),
     ...(updates.avatarChangedAt ? { avatarChangedAt: updates.avatarChangedAt } : {}),
+    ...(updates.nextBall !== undefined ? { nextBall: updates.nextBall } : {}),
+    ...(updates.nextSponsor !== undefined ? { nextSponsor: updates.nextSponsor } : {}),
+  });
+}
+
+/** A new season: the picks made last season become the ones worn, fixed for this one. */
+export async function lockSeasonLook(playerId: string, seasonId: string, look: { ball?: number; sponsor?: string }): Promise<void> {
+  await updateDoc(doc(db, 'players', playerId), {
+    lockedSeason: seasonId,
+    ...(look.ball ? { ball: look.ball, ballPreference: look.ball > 8 ? 'stripes' : 'solids' } : {}),
+    sponsor: look.sponsor || deleteField(),
+    nextBall: deleteField(),
+    nextSponsor: deleteField(),
   });
 }
 

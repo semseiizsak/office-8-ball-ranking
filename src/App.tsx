@@ -932,8 +932,26 @@ export default function App() {
     setCurrentPlayer(null);
   };
 
+  // Ball and sponsor are fixed for the season on the first open of it.
+  useEffect(() => {
+    if (!currentPlayer || isLoading || currentPlayer.lockedSeason === currentSeason.id) return;
+    const look = {
+      ball: currentPlayer.nextBall ?? currentPlayer.ball,
+      sponsor: currentPlayer.nextSponsor !== undefined ? currentPlayer.nextSponsor : currentPlayer.sponsor,
+    };
+    poolService
+      .lockSeasonLook(currentPlayer.id, currentSeason.id, look)
+      .then(() => {
+        const updated = { ...currentPlayer, ...look, sponsor: look.sponsor || undefined, lockedSeason: currentSeason.id, nextBall: undefined, nextSponsor: undefined };
+        setCurrentPlayer(updated);
+        setPlayers((prev) => prev.map((player) => (player.id === updated.id ? updated : player)));
+      })
+      .catch((error) => console.warn('Season look not fixed:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, currentPlayer?.lockedSeason, isLoading, currentSeason.id]);
+
   const handleSaveProfile = async (
-    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt'>
+    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt' | 'nextBall' | 'nextSponsor'>
   ) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);
@@ -1507,6 +1525,8 @@ export default function App() {
           onClose={() => setShowProfile(false)}
           onSwitchPlayer={handleSwitchPlayer}
           onSave={handleSaveProfile}
+          seasonName={currentSeason.name}
+          locked={currentPlayer?.lockedSeason === currentSeason.id}
         />
 
         {showQuickMatch && (
