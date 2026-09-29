@@ -54,7 +54,9 @@ export const PackOpening: React.FC<{
         }, Math.max(0, (motion ? 900 : 0) - (Date.now() - started)));
       })
       .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : 'The pack would not open.');
+        const message = reason instanceof Error ? reason.message : '';
+        // The database's free daily allowance ran out: it comes back at 9:00.
+        setError(/quota|resource-exhausted/i.test(message) ? 'The app is out of database for today. Your pack is safe, open it after 9:00 tomorrow.' : message || 'The pack would not open.');
         setPhase('error');
       });
   };

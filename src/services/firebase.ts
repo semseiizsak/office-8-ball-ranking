@@ -1442,8 +1442,9 @@ const toTrade = (id: string, data: Record<string, unknown>): Trade => ({
 export function subscribeToCards(onChange: (cards: Card[]) => void): () => void {
   return onSnapshot(cardsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toCard(entry.id, entry.data()))));
 }
-export function subscribeToPacks(onChange: (packs: Pack[]) => void): () => void {
-  return onSnapshot(packsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toPack(entry.id, entry.data()))));
+/** Only the player's own packs: everyone's would be hundreds of reads per open. */
+export function subscribeToPacks(ownerId: string, onChange: (packs: Pack[]) => void): () => void {
+  return onSnapshot(query(packsCollection, where('ownerId', '==', ownerId)), (snapshot) => onChange(snapshot.docs.map((entry) => toPack(entry.id, entry.data()))));
 }
 export function subscribeToCollectors(onChange: (collectors: Collector[]) => void): () => void {
   return onSnapshot(collectorsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toCollector(entry.id, entry.data()))));

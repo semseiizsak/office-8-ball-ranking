@@ -294,7 +294,7 @@ export default function App() {
         setCards(next);
         setCardsSeen((seen) => ({ ...seen, cards: true }));
       }),
-      poolService.subscribeToPacks((next) => {
+      poolService.subscribeToPacks(currentPlayer.id, (next) => {
         setPacks(next);
         setCardsSeen((seen) => ({ ...seen, packs: true }));
       }),
@@ -532,10 +532,41 @@ export default function App() {
   }, [currentPlayer?.id, isLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
 
   // Each player's photo right now, as it would be printed on a new card.
-  const photoShots = useMemo(
-    () => Object.fromEntries(players.filter((player) => player.avatarUrl).map((player) => [player.id, { id: photoIdOf(player.avatarUrl), data: player.avatarUrl }])),
-    [players]
-  );
+  // The photo a player's cards carry this season: the one on their first card
+  // of the season, so a photo changed mid-season only shows from next season.
+  const photoShots = useMemo(() => {
+    const out: Record<string, { id: string; data: string }> = {};
+    const firstOfSeason = new Map<string, Card>();
+    for (const card of [...cards].sort((a, b) => a.createdAt - b.createdAt)) {
+      if ((card.seasonId || currentSeason.id) !== currentSeason.id || !card.photoId || card.photoId === 'none') continue;
+      if (!firstOfSeason.has(card.playerId)) firstOfSeason.set(card.playerId, card);
+    }
+    for (const player of players) {
+      const held = firstOfSeason.get(player.id);
+      const data = held ? photos.get(held.photoId!) : undefined;
+      if (held && data) out[player.id] = { id: held.photoId!, data };
+      else if (player.avatarUrl) out[player.id] = { id: photoIdOf(player.avatarUrl), data: player.avatarUrl };
+    }
+    return out;
+  }, [players, cards, photos, currentSeason.id]);
+
+  // Cards pulled this season with a different photo go back to the season's one.
+  useEffect(() => {
+    if (!currentPlayer || isLoading || cardsLoading || photos.size === 0) return;
+    const off = cards.filter(
+      (card) =>
+        (card.seasonId || currentSeason.id) === currentSeason.id &&
+        card.photoId &&
+        card.photoId !== 'none' &&
+        photoShots[card.playerId] &&
+        card.photoId !== photoShots[card.playerId].id
+    );
+    if (off.length === 0) return;
+    void poolService
+      .backfillCards(off.map((card) => ({ cardId: card.id, photo: photoShots[card.playerId] })))
+      .catch((error) => console.warn('Season photos not restored:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cardsLoading, photos.size, cards.length]);
   // Cards carry their season and the photo from when they were pulled.
   const cardsShown = useMemo(
     () => cards.map((card) => ({ ...card, seasonId: card.seasonId || currentSeason.id, photo: card.photoId ? photos.get(card.photoId) : undefined })),
@@ -570,7 +601,8 @@ export default function App() {
     if (!currentPlayer || isLoading || cardsLoading) return;
     const packIds = new Set(packs.map((pack) => pack.id));
     const cardIds = new Set(cards.map((card) => card.id));
-    for (const { player, keys } of allUnlocks) {
+    // Only this player's own rewards: their packs are the ones this phone can see.
+    for (const { player, keys } of allUnlocks.filter((entry) => entry.player.id === currentPlayer.id)) {
       for (const key of keys) {
         const slug = key.replace(/[^a-z0-9]/gi, '-');
         const reward = rewardFor(key, BADGE[key]?.secret);
