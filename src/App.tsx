@@ -36,6 +36,19 @@ import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
 import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
+import { OfflineLeague } from './components/OfflineLeague';
+import { OfflineReview } from './components/OfflineReview';
+import {
+  OfflineMatch,
+  isDatabaseDown,
+  loadOutbox,
+  loadRoster,
+  planSync,
+  queueMatch,
+  quotaResetsAt,
+  saveOutbox,
+  saveRoster,
+} from './utils/outbox';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { SeasonWrapScene } from './components/SeasonWrapScene';
@@ -83,7 +96,12 @@ export default function App() {
   const [clock, setClock] = useState(() => Date.now());
   const closingSeasonRef = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  /** Set when the database would not answer at load: the app runs as an offline logger. */
+  const [offlineReason, setOfflineReason] = useState<string | null>(null);
+  /** Results logged while the database could not take them, kept on this phone. */
+  const [outbox, setOutbox] = useState<OfflineMatch[]>(() => loadOutbox());
+  const [checkingDb, setCheckingDb] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -262,8 +280,16 @@ export default function App() {
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to load league data:', error);
-        setLoadError(
-          error instanceof Error ? error.message : 'Could not reach the league database.'
+        // Whatever went wrong, the one thing that must keep working is logging.
+        const code = (error as { code?: string } | null)?.code;
+        setOfflineReason(
+          code === 'resource-exhausted'
+            ? 'Firestore: quota exceeded.'
+            : code
+            ? `Firestore: ${code.replace(/-/g, ' ')}.`
+            : error instanceof Error
+            ? error.message.slice(0, 120)
+            : 'Could not reach the league database.'
         );
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -779,6 +805,86 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const updateOutbox = (change: (entries: OfflineMatch[]) => OfflineMatch[]) =>
+    setOutbox((entries) => {
+      const next = change(entries);
+      saveOutbox(next);
+      return next;
+    });
+
+  const queueOffline = (entry: { winnerId: string | null; loserId: string | null; winnerName: string; loserName: string }) =>
+    updateOutbox((entries) => queueMatch(entries, { ...entry, loggedById: localStorage.getItem(LOCAL_PLAYER_KEY) }));
+
+  const removeOffline = (id: string) => updateOutbox((entries) => entries.filter((entry) => entry.id !== id));
+
+  /** Asks the server for one document; if it answers, the league is back and the app reloads into it. */
+  const retryLeague = async () => {
+    setCheckingDb(true);
+    try {
+      await poolService.pingLeague();
+      window.location.reload();
+    } catch (error) {
+      console.warn('League still unavailable:', error);
+      setCheckingDb(false);
+    }
+  };
+
+  // Offline, look again every ten minutes and whenever the phone comes back to the app.
+  useEffect(() => {
+    if (!offlineReason) return;
+    const check = () => {
+      if (document.visibilityState === 'visible') void retryLeague();
+    };
+    const timer = window.setInterval(check, 10 * 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offlineReason]);
+
+  // The roster, without photos, so this phone can still log if the database goes away.
+  useEffect(() => {
+    if (!offlineReason && players.length > 0) saveRoster(players);
+  }, [players, offlineReason]);
+
+  // Hand queued results to the league once it answers again. One attempt per
+  // load; anything unresolved waits for someone to say who was meant.
+  const syncingRef = useRef(false);
+  const syncOutbox = async (entries: OfflineMatch[]) => {
+    if (syncingRef.current || entries.length === 0) return;
+    syncingRef.current = true;
+    try {
+      const result = await poolService.syncOfflineMatches(entries, currentSeason);
+      const done = new Set(result.settled);
+      updateOutbox((current) => current.filter((entry) => !done.has(entry.id)));
+      setPlayers(result.players);
+      setMatches(result.matches);
+      const added = result.settled.length - result.duplicates.length;
+      const parts = [
+        added > 0 ? `${added} offline game${added === 1 ? '' : 's'} added to the league` : '',
+        result.duplicates.length > 0 ? `${result.duplicates.length} already logged elsewhere` : '',
+        result.unresolved.length > 0 ? `${result.unresolved.length} need a player picked` : '',
+      ].filter(Boolean);
+      if (parts.length > 0) setSyncNotice(`${parts.join(' · ')}.`);
+    } catch (error) {
+      console.warn('Offline games not synced yet:', error);
+      if (!isDatabaseDown(error)) setSyncNotice('Offline games could not be added yet. They are still saved on this phone.');
+    } finally {
+      syncingRef.current = false;
+    }
+  };
+  useEffect(() => {
+    if (isLoading || offlineReason || outbox.length === 0) return;
+    // A sync reads the whole league, so only go when something can actually
+    // be settled; games waiting on a name pick wait without costing anything.
+    const plan = planSync(outbox, players, matches);
+    if (plan.ready.length === 0 && plan.duplicates.length === 0) return;
+    void syncOutbox(outbox);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, offlineReason, outbox.length]);
+
   const refreshPlayers = async () => {
     setPlayers(await poolService.getPlayers());
   };
@@ -903,7 +1009,19 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to log match:', err);
-      alert('Failed to log match. Please try again.');
+      if (isDatabaseDown(err)) {
+        // The database is out, not the result. Keep it on this phone.
+        const winner = players.find((player) => player.id === winnerId);
+        const loserId = winnerId === playerAId ? playerBId : playerAId;
+        const loser = players.find((player) => player.id === loserId);
+        queueOffline({ winnerId, loserId, winnerName: winner?.name ?? '?', loserName: loser?.name ?? '?' });
+        setIsLoggerOpen(false);
+        setSyncNotice(
+          `The league database is out for today. ${winner?.name.split(' ')[0] ?? 'The'} beat ${loser?.name.split(' ')[0] ?? 'result'} is saved on this phone and goes in when it's back.`
+        );
+      } else {
+        alert('Failed to log match. Please try again.');
+      }
     } finally {
       loggingRef.current = false;
       setIsLoggingMatch(false);
@@ -1310,19 +1428,19 @@ export default function App() {
     );
   }
 
-  if (loadError) {
+  if (offlineReason) {
     return (
-      <div className="grid min-h-screen place-items-center bg-bg p-6">
-        <div className="grid w-full max-w-md justify-items-center gap-3 rounded-2xl bg-card p-6 text-center">
-          <Ball n={8} size={64} />
-          <h1 className="text-2xl">Can't reach the league</h1>
-          <p className="text-sm text-white/70">The app loaded, but the database did not answer. Check the Firebase project settings and that Firestore is enabled.</p>
-          <pre className="w-full overflow-x-auto rounded-xl bg-surface p-3 text-left text-[11px] tabular-nums text-white/70">{loadError}</pre>
-          <button type="button" onClick={() => window.location.reload()} className="press h-12 w-full rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
-            Try again
-          </button>
-        </div>
-      </div>
+      <OfflineLeague
+        roster={loadRoster()}
+        outbox={outbox}
+        currentPlayerId={localStorage.getItem(LOCAL_PLAYER_KEY)}
+        resetsAt={quotaResetsAt(clock)}
+        reason={offlineReason}
+        checking={checkingDb}
+        onQueue={queueOffline}
+        onRemove={removeOffline}
+        onRetry={() => void retryLeague()}
+      />
     );
   }
 
@@ -1344,6 +1462,31 @@ export default function App() {
         />
 
         <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[var(--safe-bottom)]">
+          {syncNotice && (
+            <div role="status" className="anim-rise mb-2 flex items-start gap-3 rounded-xl bg-surface-alt px-3 py-2.5 text-sm">
+              <span className="flex-1">{syncNotice}</span>
+              <button type="button" onClick={() => setSyncNotice(null)} className="text-xs font-extrabold uppercase tracking-[0.08em] text-white/60">
+                OK
+              </button>
+            </div>
+          )}
+          {outbox.length > 0 && (
+            <OfflineReview
+              entries={outbox}
+              players={players}
+              onFix={(id, winnerId, loserId) => {
+                const name = (pid: string) => players.find((player) => player.id === pid)?.name ?? '';
+                updateOutbox((entries) =>
+                  entries.map((entry) =>
+                    entry.id === id ? { ...entry, winnerId, loserId, winnerName: name(winnerId), loserName: name(loserId) } : entry
+                  )
+                );
+                // A fixed entry is synced straight away rather than on the next load.
+                window.setTimeout(() => void syncOutbox(loadOutbox()), 0);
+              }}
+              onRemove={removeOffline}
+            />
+          )}
           {activeTab === 'leaderboard' && (
             <div className="anim-fade">
               <LeaderboardView

@@ -3,11 +3,14 @@ import { getMessaging, Messaging } from 'firebase/messaging';
 import {
   addDoc,
   collection,
+  connectFirestoreEmulator,
   deleteDoc,
   deleteField,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
+  getDocsFromServer,
   getFirestore,
   onSnapshot,
   orderBy,
@@ -37,6 +40,7 @@ import {
   SeasonTitle,
 } from '../types';
 import { calculateMatchElo } from '../utils/elo';
+import { OfflineMatch, offlineMatchDocId, planSync } from '../utils/outbox';
 import { firebaseConfig } from './firebaseConfig';
 import {
   bountyForReign,
@@ -72,6 +76,14 @@ import { Tournament, gameDeadline, seedField, withCloseOverride, withRedraw } fr
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Local development only: point at the Firestore emulator so nothing here can
+// touch the real league. Never set in a Vercel build.
+const emulatorHost = import.meta.env.VITE_FIRESTORE_EMULATOR as string | undefined;
+if (emulatorHost) {
+  const [host, port] = emulatorHost.split(':');
+  connectFirestoreEmulator(db, host, Number(port));
+}
 
 let messagingInstance: Messaging | null = null;
 
@@ -253,13 +265,20 @@ export async function lockSeasonLook(playerId: string, seasonId: string, look: {
   });
 }
 
+/**
+ * The startup reads go to the server on purpose. A plain read that cannot reach
+ * Firestore (out of quota, no signal) quietly answers from the local cache,
+ * which on a fresh load is empty: the app then looked like a league with no
+ * players and offered to sign you up. From the server, it fails, and the app
+ * can switch to logging offline instead.
+ */
 export async function getLeaderboard(): Promise<Player[]> {
-  const snapshot = await getDocs(query(playersCollection, orderBy('elo', 'desc')));
+  const snapshot = await getDocsFromServer(query(playersCollection, orderBy('elo', 'desc')));
   return snapshot.docs.map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()));
 }
 
 export async function getMatches(): Promise<MatchRecord[]> {
-  const snapshot = await getDocs(query(matchesCollection, orderBy('timestamp', 'desc')));
+  const snapshot = await getDocsFromServer(query(matchesCollection, orderBy('timestamp', 'desc')));
   return snapshot.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
 }
 
@@ -413,6 +432,169 @@ export const updateMatchWinner = (matchId: string, season: Season, winnerId: str
   mutateMatch(matchId, season, winnerId);
 export const deleteMatch = (matchId: string, season: Season) => mutateMatch(matchId, season);
 
+/** One read, straight to the server: does the league answer at all right now? */
+export async function pingLeague(): Promise<void> {
+  await getDocFromServer(leagueStateRef);
+}
+
+export interface OfflineSyncResult {
+  players: Player[];
+  matches: MatchRecord[];
+  /** Outbox ids now in the league (written now, or found already written). */
+  settled: string[];
+  /** Outbox ids whose names matched nobody for sure; they stay on the phone. */
+  unresolved: string[];
+  /** Outbox ids another log already covered. */
+  duplicates: string[];
+}
+
+/** The replayed fields of a match, to tell whether a stored one needs rewriting. */
+const replayedFields = (match: MatchRecord) => ({
+  playerAEloBefore: match.playerAEloBefore,
+  playerAEloAfter: match.playerAEloAfter,
+  playerBEloBefore: match.playerBEloBefore,
+  playerBEloAfter: match.playerBEloAfter,
+  eloDelta: match.eloDelta,
+  eloExchanged: match.eloDelta,
+  bountyCollected: match.bountyCollected,
+  isUpset: match.isUpset,
+});
+
+/**
+ * Hands a phone's offline results to the league.
+ *
+ * The queued games are written under ids derived from the outbox, then the
+ * whole season is replayed, so the ratings, streaks, crown and bounties come
+ * out exactly as if every game had been logged the moment it was played, no
+ * matter which phone held it or in what order the phones came back.
+ *
+ * The match list is re-read on every transaction attempt. Anyone else logging
+ * or syncing at the same moment also rewrites player documents, which this
+ * transaction reads, so the attempt is retried and picks their games up too.
+ */
+export async function syncOfflineMatches(entries: OfflineMatch[], season: Season): Promise<OfflineSyncResult> {
+  return runTransaction(db, async (transaction) => {
+    const [playerIndex, matchIndex] = await Promise.all([getDocsFromServer(playersCollection), getDocsFromServer(matchesCollection)]);
+    const playerRefs = playerIndex.docs.map((playerDoc) => doc(db, 'players', playerDoc.id));
+    const playerDocs = await Promise.all(playerRefs.map((playerRef) => transaction.get(playerRef)));
+    const roster = playerDocs.filter((entry) => entry.exists()).map((entry) => toPlayer(entry.id, entry.data()!));
+    const stored = matchIndex.docs.map((matchDoc) => toMatch(matchDoc.id, matchDoc.data()));
+
+    const plan = planSync(entries, roster, stored);
+    // A duplicate is either this outbox's own game from a sync that landed
+    // before the phone could clear it, or the same result logged elsewhere.
+    // Both are done with, so both leave the outbox.
+    const settledDuplicates = plan.duplicates.map((entry) => entry.id);
+    const base = {
+      unresolved: plan.unresolved.map((entry) => entry.id),
+      duplicates: settledDuplicates,
+    };
+    if (plan.ready.length === 0) {
+      return { players: roster, matches: stored, settled: settledDuplicates, ...base };
+    }
+
+    const nameOf = new Map(roster.map((player) => [player.id, player.name]));
+    const eloOf = new Map(roster.map((player) => [player.id, player.elo]));
+    const fresh: MatchRecord[] = plan.ready.map((entry) => ({
+      id: offlineMatchDocId(entry),
+      timestamp: entry.playedAt,
+      playerAId: entry.winnerId,
+      playerAName: nameOf.get(entry.winnerId) ?? entry.winnerName,
+      playerBId: entry.loserId,
+      playerBName: nameOf.get(entry.loserId) ?? entry.loserName,
+      winnerId: entry.winnerId,
+      loserId: entry.loserId,
+      // Placeholders: the replay below works out the real numbers.
+      playerAEloBefore: eloOf.get(entry.winnerId) ?? 1000,
+      playerAEloAfter: eloOf.get(entry.winnerId) ?? 1000,
+      playerBEloBefore: eloOf.get(entry.loserId) ?? 1000,
+      playerBEloAfter: eloOf.get(entry.loserId) ?? 1000,
+      eloDelta: 0,
+      isUpset: false,
+      bountyCollected: 0,
+      modifiers: { eightOnBreak: false, scratchOnEight: false, tableRun: false },
+    }));
+
+    const seasonMatches = matchesInSeason([...stored, ...fresh], season);
+    const replay = runLeagueReplay(roster.map((player) => player.id), seasonMatches, season.startingElo);
+    const rebuilt = new Map(replay.matches.map((match) => [match.id, match]));
+    const storedById = new Map(stored.map((match) => [match.id, match]));
+
+    const players = roster.map((player) => {
+      const member = replay.members.get(player.id);
+      if (!member) return player;
+      return {
+        ...player,
+        elo: member.elo,
+        peakElo: member.peakElo,
+        wins: member.wins,
+        losses: member.losses,
+        currentStreak: member.currentStreak,
+        bestWinStreak: member.bestWinStreak,
+        breakAndRuns: member.breakAndRuns,
+        recentForm: member.recentForm,
+        lastPlayedAt: member.lastPlayedAt,
+      };
+    });
+    for (const player of players) {
+      transaction.update(doc(db, 'players', player.id), {
+        elo: player.elo,
+        peakElo: player.peakElo,
+        wins: player.wins,
+        losses: player.losses,
+        currentStreak: player.currentStreak,
+        bestWinStreak: player.bestWinStreak,
+        breakAndRuns: player.breakAndRuns,
+        recentForm: player.recentForm,
+        lastPlayedAt: player.lastPlayedAt,
+      });
+    }
+
+    for (const match of fresh) {
+      const final = rebuilt.get(match.id) ?? match;
+      const entry = plan.ready.find((item) => offlineMatchDocId(item) === match.id)!;
+      transaction.set(doc(matchesCollection, match.id), {
+        playerAId: final.playerAId,
+        playerAName: final.playerAName,
+        playerBId: final.playerBId,
+        playerBName: final.playerBName,
+        winnerId: final.winnerId,
+        loserId: final.loserId,
+        ...replayedFields(final),
+        modifiers: final.modifiers,
+        timestamp: Timestamp.fromMillis(final.timestamp),
+        loggedOffline: true,
+        ...(entry.loggedById ? { loggedById: entry.loggedById } : {}),
+      });
+    }
+    // Only games after the earliest queued one can have moved; the rest are left alone.
+    for (const [id, match] of rebuilt) {
+      const before = storedById.get(id);
+      if (!before) continue;
+      const next = replayedFields(match);
+      const previous = replayedFields(before);
+      if ((Object.keys(next) as Array<keyof typeof next>).some((key) => next[key] !== previous[key])) {
+        transaction.update(doc(matchesCollection, id), next);
+      }
+    }
+
+    const openReign = [...replay.reigns].reverse().find((reign) => reign.endedAt === null) ?? null;
+    transaction.set(leagueStateRef, {
+      crownHolderId: openReign?.playerId ?? null,
+      crownSince: openReign?.startedAt ?? null,
+      updatedAt: serverTimestamp(),
+    });
+
+    const merged = [...stored.map((match) => rebuilt.get(match.id) ?? match), ...fresh.map((match) => rebuilt.get(match.id) ?? match)];
+    return {
+      players,
+      matches: merged.sort((left, right) => right.timestamp - left.timestamp),
+      settled: [...plan.ready.map((entry) => entry.id), ...settledDuplicates],
+      ...base,
+    };
+  });
+}
+
 export interface LogMatchResult {
   match: MatchRecord;
   players: Player[];
@@ -452,7 +634,7 @@ export async function logMatch(
   // could stall the app for seconds. The transaction below touches exactly the
   // two players it changes, and the crown is re-derived from scratch whenever a
   // match is edited, so a stale reading here cannot become permanent.
-  const rosterSnapshot = await getDocs(playersCollection);
+  const rosterSnapshot = await getDocsFromServer(playersCollection);
   const others = rosterSnapshot.docs
     .map((playerDoc) => toPlayer(playerDoc.id, playerDoc.data()))
     .filter((player) => player.id !== playerAId && player.id !== playerBId);
@@ -636,7 +818,7 @@ const toChallenge = (id: string, data: Record<string, unknown>, now: number): Ch
 };
 
 export async function getChallenges(): Promise<Challenge[]> {
-  const snapshot = await getDocs(query(challengesCollection, orderBy('createdAt', 'desc')));
+  const snapshot = await getDocsFromServer(query(challengesCollection, orderBy('createdAt', 'desc')));
   const now = Date.now();
   return snapshot.docs.map((challengeDoc) => toChallenge(challengeDoc.id, challengeDoc.data(), now));
 }
@@ -1032,7 +1214,7 @@ const toSeason = (id: string, data: Record<string, unknown>): Season => ({
 });
 
 export async function getSeasons(): Promise<Season[]> {
-  const snapshot = await getDocs(query(seasonsCollection, orderBy('number', 'desc')));
+  const snapshot = await getDocsFromServer(query(seasonsCollection, orderBy('number', 'desc')));
   return snapshot.docs.map((seasonDoc) => toSeason(seasonDoc.id, seasonDoc.data()));
 }
 

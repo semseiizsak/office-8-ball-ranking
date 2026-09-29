@@ -52,6 +52,8 @@ import {
   setMatchReaction,
   startNewSeason,
   logMatch,
+  pingLeague,
+  syncOfflineMatches,
   resolveChallenge,
   respondToChallenge,
   subscribeToChallenges,
@@ -116,6 +118,8 @@ export const poolService = {
   subscribeToChatMessages,
   addPrediction,
   resolveChallenge,
+  pingLeague,
+  syncOfflineMatches,
   logMatch: (params: {
     playerAId: string;
     playerBId: string;

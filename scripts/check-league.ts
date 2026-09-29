@@ -1,4 +1,5 @@
 import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, softResetElo, matchesInSeason, IMPLICIT_SEASON, DAY_MS } from '../src/utils/league';
+import { isDatabaseDown, planSync, provisionalStandings, queueMatch, quotaResetsAt, resolveName, offlineMatchDocId } from '../src/utils/outbox';
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
@@ -593,6 +594,62 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('rewards: special achievements give a themed card', [rewardFor('t:upsets:3').kind, rewardFor('jackpot1').label], ['card', 'Jackpot card']);
   const legendaryPack = rollPack({ packId: 'r1', kind: 'reward', playerIds: ['a', 'b'], pity: 0, takenMythics: new Set(), minRarity: 'legendary' });
   eq('rewards: a legendary pack holds a legendary', legendaryPack.some((c) => c.rarity === 'legendary' || c.rarity === 'mythic'), true);
+}
+
+// --- offline outbox: logging while the database is out ---
+{
+  const roster = [
+    { id: 'p1', name: 'Ármin Kovács' },
+    { id: 'p2', name: 'Sarah Jenkins' },
+    { id: 'p3', name: 'Dave Bell' },
+    { id: 'p4', name: 'Dávid Nagy' },
+  ];
+  eq('outbox: full name without accents resolves', resolveName('armin kovacs', roster), 'p1');
+  eq('outbox: a unique first name resolves', resolveName('Sarah', roster), 'p2');
+  eq('outbox: case and spacing do not matter', resolveName('  SARAH ', roster), 'p2');
+  eq('outbox: an ambiguous start stays unresolved', resolveName('Da', roster), null);
+  eq('outbox: a start two players share stays unresolved', resolveName('Dav', roster), null);
+  eq('outbox: a start only one player has resolves', resolveName('Sar', roster), 'p2');
+  eq('outbox: "dave" is Dave, not Dávid', resolveName('dave', roster), 'p3');
+  eq('outbox: nobody by that name', resolveName('Zoltan', roster), null);
+
+  let box = queueMatch([], { winnerId: null, loserId: null, winnerName: 'Sarah', loserName: 'dave', loggedById: null, playedAt: T0 + 2_000 });
+  box = queueMatch(box, { winnerId: 'p1', loserId: 'p2', winnerName: 'Ármin Kovács', loserName: 'Sarah Jenkins', loggedById: 'p1', playedAt: T0 + 1_000 });
+  box = queueMatch(box, { winnerId: null, loserId: null, winnerName: 'Zoltan', loserName: 'Sarah', loggedById: null, playedAt: T0 + 3_000 });
+  box = queueMatch(box, { winnerId: null, loserId: null, winnerName: 'Dave', loserName: 'Dávid', loggedById: null, playedAt: T0 + 4_000 });
+  eq('outbox: every entry gets its own id', new Set(box.map((entry) => entry.id)).size, 4);
+
+  // Dave beat Dávid was already logged on another phone a minute later.
+  const elsewhere = [{ id: 'm-other', winnerId: 'p3', loserId: 'p4', timestamp: T0 + 64_000 }];
+  const plan = planSync(box, roster, elsewhere);
+  eq('outbox: ready in the order played', plan.ready.map((entry) => [entry.winnerId, entry.loserId]), [['p1', 'p2'], ['p2', 'p3']]);
+  eq('outbox: an unknown name waits', plan.unresolved.map((entry) => entry.winnerName), ['Zoltan']);
+  eq('outbox: the same result from another phone is a duplicate', plan.duplicates.map((entry) => entry.winnerName), ['Dave']);
+
+  // A sync that landed but was not cleared from the phone is not written again.
+  const landed = [{ id: offlineMatchDocId(plan.ready[0]), winnerId: 'p1', loserId: 'p2', timestamp: T0 + 1_000 }];
+  eq('outbox: a retried sync skips what already landed', planSync(box, roster, landed).duplicates.map((entry) => entry.id).includes(plan.ready[0].id), true);
+  // Two real games between the same pair, far enough apart, are two games.
+  const twice = queueMatch(queueMatch([], { winnerId: 'p1', loserId: 'p2', winnerName: 'a', loserName: 'b', loggedById: null, playedAt: T0 }),
+    { winnerId: 'p1', loserId: 'p2', winnerName: 'a', loserName: 'b', loggedById: null, playedAt: T0 + 15 * 60_000 });
+  eq('outbox: a rematch later is not a duplicate', planSync(twice, roster, []).ready.length, 2);
+  eq('outbox: a player cannot beat themselves', planSync(queueMatch([], { winnerId: null, loserId: null, winnerName: 'Sarah', loserName: 'sarah jenkins', loggedById: null }), roster, []).unresolved.length, 1);
+
+  const cached = [
+    { id: 'p1', name: 'Ármin Kovács', elo: 1000, wins: 0, losses: 0 },
+    { id: 'p2', name: 'Sarah Jenkins', elo: 1000, wins: 0, losses: 0 },
+  ];
+  const provisional = provisionalStandings(cached, queueMatch([], { winnerId: 'p2', loserId: 'p1', winnerName: 'Sarah Jenkins', loserName: 'Ármin Kovács', loggedById: null }));
+  eq('outbox: provisional standings play queued games on top', provisional.map((player) => [player.id, player.elo, player.wins, player.losses]), [['p2', 1016, 1, 0], ['p1', 984, 0, 1]]);
+
+  eq('outbox: quota error means the database is down', isDatabaseDown({ code: 'resource-exhausted', message: 'Quota exceeded.' }), true);
+  eq('outbox: a timeout means the database is down', isDatabaseDown(new Error('Timed out reaching the league database.')), true);
+  eq('outbox: a real bug is not mistaken for an outage', isDatabaseDown(new Error('Players not found')), false);
+
+  // 14:08 in Budapest on 29 September is 05:08 in Los Angeles; the quota comes back at 09:00 Budapest.
+  eq('outbox: quota resets at Pacific midnight (summer)', new Date(quotaResetsAt(Date.UTC(2026, 8, 29, 12, 8))).toISOString(), '2026-09-30T07:00:00.000Z');
+  eq('outbox: quota resets at Pacific midnight (winter)', new Date(quotaResetsAt(Date.UTC(2026, 11, 1, 12, 0))).toISOString(), '2026-12-02T08:00:00.000Z');
+  eq('outbox: just after Pacific midnight it is the next one', new Date(quotaResetsAt(Date.UTC(2026, 8, 30, 7, 1))).toISOString(), '2026-10-01T07:00:00.000Z');
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);
