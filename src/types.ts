@@ -9,6 +9,8 @@ export interface Player {
   ballPreference: BallPreference;
   /** The ball the player plays under (1-15): the ring on their avatar, their colour in chat. */
   ball?: number;
+  /** The restaurant they play for, if any: 'simons', 'travis', 'smashy' or 'buddys'. */
+  sponsor?: string;
   elo: number;
   peakElo: number;
   wins: number;

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Player } from '../types';
 import { ballColor, playerBall } from '../utils/balls';
+import { SPONSORS, SPONSOR_IDS, Sponsor } from '../utils/sponsors';
 
 /** A pool ball drawn in CSS: solid 1-8, striped 9-15, the 8 in black. */
 export const Ball: React.FC<{
@@ -221,6 +222,38 @@ export const fieldClass =
 export const labelClass = 'grid gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55';
 
 /** Counts up from `from` to `to` once, ease-in-out, starting after `delay` ms. */
+/** A sponsor's logo on a white patch, like a shirt badge. */
+export const SponsorPatch: React.FC<{ sponsor: Sponsor; height?: number; className?: string }> = ({ sponsor, height = 28, className = '' }) => (
+  <span
+    className={`inline-grid flex-none place-items-center bg-white ${sponsor.sharp ? '' : 'rounded-lg'} ${className}`}
+    style={{ height, padding: `${Math.round(height * 0.16)}px ${Math.round(height * 0.3)}px` }}
+    title={sponsor.name}
+  >
+    <img src={sponsor.logo} alt={sponsor.name} className="block h-full w-auto" draggable={false} />
+  </span>
+);
+
+/** Choosing a sponsor: none or one of the restaurants. */
+export const SponsorPicker: React.FC<{ value: string; onChange: (id: string) => void }> = ({ value, onChange }) => (
+  <div className="grid grid-cols-2 gap-2">
+    {[null, ...SPONSOR_IDS.map((id) => SPONSORS[id])].map((sponsor) => {
+      const id = sponsor?.id ?? '';
+      const on = value === id;
+      return (
+        <button
+          key={id || 'none'}
+          type="button"
+          aria-pressed={on}
+          onClick={() => onChange(id)}
+          className={`press grid h-16 place-items-center rounded-2xl px-3 transition-shadow duration-200 ease-[var(--ease)] ${on ? 'bg-surface-alt shadow-[inset_0_0_0_2px_#fff]' : 'bg-surface'} ${!sponsor ? 'col-span-2 h-11' : ''}`}
+        >
+          {sponsor ? <SponsorPatch sponsor={sponsor} height={36} /> : <span className="text-xs font-extrabold uppercase tracking-[0.1em]">No sponsor</span>}
+        </button>
+      );
+    })}
+  </div>
+);
+
 export const CountUp: React.FC<{ to: number; from?: number; delay?: number }> = ({ to, from = 0, delay = 0 }) => {
   const [value, setValue] = React.useState(from);
   React.useEffect(() => {

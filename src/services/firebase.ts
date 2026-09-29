@@ -127,6 +127,7 @@ const toPlayer = (id: string, data: Record<string, unknown>): Player => ({
   avatarUrl: String(data.avatarUrl ?? ''),
   ballPreference: data.ballPreference === 'stripes' ? 'stripes' : 'solids',
   ball: Number.isInteger(data.ball) && Number(data.ball) >= 1 && Number(data.ball) <= 15 ? Number(data.ball) : undefined,
+  sponsor: typeof data.sponsor === 'string' && data.sponsor ? data.sponsor : undefined,
   elo: Number(data.elo ?? 1000),
   peakElo: Number(data.peakElo ?? data.elo ?? 1000),
   wins: Number(data.wins ?? 0),
@@ -220,7 +221,7 @@ export async function addPlayer(params: {
 
 export async function updatePlayer(
   playerId: string,
-  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball'>
+  updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor'>
 ): Promise<void> {
   await updateDoc(doc(db, 'players', playerId), {
     name: updates.name.trim(),
@@ -229,6 +230,7 @@ export async function updatePlayer(
     avatarUrl: updates.avatarUrl,
     ballPreference: updates.ballPreference,
     ...(updates.ball ? { ball: updates.ball } : {}),
+    ...(updates.sponsor !== undefined ? { sponsor: updates.sponsor || deleteField() } : {}),
   });
 }
 

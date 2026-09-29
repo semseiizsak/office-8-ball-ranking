@@ -872,7 +872,7 @@ export default function App() {
   };
 
   const handleSaveProfile = async (
-    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball'>
+    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor'>
   ) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);

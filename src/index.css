@@ -417,3 +417,12 @@ input, textarea, select { font-size: 16px; }
 .pc.pc-themed .pc-bg { --rim: var(--th); --fill: radial-gradient(80% 55% at 50% 30%, color-mix(in srgb, var(--th) 45%, #0A0A0A), #0A0A0A 75%); }
 .pc-themed .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) var(--th); background: #0A0A0A; }
 .pc-emoji { font-size: calc(54 * var(--k)); }
+
+/* Sponsor: the brand's colours as a diagonal band across the card, and the
+   logo on a white patch at the top, like a shirt sponsor. */
+.pc-sponsor { background: linear-gradient(135deg, transparent 0 58%, var(--sp) 58% 67%, var(--sp2) 67% 71%, transparent 71%); opacity: .85; }
+.pc-sponsor.on-art { opacity: .5; }
+.pc-sp-patch { position: absolute; left: 50%; top: calc(24 * var(--k)); transform: translateX(-50%); height: calc(22 * var(--k)); padding: calc(3 * var(--k)) calc(7 * var(--k)); background: #fff; border-radius: calc(6 * var(--k)); display: grid; place-items: center; z-index: 3; }
+.pc-sp-patch.sharp { border-radius: 0; }
+.pc-sp-patch img { display: block; height: 100%; width: auto; max-width: calc(80 * var(--k)); object-fit: contain; }
+.pc-medium .pc-sp-patch { top: calc(30 * var(--k)); height: calc(26 * var(--k)); }

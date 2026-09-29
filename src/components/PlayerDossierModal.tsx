@@ -1,4 +1,5 @@
 import { rewardFor } from '../utils/rewards';
+import { sponsorOf } from '../utils/sponsors';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, Pencil, Swords } from 'lucide-react';
 import { Challenge, Player, MatchRecord } from '../types';
@@ -16,7 +17,7 @@ import { DailyRecord } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
 import { TitleBadges } from './TitleBadges';
-import { Ball, PlayerAvatar } from './ui';
+import { SponsorPatch, Ball, PlayerAvatar } from './ui';
 
 interface PlayerDossierModalProps {
   player: Player | null;
@@ -193,6 +194,12 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
       <div className="grid justify-items-center gap-2.5 pb-1 pt-2 text-center">
         <PlayerAvatar player={player} size={112} />
         <h1 className="text-[30px] [overflow-wrap:anywhere]">{shamed(player.name, player)}</h1>
+        {sponsorOf(player) && (
+          <span className="anim-pop grid justify-items-center gap-1">
+            <SponsorPatch sponsor={sponsorOf(player)!} height={34} />
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/55">Sponsored</span>
+          </span>
+        )}
         <div className="flex flex-wrap justify-center gap-1.5">
           {player.department && <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">{player.department}</span>}
           <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">Ball {playerBall(player)}</span>

@@ -4,13 +4,13 @@ import { Player } from '../types';
 import { hardRefresh } from '../utils/refresh';
 import { readImage } from '../utils/image';
 import { playerBall } from '../utils/balls';
-import { BallPicker, PlayerAvatar, Sheet, fieldClass, labelClass } from './ui';
+import { BallPicker, PlayerAvatar, Sheet, SponsorPicker, fieldClass, labelClass } from './ui';
 
 interface ProfileModalProps {
   player: Player | null;
   onClose: () => void;
   onSwitchPlayer: () => void;
-  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball'>) => Promise<void>;
+  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor'>) => Promise<void>;
 }
 
 /** Editing your own profile: photo, name, team, title and the ball you play under. */
@@ -19,6 +19,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
   const [department, setDepartment] = useState('');
   const [title, setTitle] = useState('');
   const [ball, setBall] = useState(1);
+  const [sponsor, setSponsor] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -29,6 +30,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
     setDepartment(player.department ?? '');
     setTitle(player.title ?? '');
     setBall(playerBall(player));
+    setSponsor(player.sponsor ?? '');
     setAvatarUrl(player.avatarUrl);
     setError('');
   }, [player]);
@@ -51,7 +53,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
     try {
       setIsSaving(true);
       setError('');
-      await onSave({ name, department, title, avatarUrl, ball, ballPreference: ball > 8 ? 'stripes' : 'solids' });
+      await onSave({ name, department, title, avatarUrl, ball, sponsor, ballPreference: ball > 8 ? 'stripes' : 'solids' });
       onClose();
     } catch {
       setError('Could not save your profile. Please try again.');
@@ -89,6 +91,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
       <div className={labelClass}>
         Your ball
         <BallPicker value={ball} onChange={setBall} />
+      </div>
+      <div className={labelClass}>
+        Your sponsor
+        <SponsorPicker value={sponsor} onChange={setSponsor} />
       </div>
       {error && <p role="alert" className="rounded-xl bg-surface-alt p-3 text-sm font-semibold normal-case tracking-normal text-white">{error}</p>}
       <button type="button" onClick={onSwitchPlayer} disabled={isSaving} className={`${button} bg-surface-alt`}>

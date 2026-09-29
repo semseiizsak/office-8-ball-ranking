@@ -4,7 +4,8 @@ import { CrownState, computeRivalry } from '../utils/league';
 import { previewStakes } from '../utils/stakes';
 import { ballColor, playerBall } from '../utils/balls';
 import { shamed } from '../utils/shame';
-import { CallSplit, PlayerAvatar } from './ui';
+import { CallSplit, PlayerAvatar, SponsorPatch } from './ui';
+import { sponsorOf } from '../utils/sponsors';
 
 export type PosterReason = 'crown' | 'derby' | 'grudge' | null;
 
@@ -126,6 +127,13 @@ export const FightPoster: React.FC<{
             </div>
             <CallSplit left={{ player: a, count: forA }} right={{ player: b, count: forB }} />
           </div>
+          {(sponsorOf(a) || sponsorOf(b)) && (
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-1">
+              <span className="justify-self-start">{sponsorOf(a) && <SponsorPatch sponsor={sponsorOf(a)!} height={26} />}</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/55">Presented by</span>
+              <span className="justify-self-end">{sponsorOf(b) && <SponsorPatch sponsor={sponsorOf(b)!} height={26} />}</span>
+            </div>
+          )}
           <p className="pt-1 text-center text-xs font-semibold text-white/55">Tap anywhere to close</p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Crown, Laugh, Star, Swords, Trophy, Zap } from 'lucide-react';
 import { Player } from '../../types';
 import { Card, CardType, Rarity, ThemedType } from '../../utils/cards';
 import { ballColor, playerBall } from '../../utils/balls';
+import { sponsorOf } from '../../utils/sponsors';
 
 export type CardSize = 'full' | 'medium' | 'mini';
 
@@ -59,7 +60,7 @@ const WIDTH: Record<CardSize, number> = { full: 300, medium: 150, mini: 0 };
  */
 export const PlayerCard: React.FC<{
   card: Pick<Card, 'type' | 'rarity' | 'stats' | 'serial' | 'season' | 'note' | 'photo' | 'photoId'>;
-  player: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'> | null | undefined;
+  player: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball' | 'sponsor'> | null | undefined;
   /** The second player on a rivalry card. */
   other?: Pick<Player, 'id' | 'name' | 'ball'> | null;
   size?: CardSize;
@@ -72,6 +73,7 @@ export const PlayerCard: React.FC<{
   // The photo printed when the card was pulled; only cards from before photos were stored fall back to today's.
   const photo = card.photo ?? (card.photoId ? '' : player?.avatarUrl || '');
   const special = card.type !== 'player';
+  const sponsor = sponsorOf(player);
   const fullArt = !special && (card.rarity === 'legendary' || card.rarity === 'mythic');
   const tilt = fullArt && size === 'full';
   const glows = !special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity);
@@ -152,8 +154,19 @@ export const PlayerCard: React.FC<{
           </>
         )}
         {!fullArt && ['common', 'uncommon', 'rare'].includes(card.rarity) && !special && <div className="pc-sh pc-sweep" />}
+        {sponsor && (
+          <div
+            className={`pc-sh pc-sponsor${fullArt ? ' on-art' : ''}`}
+            style={{ ['--sp' as string]: sponsor.c, ['--sp2' as string]: sponsor.c2 ?? sponsor.c }}
+          />
+        )}
         <div className="pc-text">
           {center}
+          {sponsor && size !== 'mini' && (
+            <span className={`pc-sp-patch${sponsor.sharp ? ' sharp' : ''}`}>
+              <img src={sponsor.logo} alt={sponsor.name} draggable={false} />
+            </span>
+          )}
           <div className="pc-corner">
             <div className="pc-ovr">{card.stats.ovr}</div>
             <div className="pc-pos">{positionOf(card)}</div>

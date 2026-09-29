@@ -38,6 +38,7 @@ const basePlayers: Player[] = NAMES.map((name, index) => ({
   department: ['Design', 'Product', 'Sales', 'Engineering', 'Ops'][index],
   title: 'Pool Contender',
   avatarUrl: '',
+  sponsor: ['simons', 'travis', 'smashy', 'buddys', undefined][index],
   ballPreference: 'solids',
   elo: 1000,
   peakElo: 1000,
