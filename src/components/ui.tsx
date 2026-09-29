@@ -222,13 +222,9 @@ export const fieldClass =
 export const labelClass = 'grid gap-2 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55';
 
 /** Counts up from `from` to `to` once, ease-in-out, starting after `delay` ms. */
-/** A sponsor's logo on a white patch, like a shirt badge. */
+/** A sponsor's logo, the transparent file as supplied, like a shirt badge. */
 export const SponsorPatch: React.FC<{ sponsor: Sponsor; height?: number; className?: string }> = ({ sponsor, height = 28, className = '' }) => (
-  <span
-    className={`inline-grid flex-none place-items-center bg-white ${sponsor.sharp ? '' : 'rounded-lg'} ${className}`}
-    style={{ height, padding: `${Math.round(height * 0.16)}px ${Math.round(height * 0.3)}px` }}
-    title={sponsor.name}
-  >
+  <span className={`inline-grid flex-none place-items-center ${className}`} style={{ height }} title={sponsor.name}>
     <img src={sponsor.logo} alt={sponsor.name} className="block h-full w-auto" draggable={false} />
   </span>
 );
