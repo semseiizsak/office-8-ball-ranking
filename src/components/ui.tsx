@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Player } from '../types';
 import { ballColor, playerBall } from '../utils/balls';
 
@@ -149,7 +150,8 @@ export const Sheet: React.FC<{
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, closeDisabled]);
-  return (
+  // Portalled to the body: inside a tab's animated wrapper it would sit under the nav and header.
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)} className="fixed inset-0 flex items-end justify-center" style={{ zIndex: z }}>
       <button type="button" aria-label="Close" onClick={onClose} disabled={closeDisabled} className="anim-fade absolute inset-0 bg-black/60" />
       <div className="anim-sheet relative flex max-h-[90vh] w-full max-w-md flex-col rounded-t-3xl bg-elev">
@@ -172,7 +174,8 @@ export const Sheet: React.FC<{
         {footer && <div className="shrink-0 px-4 pb-[calc(var(--safe-bottom)+1.25rem)] pt-1">{footer}</div>}
         {!footer && <div className="h-[calc(var(--safe-bottom)+0.75rem)] shrink-0" />}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

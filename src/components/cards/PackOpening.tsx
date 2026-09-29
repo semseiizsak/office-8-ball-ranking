@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Player } from '../../types';
 import { Card, Pack, RARITIES } from '../../utils/cards';
 import { BallBurst } from '../ui';
@@ -72,7 +73,7 @@ export const PackOpening: React.FC<{
   const headline =
     phase === 'summary' || big ? (best?.rarity === 'mythic' ? 'Mythic!' : big ? 'Legendary!' : best && rank(best) >= 3 ? 'Epic pull' : 'Your cards') : null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -173,6 +174,7 @@ export const PackOpening: React.FC<{
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
@@ -351,8 +352,8 @@ export const LiveMatchScreen: React.FC<{
     { player: opponent, id: challenge.opponentId, name: challenge.opponentName, win: challenge.stakes.opponentWinDelta, elo: opponent?.elo ?? challenge.stakes.opponentElo },
   ];
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Match in progress" className="anim-fade fixed inset-0 z-40 flex flex-col overflow-hidden bg-bg">
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label="Match in progress" className="anim-fade fixed inset-0 z-[55] flex flex-col overflow-hidden bg-bg">
       <div className="mx-auto flex h-full w-full max-w-md flex-col">
         <div className="relative z-20 flex shrink-0 items-center justify-between gap-2 px-4 pb-2 pt-[calc(var(--safe-top)+0.9rem)]">
           <button type="button" onClick={onClose} aria-label="Back" className="press grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
@@ -530,7 +531,8 @@ export const LiveMatchScreen: React.FC<{
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
