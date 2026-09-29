@@ -117,7 +117,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
       </div>
       {locked && (
         <p className="rounded-xl bg-surface p-3 text-sm font-semibold normal-case tracking-normal text-white/70">
-          Your ball and sponsor are fixed for {seasonName}. What you pick now is worn from the start of next season.
+          Your ball and sponsor on this season's cards are fixed for {seasonName}. What you pick now is worn from the start of next season.
         </p>
       )}
       {error && <p role="alert" className="rounded-xl bg-surface-alt p-3 text-sm font-semibold normal-case tracking-normal text-white">{error}</p>}

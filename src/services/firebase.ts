@@ -242,9 +242,10 @@ export async function updatePlayer(
 }
 
 /** A new season: the picks made last season become the ones worn, fixed for this one. */
-export async function lockSeasonLook(playerId: string, seasonId: string, look: { ball?: number; sponsor?: string }): Promise<void> {
+export async function lockSeasonLook(playerId: string, seasonId: string, look: { ball?: number; sponsor?: string; avatarUrl?: string }): Promise<void> {
   await updateDoc(doc(db, 'players', playerId), {
     lockedSeason: seasonId,
+    ...(look.avatarUrl !== undefined ? { avatarUrl: look.avatarUrl, avatarChangedAt: Date.now() } : {}),
     ...(look.ball ? { ball: look.ball, ballPreference: look.ball > 8 ? 'stripes' : 'solids' } : {}),
     sponsor: look.sponsor || deleteField(),
     nextBall: deleteField(),

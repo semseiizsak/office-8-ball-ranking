@@ -39,6 +39,7 @@ import { CollectionView } from './components/cards/CollectionView';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { SeasonWrapScene } from './components/SeasonWrapScene';
+import { SeasonLookSheet } from './components/SeasonLookSheet';
 import { CupView } from './components/CupView';
 import { Tournament, allGames, deriveCups, mondayOf, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
@@ -932,23 +933,30 @@ export default function App() {
     setCurrentPlayer(null);
   };
 
-  // Ball and sponsor are fixed for the season on the first open of it.
-  useEffect(() => {
-    if (!currentPlayer || isLoading || currentPlayer.lockedSeason === currentSeason.id) return;
-    const look = {
-      ball: currentPlayer.nextBall ?? currentPlayer.ball,
-      sponsor: currentPlayer.nextSponsor !== undefined ? currentPlayer.nextSponsor : currentPlayer.sponsor,
+  // A new season opens with picking the look for it: photo, ball and sponsor,
+  // fixed on every new card until the season ends.
+  const needsSeasonLook = !!currentPlayer && !isLoading && currentPlayer.lockedSeason !== currentSeason.id;
+  const handleSeasonLook = async (look: { avatarUrl: string; ball: number; sponsor: string }) => {
+    if (!currentPlayer) return;
+    const photoChanged = look.avatarUrl !== currentPlayer.avatarUrl;
+    await poolService.lockSeasonLook(currentPlayer.id, currentSeason.id, {
+      ball: look.ball,
+      sponsor: look.sponsor,
+      ...(photoChanged ? { avatarUrl: look.avatarUrl } : {}),
+    });
+    const updated: Player = {
+      ...currentPlayer,
+      ball: look.ball,
+      ballPreference: look.ball > 8 ? 'stripes' : 'solids',
+      sponsor: look.sponsor || undefined,
+      ...(photoChanged ? { avatarUrl: look.avatarUrl, avatarChangedAt: Date.now() } : {}),
+      lockedSeason: currentSeason.id,
+      nextBall: undefined,
+      nextSponsor: undefined,
     };
-    poolService
-      .lockSeasonLook(currentPlayer.id, currentSeason.id, look)
-      .then(() => {
-        const updated = { ...currentPlayer, ...look, sponsor: look.sponsor || undefined, lockedSeason: currentSeason.id, nextBall: undefined, nextSponsor: undefined };
-        setCurrentPlayer(updated);
-        setPlayers((prev) => prev.map((player) => (player.id === updated.id ? updated : player)));
-      })
-      .catch((error) => console.warn('Season look not fixed:', error));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, currentPlayer?.lockedSeason, isLoading, currentSeason.id]);
+    setCurrentPlayer(updated);
+    setPlayers((prev) => prev.map((player) => (player.id === updated.id ? updated : player)));
+  };
 
   const handleSaveProfile = async (
     updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt' | 'nextBall' | 'nextSponsor'>
@@ -1519,6 +1527,10 @@ export default function App() {
             setActiveTab('leaderboard');
           }}
         />
+
+        {needsSeasonLook && currentPlayer && (
+          <SeasonLookSheet player={currentPlayer} seasonName={currentSeason.name} onConfirm={handleSeasonLook} />
+        )}
 
         <ProfileModal
           player={showProfile ? currentPlayer : null}
