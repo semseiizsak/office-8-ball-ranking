@@ -73,6 +73,9 @@ export default function App() {
   const [trades, setTrades] = useState<Trade[]>([]);
   /** Profile photos as they were printed on cards, by photo id. */
   const [photos, setPhotos] = useState<Map<string, string>>(new Map());
+  /** Until both have arrived, nobody can tell what has already been paid out. */
+  const [cardsSeen, setCardsSeen] = useState({ cards: false, packs: false });
+  const cardsLoading = !cardsSeen.cards || !cardsSeen.packs;
   /** The weekly cups, one document per week. */
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
@@ -287,8 +290,14 @@ export default function App() {
   useEffect(() => {
     if (!currentPlayer) return;
     const off = [
-      poolService.subscribeToCards(setCards),
-      poolService.subscribeToPacks(setPacks),
+      poolService.subscribeToCards((next) => {
+        setCards(next);
+        setCardsSeen((seen) => ({ ...seen, cards: true }));
+      }),
+      poolService.subscribeToPacks((next) => {
+        setPacks(next);
+        setCardsSeen((seen) => ({ ...seen, packs: true }));
+      }),
       poolService.subscribeToCollectors(setCollectors),
       poolService.subscribeToTrades(setTrades),
       poolService.subscribeToPhotos(setPhotos),
@@ -544,39 +553,48 @@ export default function App() {
   }, [currentPlayer?.id, isLoading, cards.length]);
 
   // Unlock rewards: a pack for most unlocks, a themed card for the special ones.
-  const [baseline, setBaseline] = useState<Set<string> | null>(null);
-  const myUnlocks = useMemo(() => {
-    if (!currentPlayer) return [] as string[];
-    const start = currentSeason.startingElo[currentPlayer.id] ?? 1000;
-    return [...unlockKeys(buildBadgeContext(currentPlayer, matches, challenges, start, undefined, dailyRecords.get(currentPlayer.id), cupRecords.get(currentPlayer.id), awardRecords.get(currentPlayer.id)))].sort();
+  // Every open phone pays out for everyone, including what was earned before
+  // rewards existed; ids are the unlock, so nothing is ever paid twice.
+  const allUnlocks = useMemo(
+    () =>
+      players.map((player) => {
+        const start = currentSeason.startingElo[player.id] ?? 1000;
+        const context = buildBadgeContext(player, matches, challenges, start, undefined, dailyRecords.get(player.id), cupRecords.get(player.id), awardRecords.get(player.id));
+        return { player, keys: [...unlockKeys(context)] };
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, matches, challenges, dailyRecords, cupRecords, awardRecords]);
+    [players, matches, challenges, dailyRecords, cupRecords, awardRecords]
+  );
+  const paidOut = useRef(new Set<string>());
   useEffect(() => {
-    if (!currentPlayer || isLoading || myUnlocks.length === 0) return;
-    if (!baseline) {
-      poolService.rewardBaseline(currentPlayer.id, myUnlocks).then((keys) => setBaseline(new Set(keys))).catch((error) => console.warn('No reward baseline:', error));
-      return;
-    }
-    for (const key of myUnlocks) {
-      if (baseline.has(key)) continue;
-      const reward = rewardFor(key, BADGE[key]?.secret);
-      const name = describeUnlock(key)?.name ?? key;
-      if (reward.kind === 'pack') {
-        void poolService.ensureRewardPack(currentPlayer.id, key, `${reward.label} for ${name}`, reward.minRarity).catch((error) => console.warn('Reward pack not given:', error));
-      } else {
-        void poolService
-          .grantSpecial({
-            award: { id: `ach-${currentPlayer.id}-${key.replace(/[^a-z0-9]/gi, '-')}`, type: reward.type, playerId: currentPlayer.id, note: name },
-            stats: cardStatsById[currentPlayer.id],
-            season: currentSeason.name,
-            seasonId: currentSeason.id,
-            photo: photoShots[currentPlayer.id],
-          })
-          .catch((error) => console.warn('Themed card not given:', error));
+    if (!currentPlayer || isLoading || cardsLoading) return;
+    const packIds = new Set(packs.map((pack) => pack.id));
+    const cardIds = new Set(cards.map((card) => card.id));
+    for (const { player, keys } of allUnlocks) {
+      for (const key of keys) {
+        const slug = key.replace(/[^a-z0-9]/gi, '-');
+        const reward = rewardFor(key, BADGE[key]?.secret);
+        const id = reward.kind === 'pack' ? `${player.id}_reward_${slug}` : `ach-${player.id}-${slug}`;
+        if (paidOut.current.has(id) || packIds.has(id) || cardIds.has(id)) continue;
+        paidOut.current.add(id);
+        const name = describeUnlock(key)?.name ?? key;
+        if (reward.kind === 'pack') {
+          void poolService.ensureRewardPack(player.id, key, `${reward.label} for ${name}`, reward.minRarity).catch((error) => console.warn('Reward pack not given:', error));
+        } else {
+          void poolService
+            .grantSpecial({
+              award: { id, type: reward.type, playerId: player.id, note: name },
+              stats: cardStatsById[player.id],
+              season: currentSeason.name,
+              seasonId: currentSeason.id,
+              photo: photoShots[player.id],
+            })
+            .catch((error) => console.warn('Themed card not given:', error));
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, myUnlocks.join(), baseline]);
+  }, [currentPlayer?.id, isLoading, cardsLoading, allUnlocks, packs.length, cards.length]);
 
   const firstName = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
   const others = () => players.map((player) => player.id).filter((id) => id !== currentPlayer?.id);
