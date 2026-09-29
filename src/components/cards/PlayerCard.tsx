@@ -34,7 +34,7 @@ const WIDTH: Record<CardSize, number> = { full: 300, medium: 150, mini: 0 };
  * (legendary and mythic) tilts and moves its foil under the pointer.
  */
 export const PlayerCard: React.FC<{
-  card: Pick<Card, 'type' | 'rarity' | 'stats' | 'serial' | 'season' | 'note'>;
+  card: Pick<Card, 'type' | 'rarity' | 'stats' | 'serial' | 'season' | 'note' | 'photo' | 'photoId'>;
   player: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'> | null | undefined;
   /** The second player on a rivalry card. */
   other?: Pick<Player, 'id' | 'name' | 'ball'> | null;
@@ -45,7 +45,8 @@ export const PlayerCard: React.FC<{
 }> = ({ card, player, other, size = 'full', width, className = '' }) => {
   const ref = useRef<HTMLDivElement>(null);
   const n = playerBall(player);
-  const photo = player?.avatarUrl || '';
+  // The photo printed when the card was pulled; only cards from before photos were stored fall back to today's.
+  const photo = card.photo ?? (card.photoId ? '' : player?.avatarUrl || '');
   const special = card.type !== 'player';
   const fullArt = !special && (card.rarity === 'legendary' || card.rarity === 'mythic');
   const tilt = fullArt && size === 'full';

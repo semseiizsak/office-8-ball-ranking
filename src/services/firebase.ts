@@ -64,6 +64,7 @@ import {
   Trade,
   TradeStatus,
   designKey,
+  printKey,
   rollPack,
   weekKeyOf,
 } from '../utils/cards';
@@ -1364,6 +1365,26 @@ const collectorsCollection = collection(db, 'collectors');
 const tradesCollection = collection(db, 'trades');
 const mythicsCollection = collection(db, 'mythics');
 const printsCollection = collection(db, 'prints');
+const photosCollection = collection(db, 'photos');
+
+export function subscribeToPhotos(onChange: (photos: Map<string, string>) => void): () => void {
+  return onSnapshot(photosCollection, (snapshot) => onChange(new Map(snapshot.docs.map((entry) => [entry.id, String(entry.data().data ?? '')]))));
+}
+
+/** Gives old cards the photo their subject has now, so later photo changes leave them alone. */
+export async function backfillCards(updates: Array<{ cardId: string; seasonId?: string; photo?: { id: string; data: string } | 'none' }>): Promise<void> {
+  for (let i = 0; i < updates.length; i += 200) {
+    const batch = writeBatch(db);
+    for (const update of updates.slice(i, i + 200)) {
+      if (update.photo && update.photo !== 'none') batch.set(doc(photosCollection, update.photo.id), { data: update.photo.data });
+      batch.update(doc(cardsCollection, update.cardId), {
+        ...(update.photo ? { photoId: update.photo === 'none' ? 'none' : update.photo.id } : {}),
+        ...(update.seasonId ? { seasonId: update.seasonId } : {}),
+      });
+    }
+    await batch.commit();
+  }
+}
 
 const toCard = (id: string, data: Record<string, unknown>): Card => ({
   id,
@@ -1376,6 +1397,8 @@ const toCard = (id: string, data: Record<string, unknown>): Card => ({
   serial: Number(data.serial ?? 1),
   note: data.note ? String(data.note) : undefined,
   season: String(data.season ?? ''),
+  seasonId: String(data.seasonId ?? ''),
+  photoId: data.photoId ? String(data.photoId) : undefined,
   source: (data.source as Card['source']) ?? 'pack',
   packId: data.packId ? String(data.packId) : undefined,
   createdAt: Number(data.createdAt ?? 0),
@@ -1450,6 +1473,9 @@ export async function openPack(params: {
   playerIds: string[];
   stats: Record<string, CardStats>;
   season: string;
+  seasonId: string;
+  /** Each player's photo right now, printed onto the cards. */
+  photos: Record<string, { id: string; data: string }>;
 }): Promise<Card[]> {
   const packRef = doc(packsCollection, params.packId);
   const collectorRef = doc(collectorsCollection, params.ownerId);
@@ -1462,11 +1488,12 @@ export async function openPack(params: {
     if (pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
     const collectorDoc = await transaction.get(collectorRef);
     const collector = toCollector(params.ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
-    const mythicDocs = await Promise.all(params.playerIds.map((id) => transaction.get(doc(mythicsCollection, id))));
-    const takenMythics = new Set(mythicDocs.filter((entry) => entry.exists()).map((entry) => entry.id));
+    // One mythic per player per season.
+    const mythicDocs = await Promise.all(params.playerIds.map((id) => transaction.get(doc(mythicsCollection, `${params.seasonId}_${id}`))));
+    const takenMythics = new Set(mythicDocs.filter((entry) => entry.exists()).map((entry) => entry.id.slice(params.seasonId.length + 1)));
 
     const slots = rollPack({ packId: pack.id, kind: pack.kind, playerIds: params.playerIds, pity: collector.pity, takenMythics });
-    const keys = slots.map((slot) => designKey({ type: 'player', playerId: slot.playerId, rarity: slot.rarity }));
+    const keys = slots.map((slot) => printKey(params.seasonId, { type: 'player', playerId: slot.playerId, rarity: slot.rarity }));
     const printDocs = await Promise.all([...new Set(keys)].map((key) => transaction.get(doc(printsCollection, key))));
     const printed = new Map(printDocs.map((entry) => [entry.id, Number(entry.exists() ? entry.data().count ?? 0 : 0)]));
 
@@ -1485,16 +1512,22 @@ export async function openPack(params: {
         stats: params.stats[slot.playerId] ?? { ovr: 70, WIN: 50, CLU: 50, FRM: 50, BRK: 50, CAL: 50, GRT: 50 },
         serial,
         season: params.season,
+        seasonId: params.seasonId,
+        // 'none' marks a player who had no photo then, so a later photo stays off this card.
+        photoId: params.photos[slot.playerId]?.id ?? 'none',
         source: 'pack',
         packId: pack.id,
         createdAt: now + index,
       };
     });
     for (const card of cards) {
-      const { id, otherId, note, ...data } = card;
-      transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}), ...(note ? { note } : {}) });
-      if (card.rarity === 'mythic') transaction.set(doc(mythicsCollection, card.playerId), { cardId: id, ownerId: params.ownerId, at: now });
+      const { id, otherId, note, photoId, photo, ...data } = card;
+      transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}), ...(note ? { note } : {}), ...(photoId ? { photoId } : {}) });
+      if (card.rarity === 'mythic') transaction.set(doc(mythicsCollection, `${params.seasonId}_${card.playerId}`), { cardId: id, ownerId: params.ownerId, at: now });
+      const shot = params.photos[card.playerId];
+      if (shot) transaction.set(doc(photosCollection, shot.id), { data: shot.data });
     }
+    for (const card of cards) card.photo = params.photos[card.playerId]?.data;
     for (const [key, count] of printed) transaction.set(doc(printsCollection, key), { count });
     const legendary = cards.some((card) => card.rarity === 'legendary' || card.rarity === 'mythic');
     transaction.set(collectorRef, { pity: legendary ? 0 : collector.pity + 1, opened: collector.opened + 1, duplicateChips: collector.duplicateChips }, { merge: true });
@@ -1504,11 +1537,17 @@ export async function openPack(params: {
 }
 
 /** Gives a player their special edition for an event, once. */
-export async function grantSpecial(params: { award: SpecialAward; stats: CardStats; season: string }): Promise<Card | null> {
+export async function grantSpecial(params: {
+  award: SpecialAward;
+  stats: CardStats;
+  season: string;
+  seasonId: string;
+  photo?: { id: string; data: string };
+}): Promise<Card | null> {
   const { award } = params;
   const ref = doc(cardsCollection, award.id);
   const rarity = SPECIAL_RARITY[award.type];
-  const key = designKey({ type: award.type, playerId: award.playerId, otherId: award.otherId, rarity });
+  const key = printKey(params.seasonId, { type: award.type, playerId: award.playerId, otherId: award.otherId, rarity });
   const printRef = doc(printsCollection, key);
   return runTransaction(db, async (transaction) => {
     const existing = await transaction.get(ref);
@@ -1526,11 +1565,14 @@ export async function grantSpecial(params: { award: SpecialAward; stats: CardSta
       serial,
       note: award.note,
       season: params.season,
+      seasonId: params.seasonId,
+      photoId: params.photo?.id ?? 'none',
       source: 'award',
       createdAt: Date.now(),
     };
-    const { id, otherId, ...data } = card;
-    transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}) });
+    const { id, otherId, photoId, photo, ...data } = card;
+    transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}), ...(photoId ? { photoId } : {}) });
+    if (params.photo) transaction.set(doc(photosCollection, params.photo.id), { data: params.photo.data });
     transaction.set(printRef, { count: serial });
     return card;
   });

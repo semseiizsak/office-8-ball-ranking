@@ -21,6 +21,9 @@ interface CollectionViewProps {
   onCashIn: (cardId: string) => Promise<number>;
   onOfferTrade: (toId: string, give: string[], want: string[], note?: string) => Promise<void>;
   onRespondTrade: (tradeId: string, answer: 'accept' | 'decline' | 'cancel') => Promise<void>;
+  /** Every season is its own set; oldest first, the current one last. */
+  seasons: Array<{ id: string; name: string }>;
+  currentSeasonId: string;
 }
 
 const TYPES: CardType[] = ['player', 'crown', 'cup', 'totw', 'clown', 'moment', 'rivalry'];
@@ -48,12 +51,15 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   onCashIn,
   onOfferTrade,
   onRespondTrade,
+  seasons,
+  currentSeasonId,
 }) => {
   const byId = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
   const cardById = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
   const [viewId, setViewId] = useState(currentPlayer.id);
   const [rarity, setRarity] = useState<Rarity | 'all'>('all');
   const [type, setType] = useState<CardType | 'all'>('all');
+  const [seasonId, setSeasonId] = useState(currentSeasonId);
   const [openCard, setOpenCard] = useState<Card | null>(null);
   const [confirmCash, setConfirmCash] = useState(false);
   const [cashing, setCashing] = useState(false);
@@ -64,8 +70,9 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
 
   const me = currentPlayer.id;
   const mine = cards.filter((card) => card.ownerId === me);
-  const viewed = cards.filter((card) => card.ownerId === viewId);
-  const owned = new Set(mine.filter((card) => card.type === 'player').map(designKey));
+  // The album shows one season's set at a time; trades and counts use every card.
+  const viewed = cards.filter((card) => card.ownerId === viewId && card.seasonId === seasonId);
+  const owned = new Set(mine.filter((card) => card.type === 'player' && card.seasonId === currentSeasonId).map(designKey));
   const total = albumSize(players.length);
   const collector = collectors.find((entry) => entry.id === me);
   const week = weekKeyOf(now);
@@ -232,33 +239,48 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             </button>
           )}
         </div>
-        <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3" role="radiogroup" aria-label="Whose album">
-          {players.map((player) => (
-            <button
-              key={player.id}
-              type="button"
-              role="radio"
-              aria-checked={viewId === player.id}
-              onClick={() => setViewId(player.id)}
-              className={`press grid w-[64px] flex-none justify-items-center gap-1 rounded-2xl py-2 ${viewId === player.id ? 'bg-white text-bg' : 'bg-surface text-white'}`}
-            >
-              <PlayerAvatar player={player} size={36} />
-              <span className="max-w-[56px] truncate text-[11px] font-bold">{player.id === me ? 'You' : player.name.split(' ')[0]}</span>
-            </button>
-          ))}
-        </div>
-        <div className="no-scrollbar -mx-3 flex gap-1.5 overflow-x-auto px-3">
-          {(['all', ...RARITIES] as const).map((value) => (
-            <button key={value} type="button" aria-pressed={rarity === value} onClick={() => setRarity(value)} className={chip(rarity === value)}>
-              {value}
-            </button>
-          ))}
-        </div>
-        <div className="no-scrollbar -mx-3 flex gap-1.5 overflow-x-auto px-3">
-          {(['all', ...TYPES] as const).map((value) => (
-            <button key={value} type="button" aria-pressed={type === value} onClick={() => setType(value)} className={chip(type === value)}>
-              {value === 'all' ? 'All types' : value === 'player' ? 'Players' : TYPE_LABEL[value]}
-            </button>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            {
+              label: 'Album of',
+              value: viewId,
+              set: setViewId,
+              options: players.map((player) => ({ value: player.id, label: player.id === me ? 'You' : player.name.split(' ')[0] })),
+            },
+            {
+              label: 'Season',
+              value: seasonId,
+              set: setSeasonId,
+              options: [...seasons].reverse().map((entry) => ({ value: entry.id, label: entry.id === currentSeasonId ? `${entry.name}, now` : entry.name })),
+            },
+            {
+              label: 'Rarity',
+              value: rarity,
+              set: (value: string) => setRarity(value as Rarity | 'all'),
+              options: (['all', ...RARITIES] as const).map((value) => ({ value, label: value === 'all' ? 'All rarities' : value[0].toUpperCase() + value.slice(1) })),
+            },
+            {
+              label: 'Type',
+              value: type,
+              set: (value: string) => setType(value as CardType | 'all'),
+              options: (['all', ...TYPES] as const).map((value) => ({ value, label: value === 'all' ? 'All types' : value === 'player' ? 'Players' : TYPE_LABEL[value] })),
+            },
+          ].map((filter) => (
+            <label key={filter.label} className="grid min-w-0 gap-1">
+              <span className="px-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/55">{filter.label}</span>
+              <span className="relative block">
+                <select
+                  value={filter.value}
+                  onChange={(event) => filter.set(event.target.value)}
+                  className="h-11 w-full min-w-0 appearance-none truncate rounded-xl bg-surface pl-3 pr-8 text-sm font-bold text-white outline-none focus-visible:shadow-[inset_0_0_0_2px_#fff]"
+                >
+                  {filter.options.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/55">▾</span>
+              </span>
+            </label>
           ))}
         </div>
 

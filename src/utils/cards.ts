@@ -84,6 +84,12 @@ export interface Card {
   note?: string;
   /** Season label printed on the card. */
   season: string;
+  /** Every season is its own set: serials, mythics and the album start over. */
+  seasonId: string;
+  /** The subject's profile photo when it was pulled, so a new photo only shows on new cards. */
+  photoId?: string;
+  /** The photo itself, filled in on the client from the photo store. */
+  photo?: string;
   source: 'pack' | 'award' | 'trade';
   packId?: string;
   createdAt: number;
@@ -136,6 +142,21 @@ export interface Trade {
 /** A card design: the same player, type and rarity is the same slot in the album. */
 export const designKey = (card: Pick<Card, 'type' | 'playerId' | 'rarity' | 'otherId'>) =>
   `${card.type}:${card.playerId}${card.otherId ? `+${card.otherId}` : ''}:${card.rarity}`;
+
+/** The printing key: the same design in a new season is a new print run. */
+export const printKey = (seasonId: string, card: Pick<Card, 'type' | 'playerId' | 'rarity' | 'otherId'>) => `${seasonId}|${designKey(card)}`;
+
+/** A short stable id for a photo, so the same photo is stored once. */
+export function photoIdOf(data: string): string {
+  let h1 = 2166136261;
+  let h2 = 5381;
+  for (let i = 0; i < data.length; i++) {
+    const c = data.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619);
+    h2 = (Math.imul(h2, 33) + c) | 0;
+  }
+  return `p${(h1 >>> 0).toString(36)}${(h2 >>> 0).toString(36)}${data.length.toString(36)}`;
+}
 
 export const seeded = (seed: string) => {
   let h = 2166136261;

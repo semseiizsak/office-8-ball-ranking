@@ -34,7 +34,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
-import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, specialAwards, weekKeyOf } from './utils/cards';
+import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
@@ -69,6 +69,8 @@ export default function App() {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [collectors, setCollectors] = useState<Collector[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
+  /** Profile photos as they were printed on cards, by photo id. */
+  const [photos, setPhotos] = useState<Map<string, string>>(new Map());
   /** The weekly cups, one document per week. */
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
@@ -285,6 +287,7 @@ export default function App() {
       poolService.subscribeToPacks(setPacks),
       poolService.subscribeToCollectors(setCollectors),
       poolService.subscribeToTrades(setTrades),
+      poolService.subscribeToPhotos(setPhotos),
     ];
     return () => off.forEach((stop) => stop());
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -509,11 +512,32 @@ export default function App() {
     }).filter((award) => !cards.some((card) => card.id === award.id));
     for (const award of due) {
       void poolService
-        .grantSpecial({ award, stats: cardStatsById[currentPlayer.id], season: currentSeason.name })
+        .grantSpecial({ award, stats: cardStatsById[currentPlayer.id], season: currentSeason.name, seasonId: currentSeason.id, photo: photoShots[currentPlayer.id] })
         .catch((error) => console.warn('Special card not granted:', error));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
+
+  // Each player's photo right now, as it would be printed on a new card.
+  const photoShots = useMemo(
+    () => Object.fromEntries(players.filter((player) => player.avatarUrl).map((player) => [player.id, { id: photoIdOf(player.avatarUrl), data: player.avatarUrl }])),
+    [players]
+  );
+  // Cards carry their season and the photo from when they were pulled.
+  const cardsShown = useMemo(
+    () => cards.map((card) => ({ ...card, seasonId: card.seasonId || currentSeason.id, photo: card.photoId ? photos.get(card.photoId) : undefined })),
+    [cards, photos, currentSeason.id]
+  );
+  // Cards from before photos and seasons were stored get them once, as they are now.
+  useEffect(() => {
+    if (!currentPlayer || isLoading) return;
+    const stale = cards.filter((card) => !card.seasonId || !card.photoId);
+    if (stale.length === 0) return;
+    void poolService
+      .backfillCards(stale.map((card) => ({ cardId: card.id, seasonId: card.seasonId ? undefined : currentSeason.id, photo: card.photoId ? undefined : photoShots[card.playerId] ?? 'none' })))
+      .catch((error) => console.warn('Cards not backfilled:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cards.length]);
 
   const firstName = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
   const others = () => players.map((player) => player.id).filter((id) => id !== currentPlayer?.id);
@@ -526,6 +550,8 @@ export default function App() {
       playerIds: players.map((player) => player.id),
       stats: cardStatsById,
       season: currentSeason.name,
+      seasonId: currentSeason.id,
+      photos: photoShots,
     });
     // A legendary or mythic stops the room.
     const big = opened.find((card) => card.rarity === 'mythic') ?? opened.find((card) => card.rarity === 'legendary');
@@ -1250,8 +1276,10 @@ export default function App() {
               <CollectionView
                 players={players}
                 currentPlayer={currentPlayer}
-                cards={cards}
+                cards={cardsShown}
                 packs={packs}
+                seasons={[...seasons.filter((entry) => entry.id !== currentSeason.id), currentSeason].map((entry) => ({ id: entry.id, name: entry.name }))}
+                currentSeasonId={currentSeason.id}
                 collectors={collectors}
                 trades={trades}
                 matches={matches}

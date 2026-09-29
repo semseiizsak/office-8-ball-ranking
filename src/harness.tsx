@@ -313,7 +313,7 @@ const cardPlayers = players.map((player, index) => (index % 2 === 0 ? { ...playe
 const stat = (ovr: number): CardStats => ({ ovr, WIN: 81, CLU: 90, FRM: 86, BRK: 72, CAL: 64, GRT: 70 });
 let serialNo = 0;
 const mk = (ownerId: string, playerId: string, rarity: Card['rarity'], extra: Partial<Card> = {}): Card => ({
-  id: `card${++serialNo}`, ownerId, playerId, type: 'player', rarity, stats: stat(70 + serialNo), serial: serialNo, season: 'Season 2',
+  id: `card${++serialNo}`, ownerId, playerId, type: 'player', rarity, stats: stat(70 + serialNo), serial: serialNo, season: 'Season 2', seasonId: 'harness',
   source: 'pack', createdAt: now - serialNo * 3600_000, ...extra,
 });
 const collectionCards: Card[] = [
@@ -442,7 +442,7 @@ const Harness: React.FC = () => {
         </div>
         <main className="flex-1 overflow-x-hidden px-3 pt-3">
           {tab === 'collection' ? (
-            <CollectionView players={cardPlayers} currentPlayer={cardPlayers[2]} cards={cardList} packs={packList}
+            <CollectionView seasons={[{ id: 'harness', name: 'Season 2' }]} currentSeasonId="harness" players={cardPlayers} currentPlayer={cardPlayers[2]} cards={cardList} packs={packList}
               collectors={[{ id: 'p2', counts: {}, pity: 12, duplicateChips: 45, opened: 18 }]} trades={tradeList} matches={seasonMatches} now={now} earned={null}
               onOpenPack={async (packId) => {
                 // Canned pull with a legendary in it, after a network-ish wait.
