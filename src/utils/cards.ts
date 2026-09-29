@@ -36,7 +36,9 @@ export const CARDS_PER_PACK = 3;
 /** Packs opened without a legendary before the next one is guaranteed one. */
 export const LEGENDARY_PITY = 30;
 
-export type CardType = 'player' | 'crown' | 'cup' | 'totw' | 'clown' | 'moment' | 'rivalry';
+/** Themed cards: only ever given for one special achievement each. */
+export type ThemedType = 'giant' | 'onfire' | 'ironman' | 'grinder' | 'dynasty' | 'oracle' | 'jackpot' | 'kingslayer' | 'underdog' | 'sniper' | 'sweep';
+export type CardType = 'player' | 'crown' | 'cup' | 'totw' | 'clown' | 'moment' | 'rivalry' | ThemedType;
 
 /** The fixed rarity of each special edition. */
 export const SPECIAL_RARITY: Record<Exclude<CardType, 'player'>, Rarity> = {
@@ -46,6 +48,17 @@ export const SPECIAL_RARITY: Record<Exclude<CardType, 'player'>, Rarity> = {
   clown: 'rare',
   moment: 'rare',
   rivalry: 'epic',
+  giant: 'epic',
+  onfire: 'epic',
+  ironman: 'epic',
+  grinder: 'rare',
+  dynasty: 'legendary',
+  oracle: 'epic',
+  jackpot: 'epic',
+  kingslayer: 'epic',
+  underdog: 'rare',
+  sniper: 'rare',
+  sweep: 'epic',
 };
 
 export const TYPE_LABEL: Record<CardType, string> = {
@@ -56,6 +69,17 @@ export const TYPE_LABEL: Record<CardType, string> = {
   clown: 'Wall of shame',
   moment: 'Moment',
   rivalry: 'Rivalry',
+  giant: 'Giant slayer',
+  onfire: 'On fire',
+  ironman: 'Iron man',
+  grinder: 'Daily grinder',
+  dynasty: 'Dynasty',
+  oracle: 'Oracle',
+  jackpot: 'Jackpot',
+  kingslayer: 'Kingslayer',
+  underdog: 'Underdog',
+  sniper: 'Hot hand',
+  sweep: 'Clean sweep',
 };
 
 export interface CardStats {
@@ -95,7 +119,7 @@ export interface Card {
   createdAt: number;
 }
 
-export type PackKind = 'weekly' | 'earned' | 'champion';
+export type PackKind = 'weekly' | 'earned' | 'champion' | 'reward';
 
 export interface Pack {
   id: string;
@@ -103,8 +127,10 @@ export interface Pack {
   kind: PackKind;
   /** The Monday of the week it belongs to, YYYY-MM-DD. */
   week: string;
-  /** Why an earned pack was earned. */
+  /** Why an earned or reward pack was given. */
   reason?: string;
+  /** A reward pack's guarantee: its best card is at least this. */
+  minRarity?: Rarity;
   createdAt: number;
   openedAt: number | null;
   cardIds: string[];
@@ -233,6 +259,7 @@ export function rollPack(params: {
   playerIds: string[];
   pity: number;
   takenMythics: Set<string>;
+  minRarity?: Rarity;
 }): Array<{ playerId: string; rarity: Rarity }> {
   const random = seeded(`pack-${params.packId}`);
   const ids = [...params.playerIds].sort();
@@ -240,6 +267,7 @@ export function rollPack(params: {
   const best = () => slots.reduce((top, slot, i) => (rank(slot.rarity) > rank(slots[top].rarity) ? i : top), 0);
   if (slots.every((slot) => slot.rarity === 'common')) slots[CARDS_PER_PACK - 1].rarity = 'uncommon';
   if (params.kind === 'champion' && rank(slots[best()].rarity) < rank('epic')) slots[best()].rarity = 'epic';
+  if (params.minRarity && rank(slots[best()].rarity) < rank(params.minRarity)) slots[best()].rarity = params.minRarity;
   if (params.pity + 1 >= LEGENDARY_PITY && !slots.some((slot) => rank(slot.rarity) >= rank('legendary'))) slots[best()].rarity = 'legendary';
   const mythicsHere = new Set<string>();
   for (const slot of slots) {

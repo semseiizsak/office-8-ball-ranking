@@ -311,8 +311,8 @@ input, textarea, select { font-size: 16px; }
 /* A rim that follows the whole shield, slanted edges included: the shape is
    painted in the rim colour and the fill sits inset on top. An inset shadow
    would only draw the straight sides, since the clip cuts the corners away. */
-.pc-epic .pc-bg, .pc-t-crown .pc-bg, .pc-t-cup .pc-bg, .pc-t-totw .pc-bg { background: var(--rim); }
-.pc-epic .pc-bg::after, .pc-t-crown .pc-bg::after, .pc-t-cup .pc-bg::after, .pc-t-totw .pc-bg::after {
+.pc-epic .pc-bg, .pc-t-crown .pc-bg, .pc-t-cup .pc-bg, .pc-t-totw .pc-bg, .pc-themed .pc-bg { background: var(--rim); }
+.pc-epic .pc-bg::after, .pc-t-crown .pc-bg::after, .pc-t-cup .pc-bg::after, .pc-t-totw .pc-bg::after, .pc-themed .pc-bg::after {
   content: ""; position: absolute; inset: calc(2 * var(--k)); z-index: 0;
   clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: var(--fill);
 }
@@ -383,6 +383,7 @@ input, textarea, select { font-size: 16px; }
 .pk::after { content: ""; position: absolute; top: -20%; left: 0; width: 40%; height: 140%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation: pc-sweep 2.8s var(--ease) infinite; }
 .pk.champion { background: linear-gradient(160deg, #1a1a1a, #0A0A0A); box-shadow: inset 0 0 0 2px #F2B705, 0 0 24px rgba(242,183,5,.35); }
 .pk.earned { background: linear-gradient(160deg, #0B7A3E, #063d1f); box-shadow: inset 0 0 0 2px #F2B705, 0 0 24px rgba(11,122,62,.5); }
+.pk.reward { background: linear-gradient(115deg, #5B2A86, #1F4FA8, #0B7A3E); box-shadow: inset 0 0 0 2px #FFFFFF, 0 0 24px rgba(91,42,134,.55); }
 
 /* Pack opening */
 @keyframes po-shake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-5deg) translateX(-6px); } 40% { transform: rotate(5deg) translateX(6px); } 60% { transform: rotate(-4deg) translateX(-4px); } 80% { transform: rotate(3deg) translateX(3px); } }
@@ -410,3 +411,9 @@ input, textarea, select { font-size: 16px; }
   .pc-glints, .pc-sweep, .po-burst, .pk::after { display: none; }
   .pc-in { transform: none !important; }
 }
+
+/* Themed cards: the achievement's colour as the rim, a spotlight in it, the emoji in the ring. */
+.pc-themed { --acc: var(--th); --ink: #fff; }
+.pc.pc-themed .pc-bg { --rim: var(--th); --fill: radial-gradient(80% 55% at 50% 30%, color-mix(in srgb, var(--th) 45%, #0A0A0A), #0A0A0A 75%); }
+.pc-themed .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) var(--th); background: #0A0A0A; }
+.pc-emoji { font-size: calc(54 * var(--k)); }

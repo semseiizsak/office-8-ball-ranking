@@ -85,7 +85,7 @@ export const PackOpening: React.FC<{
       <div className="relative z-10 grid w-full max-w-md grid-cols-[minmax(0,1fr)] justify-items-center gap-5">
         {(phase === 'shake' || phase === 'tear') && (
           <>
-            <h1 className="text-[32px]">{pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h1>
+            <h1 className="text-[32px]">{pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h1>
             <div className={`relative h-[260px] w-[180px] ${phase === 'shake' && motion ? 'po-shake' : ''}`}>
               <div className={`pk ${pack.kind} absolute inset-x-0 top-0 h-[44px] rounded-b-none ${phase === 'tear' && motion ? 'po-tear-top' : ''}`} />
               <div className={`pk ${pack.kind} absolute inset-x-0 bottom-0 top-[46px] rounded-t-none ${phase === 'tear' && motion ? 'po-tear-body' : ''}`}>

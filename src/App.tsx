@@ -49,7 +49,8 @@ import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { Ball } from './components/ui';
-import { buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
+import { BADGE, buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
+import { rewardFor } from './utils/rewards';
 import { BadgePop } from './components/BadgePop';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
@@ -541,6 +542,41 @@ export default function App() {
       .catch((error) => console.warn('Cards not backfilled:', error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cards.length]);
+
+  // Unlock rewards: a pack for most unlocks, a themed card for the special ones.
+  const [baseline, setBaseline] = useState<Set<string> | null>(null);
+  const myUnlocks = useMemo(() => {
+    if (!currentPlayer) return [] as string[];
+    const start = currentSeason.startingElo[currentPlayer.id] ?? 1000;
+    return [...unlockKeys(buildBadgeContext(currentPlayer, matches, challenges, start, undefined, dailyRecords.get(currentPlayer.id), cupRecords.get(currentPlayer.id), awardRecords.get(currentPlayer.id)))].sort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, matches, challenges, dailyRecords, cupRecords, awardRecords]);
+  useEffect(() => {
+    if (!currentPlayer || isLoading || myUnlocks.length === 0) return;
+    if (!baseline) {
+      poolService.rewardBaseline(currentPlayer.id, myUnlocks).then((keys) => setBaseline(new Set(keys))).catch((error) => console.warn('No reward baseline:', error));
+      return;
+    }
+    for (const key of myUnlocks) {
+      if (baseline.has(key)) continue;
+      const reward = rewardFor(key, BADGE[key]?.secret);
+      const name = describeUnlock(key)?.name ?? key;
+      if (reward.kind === 'pack') {
+        void poolService.ensureRewardPack(currentPlayer.id, key, `${reward.label} for ${name}`, reward.minRarity).catch((error) => console.warn('Reward pack not given:', error));
+      } else {
+        void poolService
+          .grantSpecial({
+            award: { id: `ach-${currentPlayer.id}-${key.replace(/[^a-z0-9]/gi, '-')}`, type: reward.type, playerId: currentPlayer.id, note: name },
+            stats: cardStatsById[currentPlayer.id],
+            season: currentSeason.name,
+            seasonId: currentSeason.id,
+            photo: photoShots[currentPlayer.id],
+          })
+          .catch((error) => console.warn('Themed card not given:', error));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, myUnlocks.join(), baseline]);
 
   const firstName = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
   const others = () => players.map((player) => player.id).filter((id) => id !== currentPlayer?.id);
@@ -1350,7 +1386,7 @@ export default function App() {
         <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge}
           cupBadge={cupBadge}
           collectionBadge={
-            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && pack.week === cardWeek) ||
+            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && (pack.kind === 'reward' || pack.week === cardWeek)) ||
             trades.some((trade) => trade.toId === currentPlayer.id && trade.status === 'pending')
           }
         />

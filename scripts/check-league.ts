@@ -11,6 +11,7 @@ import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 import { CARDS_PER_PACK, ODDS, RARITIES, earnedPackReason, rollPack, rollRarity, seeded, specialAwards } from '../src/utils/cards';
+import { rewardFor } from '../src/utils/rewards';
 import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
 import { bracketShape, deriveCups, gameDeadline, gamesOf, resolveCup, seedField, slotOrder, weekTournament, withCloseOverride } from '../src/utils/tournament';
@@ -584,6 +585,14 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('cards: 3 daily days running earn it', earnedPackReason({ playerId: 'a', matches: [], now: monday + 3 * 86_400_000, newTierThisWeek: false, dailyDaysPlayed: ['2026-09-28', '2026-09-29', '2026-09-30'] })?.reason, 'Match of the day, 3 days running');
   const specials = specialAwards({ playerId: 'a', matches: [{ ...w('b1', monday), modifiers: { eightOnBreak: true, scratchOnEight: false } }], crownHolderId: 'a', crownSince: monday, cupTitles: [{ week: '2026-09-28' }], weeklyAwards: [] });
   eq('cards: crown, cup and moment specials', specials.map((x) => x.type).sort(), ['crown', 'cup', 'moment']);
+}
+
+{
+  eq('rewards: tiers pay better packs', ['t:wins:1', 't:wins:3', 't:wins:4', 't:wins:5'].map((k) => rewardFor(k).label), ['Card pack', 'Rare pack', 'Epic pack', 'Legendary pack']);
+  eq('rewards: secret badges pay a rare pack', [rewardFor('first').label, rewardFor('broke', true).label], ['Card pack', 'Rare pack']);
+  eq('rewards: special achievements give a themed card', [rewardFor('t:upsets:3').kind, rewardFor('jackpot1').label], ['card', 'Jackpot card']);
+  const legendaryPack = rollPack({ packId: 'r1', kind: 'reward', playerIds: ['a', 'b'], pity: 0, takenMythics: new Set(), minRarity: 'legendary' });
+  eq('rewards: a legendary pack holds a legendary', legendaryPack.some((c) => c.rarity === 'legendary' || c.rarity === 'mythic'), true);
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);

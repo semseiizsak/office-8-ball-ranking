@@ -1,16 +1,40 @@
 import React, { useRef } from 'react';
 import { Crown, Laugh, Star, Swords, Trophy, Zap } from 'lucide-react';
 import { Player } from '../../types';
-import { Card, CardType, Rarity } from '../../utils/cards';
+import { Card, CardType, Rarity, ThemedType } from '../../utils/cards';
 import { ballColor, playerBall } from '../../utils/balls';
 
 export type CardSize = 'full' | 'medium' | 'mini';
 
 /** The short printed under the OVR. */
 export const POSITION: Record<Rarity, string> = { common: 'COM', uncommon: 'UNC', rare: 'RAR', epic: 'EPC', legendary: 'LEG', mythic: 'ICON' };
-const SPECIAL_POSITION: Record<Exclude<CardType, 'player'>, string> = { crown: 'KING', cup: 'CUP', totw: 'TOTW', clown: 'CLN', moment: 'BRK', rivalry: 'VS' };
-const SPECIAL_FLAG: Record<Exclude<CardType, 'player'>, string> = { crown: 'Crown', cup: 'Cup', totw: 'TOTW', clown: 'Clown', moment: 'Moment', rivalry: 'Rivalry' };
-const SPECIAL_ICON = { crown: Crown, cup: Trophy, totw: Star, clown: Laugh, moment: Zap, rivalry: Swords };
+/** Themed cards, one per special achievement: rim colour, emoji and short. */
+const THEME: Record<ThemedType, { c: string; e: string; pos: string; flag: string }> = {
+  giant: { c: '#C8102E', e: '🗡️', pos: 'GNT', flag: 'Giant slayer' },
+  onfire: { c: '#F26B1D', e: '🔥', pos: 'HOT', flag: 'On fire' },
+  ironman: { c: '#C9CCD1', e: '🦾', pos: 'IRN', flag: 'Iron man' },
+  grinder: { c: '#0B7A3E', e: '⏱️', pos: 'DLY', flag: 'Grinder' },
+  dynasty: { c: '#F2B705', e: '🏆', pos: 'DYN', flag: 'Dynasty' },
+  oracle: { c: '#5B2A86', e: '🔮', pos: 'ORC', flag: 'Oracle' },
+  jackpot: { c: '#F2B705', e: '💎', pos: 'JKP', flag: 'Jackpot' },
+  kingslayer: { c: '#C8102E', e: '⚔️', pos: 'KSL', flag: 'Kingslayer' },
+  underdog: { c: '#1F4FA8', e: '🙈', pos: 'UDG', flag: 'Underdog' },
+  sniper: { c: '#0B7A3E', e: '🎯', pos: 'SNP', flag: 'Hot hand' },
+  sweep: { c: '#FFFFFF', e: '🧹', pos: 'SWP', flag: 'Clean sweep' },
+};
+const themed = (type: CardType): type is ThemedType => type in THEME;
+const SPECIAL_POSITION: Record<Exclude<CardType, 'player'>, string> = {
+  crown: 'KING', cup: 'CUP', totw: 'TOTW', clown: 'CLN', moment: 'BRK', rivalry: 'VS',
+  ...(Object.fromEntries(Object.entries(THEME).map(([k, v]) => [k, v.pos])) as Record<ThemedType, string>),
+};
+const SPECIAL_FLAG: Record<Exclude<CardType, 'player'>, string> = {
+  crown: 'Crown', cup: 'Cup', totw: 'TOTW', clown: 'Clown', moment: 'Moment', rivalry: 'Rivalry',
+  ...(Object.fromEntries(Object.entries(THEME).map(([k, v]) => [k, v.flag])) as Record<ThemedType, string>),
+};
+const SPECIAL_ICON: Record<Exclude<CardType, 'player'>, typeof Star> = {
+  crown: Crown, cup: Trophy, totw: Star, clown: Laugh, moment: Zap, rivalry: Swords,
+  ...(Object.fromEntries(Object.keys(THEME).map((k) => [k, Star])) as Record<ThemedType, typeof Star>),
+};
 
 /** The colour each rarity glows in, for the pack reveal and the album. */
 export const RARITY_GLOW: Record<Rarity, string> = {
@@ -95,6 +119,7 @@ export const PlayerCard: React.FC<{
     else if (card.type === 'clown') center = <span className="pc-center">🤡</span>;
     else if (card.type === 'moment') center = <span className="pc-center">8</span>;
     else if (card.type === 'rivalry') center = <span className="pc-center">VS</span>;
+    else if (themed(card.type)) center = <span className="pc-center pc-emoji">{THEME[card.type].e}</span>;
     else center = withPhoto();
   }
 
@@ -110,8 +135,8 @@ export const PlayerCard: React.FC<{
       ref={ref}
       role="img"
       aria-label={`${name}, ${special ? SPECIAL_FLAG[card.type as Exclude<CardType, 'player'>] : card.rarity}, ${card.stats.ovr} overall`}
-      className={`pc pc-${card.rarity} pc-t-${card.type} pc-${size}${tilt ? ' pc-tiltable' : ''}${glows && size !== 'mini' ? ' pc-glow' : ''} ${className}`}
-      style={style}
+      className={`pc pc-${card.rarity} pc-t-${card.type}${themed(card.type) ? ' pc-themed' : ''} pc-${size}${tilt ? ' pc-tiltable' : ''}${glows && size !== 'mini' ? ' pc-glow' : ''} ${className}`}
+      style={themed(card.type) ? { ...style, ['--th' as string]: THEME[card.type].c } : style}
       onPointerMove={tilt ? move : undefined}
       onPointerLeave={tilt ? leave : undefined}
     >

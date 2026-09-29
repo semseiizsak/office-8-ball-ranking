@@ -1,3 +1,4 @@
+import { rewardFor } from '../utils/rewards';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, Pencil, Swords } from 'lucide-react';
 import { Challenge, Player, MatchRecord } from '../types';
@@ -531,6 +532,14 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
                     {t ? `${a.name}. ` : ''}
                     {next ? `Next: ${next.label} ${a.names[t]} at ${a.at[t]} ${a.unit}` : 'Maxed out. Legend.'}
                   </span>
+                  {next && (() => {
+                    const reward = rewardFor(`t:${a.id}:${t + 1}`);
+                    return (
+                      <span className={`w-fit rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] ${reward.kind === 'card' ? 'bg-crown text-bg' : 'bg-surface-alt text-white'}`}>
+                        🎁 {reward.label}
+                      </span>
+                    );
+                  })()}
                   <span className="h-[7px] overflow-hidden rounded-full bg-surface-alt">
                     <span className="grow-x block h-full rounded-full" style={{ width: `${fill}%`, background: next && next.k !== 'eight' ? next.c : '#FFFFFF' }} />
                   </span>
@@ -569,6 +578,14 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
                 <b className={`font-display text-sm font-extrabold uppercase leading-[1.1] [overflow-wrap:anywhere] ${has ? '' : 'text-white/55'}`}>{hidden ? '???' : badge.name}</b>
                 <span className={`text-xs leading-snug ${has ? 'text-white/70' : 'text-white/55'}`}>{hidden ? 'Secret. Keep playing.' : badge.desc}</span>
                 <span className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/55">{rarity}</span>
+                {!hidden && (() => {
+                  const reward = rewardFor(badge.id, badge.secret);
+                  return (
+                    <span className={`mt-1 w-fit rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] ${reward.kind === 'card' ? 'bg-crown text-bg' : 'bg-surface text-white'}`}>
+                      🎁 {reward.label}
+                    </span>
+                  );
+                })()}
               </div>
             );
           })}

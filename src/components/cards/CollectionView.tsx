@@ -76,7 +76,8 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const total = albumSize(players.length);
   const collector = collectors.find((entry) => entry.id === me);
   const week = weekKeyOf(now);
-  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt && pack.week === week);
+  // Reward packs keep until opened; the others only last their week.
+  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt && (pack.kind === 'reward' || pack.week === week));
   const earnedPack = packs.some((pack) => pack.ownerId === me && pack.week === week && pack.kind === 'earned');
   const wins = Math.min(5, winsThisWeek(me, matches, now));
   const isMine = viewId === me;
@@ -203,7 +204,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             <span className="relative z-10 font-display text-[40px] font-extrabold text-bg">8</span>
           </div>
           <div className="grid min-w-0 content-center gap-2">
-            <h2 className="text-xl">{pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
+            <h2 className="text-xl">{pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
             <p className="text-sm font-semibold text-white/70">{pack.reason ?? 'Three cards. Open it this week or it is gone.'}</p>
             <button type="button" onClick={() => setOpening(pack)} className={`${button} w-fit bg-white text-bg`}>
               Open

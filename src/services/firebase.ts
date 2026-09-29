@@ -1410,6 +1410,7 @@ const toPack = (id: string, data: Record<string, unknown>): Pack => ({
   kind: (data.kind as PackKind) ?? 'weekly',
   week: String(data.week ?? ''),
   reason: data.reason ? String(data.reason) : undefined,
+  minRarity: data.minRarity ? (data.minRarity as Rarity) : undefined,
   createdAt: Number(data.createdAt ?? 0),
   openedAt: data.openedAt ? Number(data.openedAt) : null,
   cardIds: Array.isArray(data.cardIds) ? (data.cardIds as string[]).map(String) : [],
@@ -1451,6 +1452,42 @@ export function subscribeToTrades(onChange: (trades: Trade[]) => void): () => vo
 
 export const packIdOf = (ownerId: string, week: string, kind: PackKind) => `${ownerId}_${week}_${kind}`;
 
+/**
+ * Rewards for unlocks: the first time a player is seen, what they already had
+ * becomes their baseline and pays nothing; every unlock after that pays once.
+ */
+export async function rewardBaseline(ownerId: string, keys: string[]): Promise<string[]> {
+  const ref = doc(collectorsCollection, ownerId);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    const stored = existing.exists() ? existing.data().rewardBaseline : undefined;
+    if (Array.isArray(stored)) return stored.map(String);
+    transaction.set(ref, { rewardBaseline: keys }, { merge: true });
+    return keys;
+  });
+}
+
+/** A reward pack for one unlock; its id is the unlock, so it is only ever given once. */
+export async function ensureRewardPack(ownerId: string, key: string, label: string, minRarity?: Rarity): Promise<boolean> {
+  const ref = doc(packsCollection, `${ownerId}_reward_${key.replace(/[^a-z0-9]/gi, '-')}`);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return false;
+    transaction.set(ref, {
+      ownerId,
+      week: weekKeyOf(Date.now()),
+      kind: 'reward' satisfies PackKind,
+      reason: label,
+      ...(minRarity ? { minRarity } : {}),
+      createdAt: Date.now(),
+      openedAt: null,
+      cardIds: [],
+      duplicateChips: 0,
+    });
+    return true;
+  });
+}
+
 /** Creates a player's pack for the week unless it exists; returns whether it was new. */
 export async function ensurePack(ownerId: string, week: string, kind: PackKind, reason?: string): Promise<boolean> {
   const ref = doc(packsCollection, packIdOf(ownerId, week, kind));
@@ -1485,14 +1522,15 @@ export async function openPack(params: {
     const pack = toPack(packDoc.id, packDoc.data());
     if (pack.ownerId !== params.ownerId) throw new Error('Not your pack.');
     if (pack.openedAt) throw new Error('Already opened.');
-    if (pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
+    // Weekly, earned and champion packs are for their week; reward packs keep.
+    if (pack.kind !== 'reward' && pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
     const collectorDoc = await transaction.get(collectorRef);
     const collector = toCollector(params.ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
     // One mythic per player per season.
     const mythicDocs = await Promise.all(params.playerIds.map((id) => transaction.get(doc(mythicsCollection, `${params.seasonId}_${id}`))));
     const takenMythics = new Set(mythicDocs.filter((entry) => entry.exists()).map((entry) => entry.id.slice(params.seasonId.length + 1)));
 
-    const slots = rollPack({ packId: pack.id, kind: pack.kind, playerIds: params.playerIds, pity: collector.pity, takenMythics });
+    const slots = rollPack({ packId: pack.id, kind: pack.kind, playerIds: params.playerIds, pity: collector.pity, takenMythics, minRarity: pack.minRarity });
     const keys = slots.map((slot) => printKey(params.seasonId, { type: 'player', playerId: slot.playerId, rarity: slot.rarity }));
     const printDocs = await Promise.all([...new Set(keys)].map((key) => transaction.get(doc(printsCollection, key))));
     const printed = new Map(printDocs.map((entry) => [entry.id, Number(entry.exists() ? entry.data().count ?? 0 : 0)]));
