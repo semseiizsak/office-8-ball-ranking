@@ -50,6 +50,23 @@ import {
 } from '../utils/league';
 import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
+import {
+  Card,
+  CardStats,
+  CardType,
+  Collector,
+  DUPLICATE_CHIPS,
+  Pack,
+  PackKind,
+  Rarity,
+  SPECIAL_RARITY,
+  SpecialAward,
+  Trade,
+  TradeStatus,
+  designKey,
+  rollPack,
+  weekKeyOf,
+} from '../utils/cards';
 import { Tournament, gameDeadline, seedField, withCloseOverride, withRedraw } from '../utils/tournament';
 
 const app = initializeApp(firebaseConfig);
@@ -1331,5 +1348,261 @@ export async function claimAwardsAnnouncement(week: string): Promise<boolean> {
     if (existing.exists()) return false;
     transaction.set(ref, { week, announcedAt: serverTimestamp() });
     return true;
+  });
+}
+
+// ── Player cards ────────────────────────────────────────────────────────────
+// Cards are stored instances with an owner, so they can be traded. Packs are
+// one document per player, week and kind, created lazily and opened once in a
+// transaction; the contents come from a seed on the pack id. Mythics are
+// claimed per player, so each exists once. A collector document per player
+// keeps the pity counter and the chips from cards cashed in.
+
+const cardsCollection = collection(db, 'cards');
+const packsCollection = collection(db, 'packs');
+const collectorsCollection = collection(db, 'collectors');
+const tradesCollection = collection(db, 'trades');
+const mythicsCollection = collection(db, 'mythics');
+const printsCollection = collection(db, 'prints');
+
+const toCard = (id: string, data: Record<string, unknown>): Card => ({
+  id,
+  ownerId: String(data.ownerId ?? ''),
+  playerId: String(data.playerId ?? ''),
+  otherId: data.otherId ? String(data.otherId) : undefined,
+  type: (data.type as CardType) ?? 'player',
+  rarity: (data.rarity as Rarity) ?? 'common',
+  stats: (data.stats as CardStats) ?? { ovr: 70, WIN: 50, CLU: 50, FRM: 50, BRK: 50, CAL: 50, GRT: 50 },
+  serial: Number(data.serial ?? 1),
+  note: data.note ? String(data.note) : undefined,
+  season: String(data.season ?? ''),
+  source: (data.source as Card['source']) ?? 'pack',
+  packId: data.packId ? String(data.packId) : undefined,
+  createdAt: Number(data.createdAt ?? 0),
+});
+
+const toPack = (id: string, data: Record<string, unknown>): Pack => ({
+  id,
+  ownerId: String(data.ownerId ?? ''),
+  kind: (data.kind as PackKind) ?? 'weekly',
+  week: String(data.week ?? ''),
+  reason: data.reason ? String(data.reason) : undefined,
+  createdAt: Number(data.createdAt ?? 0),
+  openedAt: data.openedAt ? Number(data.openedAt) : null,
+  cardIds: Array.isArray(data.cardIds) ? (data.cardIds as string[]).map(String) : [],
+  duplicateChips: Number(data.duplicateChips ?? 0),
+});
+
+const toCollector = (id: string, data: Record<string, unknown> | undefined): Collector => ({
+  id,
+  counts: {},
+  pity: Number(data?.pity ?? 0),
+  duplicateChips: Number(data?.duplicateChips ?? 0),
+  opened: Number(data?.opened ?? 0),
+});
+
+const toTrade = (id: string, data: Record<string, unknown>): Trade => ({
+  id,
+  fromId: String(data.fromId ?? ''),
+  toId: String(data.toId ?? ''),
+  give: Array.isArray(data.give) ? (data.give as string[]).map(String) : [],
+  want: Array.isArray(data.want) ? (data.want as string[]).map(String) : [],
+  note: data.note ? String(data.note) : undefined,
+  status: (data.status as TradeStatus) ?? 'pending',
+  createdAt: Number(data.createdAt ?? 0),
+  respondedAt: data.respondedAt ? Number(data.respondedAt) : null,
+});
+
+export function subscribeToCards(onChange: (cards: Card[]) => void): () => void {
+  return onSnapshot(cardsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toCard(entry.id, entry.data()))));
+}
+export function subscribeToPacks(onChange: (packs: Pack[]) => void): () => void {
+  return onSnapshot(packsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toPack(entry.id, entry.data()))));
+}
+export function subscribeToCollectors(onChange: (collectors: Collector[]) => void): () => void {
+  return onSnapshot(collectorsCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toCollector(entry.id, entry.data()))));
+}
+export function subscribeToTrades(onChange: (trades: Trade[]) => void): () => void {
+  return onSnapshot(tradesCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toTrade(entry.id, entry.data()))));
+}
+
+export const packIdOf = (ownerId: string, week: string, kind: PackKind) => `${ownerId}_${week}_${kind}`;
+
+/** Creates a player's pack for the week unless it exists; returns whether it was new. */
+export async function ensurePack(ownerId: string, week: string, kind: PackKind, reason?: string): Promise<boolean> {
+  const ref = doc(packsCollection, packIdOf(ownerId, week, kind));
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return false;
+    transaction.set(ref, { ownerId, week, kind, ...(reason ? { reason } : {}), createdAt: Date.now(), openedAt: null, cardIds: [], duplicateChips: 0 });
+    return true;
+  });
+}
+
+/**
+ * Opens a pack: rolls its cards from the pack's seed, prints them with their
+ * serial numbers, claims any mythic, and moves the pity counter. Only the
+ * owner, only once, and only in the week the pack belongs to.
+ */
+export async function openPack(params: {
+  packId: string;
+  ownerId: string;
+  playerIds: string[];
+  stats: Record<string, CardStats>;
+  season: string;
+}): Promise<Card[]> {
+  const packRef = doc(packsCollection, params.packId);
+  const collectorRef = doc(collectorsCollection, params.ownerId);
+  return runTransaction(db, async (transaction) => {
+    const packDoc = await transaction.get(packRef);
+    if (!packDoc.exists()) throw new Error('No such pack.');
+    const pack = toPack(packDoc.id, packDoc.data());
+    if (pack.ownerId !== params.ownerId) throw new Error('Not your pack.');
+    if (pack.openedAt) throw new Error('Already opened.');
+    if (pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
+    const collectorDoc = await transaction.get(collectorRef);
+    const collector = toCollector(params.ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
+    const mythicDocs = await Promise.all(params.playerIds.map((id) => transaction.get(doc(mythicsCollection, id))));
+    const takenMythics = new Set(mythicDocs.filter((entry) => entry.exists()).map((entry) => entry.id));
+
+    const slots = rollPack({ packId: pack.id, kind: pack.kind, playerIds: params.playerIds, pity: collector.pity, takenMythics });
+    const keys = slots.map((slot) => designKey({ type: 'player', playerId: slot.playerId, rarity: slot.rarity }));
+    const printDocs = await Promise.all([...new Set(keys)].map((key) => transaction.get(doc(printsCollection, key))));
+    const printed = new Map(printDocs.map((entry) => [entry.id, Number(entry.exists() ? entry.data().count ?? 0 : 0)]));
+
+    const now = Date.now();
+    const cards: Card[] = slots.map((slot, index) => {
+      const key = keys[index];
+      const serial = (printed.get(key) ?? 0) + 1;
+      printed.set(key, serial);
+      const ref = doc(cardsCollection);
+      return {
+        id: ref.id,
+        ownerId: params.ownerId,
+        playerId: slot.playerId,
+        type: 'player',
+        rarity: slot.rarity,
+        stats: params.stats[slot.playerId] ?? { ovr: 70, WIN: 50, CLU: 50, FRM: 50, BRK: 50, CAL: 50, GRT: 50 },
+        serial,
+        season: params.season,
+        source: 'pack',
+        packId: pack.id,
+        createdAt: now + index,
+      };
+    });
+    for (const card of cards) {
+      const { id, otherId, note, ...data } = card;
+      transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}), ...(note ? { note } : {}) });
+      if (card.rarity === 'mythic') transaction.set(doc(mythicsCollection, card.playerId), { cardId: id, ownerId: params.ownerId, at: now });
+    }
+    for (const [key, count] of printed) transaction.set(doc(printsCollection, key), { count });
+    const legendary = cards.some((card) => card.rarity === 'legendary' || card.rarity === 'mythic');
+    transaction.set(collectorRef, { pity: legendary ? 0 : collector.pity + 1, opened: collector.opened + 1, duplicateChips: collector.duplicateChips }, { merge: true });
+    transaction.update(packRef, { openedAt: now, cardIds: cards.map((card) => card.id) });
+    return cards;
+  });
+}
+
+/** Gives a player their special edition for an event, once. */
+export async function grantSpecial(params: { award: SpecialAward; stats: CardStats; season: string }): Promise<Card | null> {
+  const { award } = params;
+  const ref = doc(cardsCollection, award.id);
+  const rarity = SPECIAL_RARITY[award.type];
+  const key = designKey({ type: award.type, playerId: award.playerId, otherId: award.otherId, rarity });
+  const printRef = doc(printsCollection, key);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(ref);
+    if (existing.exists()) return null;
+    const print = await transaction.get(printRef);
+    const serial = Number(print.exists() ? print.data().count ?? 0 : 0) + 1;
+    const card: Card = {
+      id: award.id,
+      ownerId: award.playerId,
+      playerId: award.playerId,
+      otherId: award.otherId,
+      type: award.type,
+      rarity,
+      stats: params.stats,
+      serial,
+      note: award.note,
+      season: params.season,
+      source: 'award',
+      createdAt: Date.now(),
+    };
+    const { id, otherId, ...data } = card;
+    transaction.set(doc(cardsCollection, id), { ...data, ...(otherId ? { otherId } : {}) });
+    transaction.set(printRef, { count: serial });
+    return card;
+  });
+}
+
+/** Cashes a card in for chips. A mythic is one of a kind and cannot be. */
+export async function cashInCard(cardId: string, ownerId: string): Promise<number> {
+  const ref = doc(cardsCollection, cardId);
+  const collectorRef = doc(collectorsCollection, ownerId);
+  return runTransaction(db, async (transaction) => {
+    const cardDoc = await transaction.get(ref);
+    if (!cardDoc.exists()) throw new Error('No such card.');
+    const card = toCard(cardDoc.id, cardDoc.data());
+    if (card.ownerId !== ownerId) throw new Error('Not your card.');
+    if (card.rarity === 'mythic') throw new Error('A mythic cannot be cashed in.');
+    const collectorDoc = await transaction.get(collectorRef);
+    const collector = toCollector(ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
+    const chips = DUPLICATE_CHIPS[card.rarity];
+    transaction.delete(ref);
+    transaction.set(collectorRef, { pity: collector.pity, opened: collector.opened, duplicateChips: collector.duplicateChips + chips }, { merge: true });
+    return chips;
+  });
+}
+
+/** Offers a trade, or a gift when nothing is asked back. */
+export async function createTrade(params: { fromId: string; toId: string; give: string[]; want: string[]; note?: string }): Promise<string> {
+  if (params.fromId === params.toId) throw new Error('Trade with someone else.');
+  if (params.give.length === 0 && params.want.length === 0) throw new Error('Pick at least one card.');
+  const docs = await Promise.all([...params.give, ...params.want].map((id) => getDoc(doc(cardsCollection, id))));
+  for (const [index, entry] of docs.entries()) {
+    const owner = index < params.give.length ? params.fromId : params.toId;
+    if (!entry.exists() || entry.data().ownerId !== owner) throw new Error('A card in this trade has moved.');
+  }
+  const ref = await addDoc(tradesCollection, {
+    fromId: params.fromId,
+    toId: params.toId,
+    give: params.give,
+    want: params.want,
+    ...(params.note ? { note: params.note.slice(0, 140) } : {}),
+    status: 'pending' satisfies TradeStatus,
+    createdAt: Date.now(),
+    respondedAt: null,
+  });
+  return ref.id;
+}
+
+/**
+ * Accepts, declines or cancels a trade. Accepting swaps the owners in one
+ * transaction, and fails if any card has changed hands since the offer.
+ */
+export async function respondTrade(tradeId: string, byId: string, answer: 'accept' | 'decline' | 'cancel'): Promise<Trade> {
+  const ref = doc(tradesCollection, tradeId);
+  return runTransaction(db, async (transaction) => {
+    const tradeDoc = await transaction.get(ref);
+    if (!tradeDoc.exists()) throw new Error('No such trade.');
+    const trade = toTrade(tradeDoc.id, tradeDoc.data());
+    if (trade.status !== 'pending') throw new Error('This trade is already closed.');
+    if (answer === 'cancel' ? byId !== trade.fromId : byId !== trade.toId) throw new Error('Not yours to answer.');
+    const now = Date.now();
+    if (answer !== 'accept') {
+      const status: TradeStatus = answer === 'cancel' ? 'cancelled' : 'declined';
+      transaction.update(ref, { status, respondedAt: now });
+      return { ...trade, status, respondedAt: now };
+    }
+    const cardDocs = await Promise.all([...trade.give, ...trade.want].map((id) => transaction.get(doc(cardsCollection, id))));
+    for (const [index, entry] of cardDocs.entries()) {
+      const owner = index < trade.give.length ? trade.fromId : trade.toId;
+      if (!entry.exists() || entry.data().ownerId !== owner) throw new Error('A card in this trade has moved.');
+    }
+    for (const id of trade.give) transaction.update(doc(cardsCollection, id), { ownerId: trade.toId, source: 'trade' });
+    for (const id of trade.want) transaction.update(doc(cardsCollection, id), { ownerId: trade.fromId, source: 'trade' });
+    transaction.update(ref, { status: 'accepted' satisfies TradeStatus, respondedAt: now });
+    return { ...trade, status: 'accepted', respondedAt: now };
   });
 }

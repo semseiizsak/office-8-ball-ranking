@@ -34,10 +34,12 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
+import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, specialAwards, weekKeyOf } from './utils/cards';
+import { CollectionView } from './components/cards/CollectionView';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { CupView } from './components/CupView';
-import { Tournament, allGames, deriveCups, resolveCup, weekTournament } from './utils/tournament';
+import { Tournament, allGames, deriveCups, mondayOf, resolveCup, weekTournament } from './utils/tournament';
 import { SHAME_STREAK } from './utils/shame';
 import { FightPoster, posterReason } from './components/FightPoster';
 import { DailyPairing, dayKeyOf, deriveDaily, drawPairing, todaysDaily } from './utils/daily';
@@ -62,6 +64,11 @@ export default function App() {
   const [seasons, setSeasons] = useState<Season[]>([]);
   /** The match-of-the-day pairings, one document per day. */
   const [dailies, setDailies] = useState<DailyPairing[]>([]);
+  /** Player cards: every card, every pack, the collectors and the trades. */
+  const [cards, setCards] = useState<Card[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [collectors, setCollectors] = useState<Collector[]>([]);
+  const [trades, setTrades] = useState<Trade[]>([]);
   /** The weekly cups, one document per week. */
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
@@ -160,8 +167,9 @@ export default function App() {
     for (const [id, record] of dailyRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const [id, record] of cupRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const grant of GRANTS) for (const player of players) addBonus(merged, player.id, grant.amount);
+    for (const collector of collectors) if (collector.duplicateChips) addBonus(merged, collector.id, collector.duplicateChips);
     return merged;
-  }, [league.chips, dailyRecords, cupRecords, players]);
+  }, [league.chips, dailyRecords, cupRecords, players, collectors]);
 
   useEffect(() => {
     let cancelled = false;
@@ -268,6 +276,19 @@ export default function App() {
     if (!currentPlayer) return;
     return poolService.subscribeToChallenges(setChallenges);
   }, [currentPlayer]);
+
+  // Cards change hands between people, so the collection listens live too.
+  useEffect(() => {
+    if (!currentPlayer) return;
+    const off = [
+      poolService.subscribeToCards(setCards),
+      poolService.subscribeToPacks(setPacks),
+      poolService.subscribeToCollectors(setCollectors),
+      poolService.subscribeToTrades(setTrades),
+    ];
+    return () => off.forEach((stop) => stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id]);
 
   /**
    * Pulls both players into the live screen the instant their match starts,
@@ -440,6 +461,110 @@ export default function App() {
     for (const week of awards) for (const award of week.awards) out.set(award.playerId, [...(out.get(award.playerId) ?? []), { week: week.week, key: award.key }]);
     return out;
   }, [awards]);
+  // Packs for the week: the free one, the earned one once it is earned, and
+  // the champion's. Each is one document, so asking twice never makes two.
+  const cardWeek = weekKeyOf(clock);
+  const earned = useMemo(() => {
+    if (!currentPlayer) return null;
+    const monday = mondayOf(clock).getTime();
+    const start = currentSeason.startingElo[currentPlayer.id] ?? 1000;
+    const before = unlockKeys(buildBadgeContext(currentPlayer, matches.filter((m) => m.timestamp < monday), challenges, start));
+    const now = unlockKeys(buildBadgeContext(currentPlayer, matches, challenges, start));
+    const newTierThisWeek = [...now].some((key) => key.startsWith('t:') && !before.has(key));
+    const dailyDaysPlayed = (dailyRecords.get(currentPlayer.id)?.history ?? []).filter((entry) => entry.played).map((entry) => entry.day);
+    return earnedPackReason({ playerId: currentPlayer.id, matches, now: clock, newTierThisWeek, dailyDaysPlayed });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, matches, challenges, dailyRecords, cardWeek]);
+  const champion = !!currentPlayer && cupState?.champion === currentPlayer.id;
+  useEffect(() => {
+    if (!currentPlayer || isLoading) return;
+    const make = (kind: PackKind, reason?: string) =>
+      poolService.ensurePack(currentPlayer.id, cardWeek, kind, reason).catch((error) => console.warn('Pack not created:', error));
+    void make('weekly');
+    if (earned) void make('earned', earned.reason);
+    if (champion) void make('champion', 'Weekly cup champion');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cardWeek, earned?.reason, champion]);
+
+  // What a card of each player says right now.
+  const cardStatsById = useMemo(
+    () => Object.fromEntries(players.map((player) => [player.id, cardStats(player, seasonMatches, challenges)])),
+    [players, seasonMatches, challenges]
+  );
+
+  // Special editions the current player has earned and not yet received.
+  useEffect(() => {
+    if (!currentPlayer || isLoading) return;
+    const cupTitles = tournaments
+      .map((cup) => ({ week: cup.week, state: resolveCup(cup, matches, clock) }))
+      .filter((entry) => entry.state?.champion === currentPlayer.id)
+      .map((entry) => ({ week: entry.week }));
+    const due = specialAwards({
+      playerId: currentPlayer.id,
+      matches: seasonMatches,
+      crownHolderId: league.crown.holderId,
+      crownSince: league.crown.heldSince,
+      cupTitles,
+      weeklyAwards: awardRecords.get(currentPlayer.id) ?? [],
+    }).filter((award) => !cards.some((card) => card.id === award.id));
+    for (const award of due) {
+      void poolService
+        .grantSpecial({ award, stats: cardStatsById[currentPlayer.id], season: currentSeason.name })
+        .catch((error) => console.warn('Special card not granted:', error));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
+
+  const firstName = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
+  const others = () => players.map((player) => player.id).filter((id) => id !== currentPlayer?.id);
+
+  const handleOpenPack = async (packId: string): Promise<Card[]> => {
+    if (!currentPlayer) return [];
+    const opened = await poolService.openPack({
+      packId,
+      ownerId: currentPlayer.id,
+      playerIds: players.map((player) => player.id),
+      stats: cardStatsById,
+      season: currentSeason.name,
+    });
+    // A legendary or mythic stops the room.
+    const big = opened.find((card) => card.rarity === 'mythic') ?? opened.find((card) => card.rarity === 'legendary');
+    if (big) {
+      void notifyMany(others(), {
+        type: 'cards',
+        title: big.rarity === 'mythic' ? `🌌 ${firstName(currentPlayer.id)} pulled a MYTHIC` : `✨ ${firstName(currentPlayer.id)} pulled a legendary`,
+        body: `${firstName(big.playerId)}, No ${big.serial}. Go and see it in Collection.`,
+      });
+    }
+    return opened;
+  };
+
+  const handleCashIn = async (cardId: string) => {
+    if (!currentPlayer) return 0;
+    return poolService.cashInCard(cardId, currentPlayer.id);
+  };
+
+  const handleOfferTrade = async (toId: string, give: string[], want: string[], note?: string) => {
+    if (!currentPlayer) return;
+    await poolService.createTrade({ fromId: currentPlayer.id, toId, give, want, note });
+    void notifyMany([toId], {
+      type: 'cards',
+      title: want.length ? `🔁 ${firstName(currentPlayer.id)} wants to trade cards` : `🎁 ${firstName(currentPlayer.id)} sent you a card`,
+      body: want.length ? `${give.length} for ${want.length}. Open Collection to answer.` : 'Open Collection to accept it.',
+    });
+  };
+
+  const handleRespondTrade = async (tradeId: string, answer: 'accept' | 'decline' | 'cancel') => {
+    if (!currentPlayer) return;
+    const trade = await poolService.respondTrade(tradeId, currentPlayer.id, answer);
+    if (answer === 'cancel') return;
+    void notifyMany([trade.fromId], {
+      type: 'cards',
+      title: answer === 'accept' ? `🤝 ${firstName(currentPlayer.id)} accepted your trade` : `${firstName(currentPlayer.id)} turned your trade down`,
+      body: answer === 'accept' ? 'The cards have swapped hands.' : 'Maybe sweeten the offer.',
+    });
+  };
+
   const latestAwards = awards[0]?.week === dayKeyOf(latestReleasedMonday(clock).getTime()) ? awards[0] : null;
   useEffect(() => {
     if (!currentPlayer || isLoading || !latestAwards) return;
@@ -1120,6 +1245,26 @@ export default function App() {
             </div>
           )}
 
+          {activeTab === 'collection' && (
+            <div className="anim-fade">
+              <CollectionView
+                players={players}
+                currentPlayer={currentPlayer}
+                cards={cards}
+                packs={packs}
+                collectors={collectors}
+                trades={trades}
+                matches={matches}
+                now={clock}
+                earned={earned}
+                onOpenPack={handleOpenPack}
+                onCashIn={handleCashIn}
+                onOfferTrade={handleOfferTrade}
+                onRespondTrade={handleRespondTrade}
+              />
+            </div>
+          )}
+
           {activeTab === 'history' && (
             <div className="anim-fade">
               <EventsView
@@ -1152,7 +1297,13 @@ export default function App() {
           )}
         </main>
 
-        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge} cupBadge={cupBadge} />
+        <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge}
+          cupBadge={cupBadge}
+          collectionBadge={
+            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && pack.week === cardWeek) ||
+            trades.some((trade) => trade.toId === currentPlayer.id && trade.status === 'pending')
+          }
+        />
 
         {isLoggerOpen && (
           <MatchLoggerSheet

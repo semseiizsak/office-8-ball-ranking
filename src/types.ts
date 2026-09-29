@@ -165,7 +165,7 @@ export interface Challenge {
  * opens over the arena where the challenges it settles already live, and the
  * roster was the ladder again with an enrol button on it.
  */
-export type TabType = 'leaderboard' | 'arena' | 'cup' | 'history';
+export type TabType = 'leaderboard' | 'arena' | 'cup' | 'collection' | 'history';
 
 export interface SeasonStanding {
   playerId: string;

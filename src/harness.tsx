@@ -25,6 +25,8 @@ import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay'
 import { Header } from './components/Header';
 import { FightPoster } from './components/FightPoster';
 import { Season } from './types';
+import { CollectionView } from './components/cards/CollectionView';
+import { Card, CardStats, Pack, Trade, weekKeyOf } from './utils/cards';
 
 const NAMES = ['Ármin Kovács', 'Sarah Jenkins', 'Dave Bell', 'Priya Nair', 'Tom Oakes'];
 const now = Date.now();
@@ -305,8 +307,40 @@ const inboxFixture: LeagueNotification[] = [
   { id: 'n5', type: 'challenge_answered', title: 'Priya accepted', body: 'Your callout is on. Get to the table.', createdAt: now - 3 * 86400_000, read: true, challengeId: 'c2' },
 ];
 
+// ---------- Collection fixtures. Dev only: the photo is served from the project root, never bundled. ----------
+const PHOTO = '/mock-photo.jpg';
+const cardPlayers = players.map((player, index) => (index % 2 === 0 ? { ...player, avatarUrl: PHOTO } : player));
+const stat = (ovr: number): CardStats => ({ ovr, WIN: 81, CLU: 90, FRM: 86, BRK: 72, CAL: 64, GRT: 70 });
+let serialNo = 0;
+const mk = (ownerId: string, playerId: string, rarity: Card['rarity'], extra: Partial<Card> = {}): Card => ({
+  id: `card${++serialNo}`, ownerId, playerId, type: 'player', rarity, stats: stat(70 + serialNo), serial: serialNo, season: 'Season 2',
+  source: 'pack', createdAt: now - serialNo * 3600_000, ...extra,
+});
+const collectionCards: Card[] = [
+  mk('p2', 'p2', 'common'), mk('p2', 'p2', 'common'), mk('p2', 'p2', 'uncommon'), mk('p2', 'p2', 'rare'), mk('p2', 'p2', 'epic'),
+  mk('p2', 'p0', 'legendary'), mk('p2', 'p4', 'mythic'), mk('p2', 'p1', 'rare'), mk('p2', 'p1', 'uncommon'), mk('p2', 'p3', 'legendary'),
+  mk('p2', 'p3', 'common'), mk('p2', 'p0', 'common'), mk('p2', 'p0', 'common'), mk('p2', 'p0', 'common'),
+  mk('p2', 'p2', 'epic', { type: 'crown', note: 'Took the crown 24 Sep', source: 'award' }),
+  mk('p2', 'p2', 'epic', { type: 'cup', note: 'Weekly cup, week of 2026-09-21', source: 'award' }),
+  mk('p2', 'p2', 'rare', { type: 'totw', note: 'Team of the week, 2026-09-14', source: 'award' }),
+  mk('p2', 'p2', 'rare', { type: 'clown', note: 'Three in a row, 12 Sep', source: 'award' }),
+  mk('p2', 'p2', 'rare', { type: 'moment', note: '8 on the break, 24 Sep', source: 'award' }),
+  mk('p2', 'p2', 'epic', { type: 'rivalry', otherId: 'p1', note: '14 meetings, 8 to 6', source: 'award' }),
+  mk('p1', 'p1', 'legendary'), mk('p1', 'p2', 'rare'), mk('p1', 'p0', 'uncommon'), mk('p1', 'p4', 'common'),
+  mk('p0', 'p0', 'epic'), mk('p0', 'p2', 'uncommon'),
+];
+const collectionPack: Pack = { id: 'pack-demo', ownerId: 'p2', kind: 'weekly', week: weekKeyOf(now), createdAt: now, openedAt: null, cardIds: [], duplicateChips: 0 };
+const collectionTrades: Trade[] = [
+  { id: 't1', fromId: 'p1', toId: 'p2', give: ['card21'], want: ['card4'], note: 'Your rare for my legendary. Easy.', status: 'pending', createdAt: now - 3600_000, respondedAt: null },
+  { id: 't2', fromId: 'p2', toId: 'p0', give: ['card1'], want: ['card25'], status: 'pending', createdAt: now - 7200_000, respondedAt: null },
+  { id: 't3', fromId: 'p0', toId: 'p2', give: ['card26'], want: [], status: 'accepted', createdAt: now - 86400_000, respondedAt: now - 80000_000 },
+];
+
 const Harness: React.FC = () => {
-  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'events' | 'log'>('leaderboard');
+  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'collection' | 'events' | 'log'>(() => (new URLSearchParams(location.search).get('tab') === 'collection' ? 'collection' : 'leaderboard'));
+  const [cardList, setCardList] = useState<Card[]>(collectionCards);
+  const [packList, setPackList] = useState<Pack[]>([collectionPack]);
+  const [tradeList, setTradeList] = useState<Trade[]>(collectionTrades);
   const [cupDemo, setCupDemo] = useState<CupDemo>(() => (new URLSearchParams(location.search).get('cup') as CupDemo | null) ?? 'nine');
   const [cupJoined, setCupJoined] = useState(false);
   // Claims made with the walkover button, on top of the demo's own.
@@ -373,7 +407,7 @@ const Harness: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white flex justify-center">
       <div className="w-full max-w-md min-h-screen bg-[#0A0A0A] flex flex-col">
-        <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab === 'cup' ? 'cup' : 'leaderboard'}
+        <Header activeTab={tab === 'arena' || tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab === 'cup' ? 'cup' : tab === 'collection' ? 'collection' : 'leaderboard'}
           currentUser={me} matchesCount={seasonMatches.length}
           onOpenProfile={() => {}} onQuickMatch={() => {}} activityBadge={3} onOpenActivity={() => setShowActivity(true)} />
         <div className="flex flex-wrap gap-2 p-2">
@@ -407,7 +441,26 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">reset seen results</button>
         </div>
         <main className="flex-1 overflow-x-hidden px-3 pt-3">
-          {tab === 'cup' ? (() => {
+          {tab === 'collection' ? (
+            <CollectionView players={cardPlayers} currentPlayer={cardPlayers[2]} cards={cardList} packs={packList}
+              collectors={[{ id: 'p2', counts: {}, pity: 12, duplicateChips: 45, opened: 18 }]} trades={tradeList} matches={seasonMatches} now={now} earned={null}
+              onOpenPack={async (packId) => {
+                // Canned pull with a legendary in it, after a network-ish wait.
+                await new Promise((resolve) => setTimeout(resolve, 400));
+                const opened = [mk('p2', 'p4', 'common', { packId }), mk('p2', 'p0', 'legendary', { packId }), mk('p2', 'p1', 'uncommon', { packId })];
+                setCardList((prev) => [...prev, ...opened]);
+                setPackList((prev) => prev.map((pack) => (pack.id === packId ? { ...pack, openedAt: Date.now(), cardIds: opened.map((card) => card.id) } : pack)));
+                return opened;
+              }}
+              onCashIn={async (cardId) => { setCardList((prev) => prev.filter((card) => card.id !== cardId)); return 5; }}
+              onOfferTrade={async (toId, give, want, note) => {
+                if (give.includes('card2')) throw new Error('A card in this trade has moved.');
+                setTradeList((prev) => [{ id: `t${Date.now()}`, fromId: 'p2', toId, give, want, note, status: 'pending', createdAt: Date.now(), respondedAt: null }, ...prev]);
+              }}
+              onRespondTrade={async (tradeId, answer) => {
+                setTradeList((prev) => prev.map((trade) => (trade.id === tradeId ? { ...trade, status: answer === 'accept' ? 'accepted' : answer === 'decline' ? 'declined' : 'cancelled', respondedAt: Date.now() } : trade)));
+              }} />
+          ) : tab === 'cup' ? (() => {
             const { current: base, played, at } = cupFixture(cupDemo, cupJoined);
             const current = base ? { ...base, claims: [...base.claims, ...cupClaims] } : null;
             const cupMatches = [...pastCups.flatMap((entry) => entry.played), ...played];
@@ -441,8 +494,8 @@ const Harness: React.FC = () => {
           )}
         </main>
         <Navigation activeTab={tab === 'log' ? 'arena' : tab === 'events' ? 'history' : tab}
-          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'cup' ? 'cup' : t === 'history' ? 'events' : 'leaderboard')}
-          arenaBadge={1} cupBadge />
+          onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'cup' ? 'cup' : t === 'collection' ? 'collection' : t === 'history' ? 'events' : 'leaderboard')}
+          arenaBadge={1} cupBadge collectionBadge={packList.some((pack) => !pack.openedAt)} />
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
           allPlayers={players} matches={seasonMatches} league={league}
           onClose={() => setDossier(null)} onChallenge={() => setDossier(null)} />

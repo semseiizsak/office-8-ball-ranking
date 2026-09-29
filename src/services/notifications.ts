@@ -28,7 +28,9 @@ export type LeagueNotificationType =
   /** Tournament sign-ups, draws and results. */
   | 'tournament'
   /** Friday's weekly awards are in. */
-  | 'weekly_awards';
+  | 'weekly_awards'
+  /** Packs, big pulls and trades. */
+  | 'cards';
 
 /** One addressed message as the inbox shows it. */
 export interface LeagueNotification {

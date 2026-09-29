@@ -19,6 +19,7 @@ const TITLES: Record<TabType, string> = {
   leaderboard: 'Ranks',
   arena: 'Arena',
   cup: 'Cup',
+  collection: 'Cards',
   history: 'History',
 };
 

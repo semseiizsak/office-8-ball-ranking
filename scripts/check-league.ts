@@ -10,6 +10,7 @@ import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
 import { deriveChips, spentOnDay } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
+import { CARDS_PER_PACK, ODDS, RARITIES, earnedPackReason, rollPack, rollRarity, seeded, specialAwards } from '../src/utils/cards';
 import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
 import { bracketShape, deriveCups, gameDeadline, gamesOf, resolveCup, seedField, slotOrder, weekTournament, withCloseOverride } from '../src/utils/tournament';
@@ -554,6 +555,36 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('achievements: award shelf counts awards', achievementProgress(ctx).find((row) => row.a.id === 'awards')!.v, 3);
 }
 
+
+{
+  eq('cards: odds add up to 1', Math.round(RARITIES.reduce((sum, r) => sum + ODDS[r], 0) * 1e6) / 1e6, 1);
+  const random = seeded('odds');
+  const tally: Record<string, number> = {};
+  for (let i = 0; i < 200000; i++) { const r = rollRarity(random); tally[r] = (tally[r] ?? 0) + 1; }
+  eq('cards: commons land near 62%', Math.abs(tally.common / 200000 - 0.62) < 0.01, true);
+  eq('cards: legendaries stay rare', Math.abs((tally.legendary ?? 0) / 200000 - 0.0045) < 0.001, true);
+  const ids = ['a', 'b', 'c', 'd'];
+  const pack = rollPack({ packId: 'p1', kind: 'weekly', playerIds: ids, pity: 0, takenMythics: new Set() });
+  eq('cards: a pack is 3 cards, fixed by its id', [pack.length, JSON.stringify(pack) === JSON.stringify(rollPack({ packId: 'p1', kind: 'weekly', playerIds: [...ids].reverse(), pity: 0, takenMythics: new Set() }))], [CARDS_PER_PACK, true]);
+  let allCommonPacks = 0;
+  for (let i = 0; i < 2000; i++) if (rollPack({ packId: `x${i}`, kind: 'weekly', playerIds: ids, pity: 0, takenMythics: new Set() }).every((c) => c.rarity === 'common')) allCommonPacks++;
+  eq('cards: never three commons', allCommonPacks, 0);
+  eq('cards: pity makes a legendary', rollPack({ packId: 'p2', kind: 'weekly', playerIds: ids, pity: 29, takenMythics: new Set() }).some((c) => c.rarity === 'legendary' || c.rarity === 'mythic'), true);
+  const champ = rollPack({ packId: 'p3', kind: 'champion', playerIds: ids, pity: 0, takenMythics: new Set() });
+  eq('cards: champion pack has an epic or better', champ.some((c) => ['epic', 'legendary', 'mythic'].includes(c.rarity)), true);
+  let mythicTaken = true;
+  for (let i = 0; i < 40000; i++) if (rollPack({ packId: `m${i}`, kind: 'weekly', playerIds: ['a'], pity: 0, takenMythics: new Set(['a']) }).some((c) => c.rarity === 'mythic')) mythicTaken = false;
+  eq('cards: a taken mythic is never pulled again', mythicTaken, true);
+
+  const monday = new Date(2026, 8, 28, 9).getTime();
+  const w = (id: string, t: number) => ({ id, timestamp: t, winnerId: 'a', loserId: 'b', playerAId: 'a', playerBId: 'b' }) as any;
+  const five = [1, 2, 3, 4, 5].map((i) => w(`w${i}`, monday + i * 3600_000));
+  eq('cards: 5 wins earn the pack', earnedPackReason({ playerId: 'a', matches: five, now: monday + 10 * 3600_000, newTierThisWeek: false, dailyDaysPlayed: [] })?.reason, '5 wins this week');
+  eq('cards: 4 wins do not', earnedPackReason({ playerId: 'a', matches: five.slice(1), now: monday + 10 * 3600_000, newTierThisWeek: false, dailyDaysPlayed: [] }), null);
+  eq('cards: 3 daily days running earn it', earnedPackReason({ playerId: 'a', matches: [], now: monday + 3 * 86_400_000, newTierThisWeek: false, dailyDaysPlayed: ['2026-09-28', '2026-09-29', '2026-09-30'] })?.reason, 'Match of the day, 3 days running');
+  const specials = specialAwards({ playerId: 'a', matches: [{ ...w('b1', monday), modifiers: { eightOnBreak: true, scratchOnEight: false } }], crownHolderId: 'a', crownSince: monday, cupTitles: [{ week: '2026-09-28' }], weeklyAwards: [] });
+  eq('cards: crown, cup and moment specials', specials.map((x) => x.type).sort(), ['crown', 'cup', 'moment']);
+}
 
 console.log(`\n${ok} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
