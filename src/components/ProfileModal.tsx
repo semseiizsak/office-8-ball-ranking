@@ -10,7 +10,7 @@ interface ProfileModalProps {
   player: Player | null;
   onClose: () => void;
   onSwitchPlayer: () => void;
-  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor'>) => Promise<void>;
+  onSave: (updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt'>) => Promise<void>;
 }
 
 /** Editing your own profile: photo, name, team, title and the ball you play under. */
@@ -37,6 +37,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
 
   if (!player) return null;
 
+  // One new photo a day: every photo is stored and printed on cards.
+  const photoLockedFor = player.avatarChangedAt ? player.avatarChangedAt + 86_400_000 - Date.now() : 0;
+  const photoLocked = photoLockedFor > 0;
+
   const handleImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -53,7 +57,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
     try {
       setIsSaving(true);
       setError('');
-      await onSave({ name, department, title, avatarUrl, ball, sponsor, ballPreference: ball > 8 ? 'stripes' : 'solids' });
+      await onSave({
+        name, department, title, avatarUrl, ball, sponsor, ballPreference: ball > 8 ? 'stripes' : 'solids',
+        ...(avatarUrl !== player.avatarUrl ? { avatarChangedAt: Date.now() } : {}),
+      });
       onClose();
     } catch {
       setError('Could not save your profile. Please try again.');
@@ -81,9 +88,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
           <span className="absolute -bottom-1 -left-1 grid h-9 w-9 place-items-center rounded-full bg-white text-bg">
             <ImagePlus className="h-4 w-4" strokeWidth={2.5} />
           </span>
-          <input type="file" accept="image/*" onChange={handleImage} className="sr-only" />
+          <input type="file" accept="image/*" onChange={handleImage} disabled={photoLocked} className="sr-only" />
         </label>
-        <p className="min-w-0 text-sm text-white/70">Tap the photo to pick a new one. Everyone in the office sees your changes.</p>
+        <p className="min-w-0 text-sm text-white/70">
+          {photoLocked
+            ? `One new photo a day. You can change it again in ${Math.ceil(photoLockedFor / 3_600_000)} h.`
+            : 'Tap the photo to pick a new one. Everyone in the office sees your changes.'}
+        </p>
       </div>
       <label className={labelClass}>Name<input value={name} onChange={(event) => setName(event.target.value)} className={fieldClass} /></label>
       <label className={labelClass}>Team<input value={department} onChange={(event) => setDepartment(event.target.value)} className={fieldClass} /></label>

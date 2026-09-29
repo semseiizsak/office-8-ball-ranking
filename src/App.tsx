@@ -74,8 +74,8 @@ export default function App() {
   /** Profile photos as they were printed on cards, by photo id. */
   const [photos, setPhotos] = useState<Map<string, string>>(new Map());
   /** Until both have arrived, nobody can tell what has already been paid out. */
-  const [cardsSeen, setCardsSeen] = useState({ cards: false, packs: false });
-  const cardsLoading = !cardsSeen.cards || !cardsSeen.packs;
+  const [cardsSeen, setCardsSeen] = useState({ cards: false, packs: false, photos: false });
+  const cardsLoading = !cardsSeen.cards || !cardsSeen.packs || !cardsSeen.photos;
   /** The weekly cups, one document per week. */
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
@@ -300,7 +300,10 @@ export default function App() {
       }),
       poolService.subscribeToCollectors(setCollectors),
       poolService.subscribeToTrades(setTrades),
-      poolService.subscribeToPhotos(setPhotos),
+      poolService.subscribeToPhotos((next) => {
+        setPhotos(next);
+        setCardsSeen((seen) => ({ ...seen, photos: true }));
+      }),
     ];
     return () => off.forEach((stop) => stop());
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -493,14 +496,17 @@ export default function App() {
   }, [currentPlayer?.id, matches, challenges, dailyRecords, cardWeek]);
   const champion = !!currentPlayer && cupState?.champion === currentPlayer.id;
   useEffect(() => {
-    if (!currentPlayer || isLoading) return;
+    if (!currentPlayer || isLoading || cardsLoading) return;
+    // Only ask the database for a pack this phone does not already see.
     const make = (kind: PackKind, reason?: string) =>
-      poolService.ensurePack(currentPlayer.id, cardWeek, kind, reason).catch((error) => console.warn('Pack not created:', error));
+      packs.some((pack) => pack.id === `${currentPlayer.id}_${cardWeek}_${kind}`)
+        ? undefined
+        : poolService.ensurePack(currentPlayer.id, cardWeek, kind, reason).catch((error) => console.warn('Pack not created:', error));
     void make('weekly');
     if (earned) void make('earned', earned.reason);
     if (champion) void make('champion', 'Weekly cup champion');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, cardWeek, earned?.reason, champion]);
+  }, [currentPlayer?.id, isLoading, cardsLoading, cardWeek, earned?.reason, champion]);
 
   // What a card of each player says right now.
   const cardStatsById = useMemo(
@@ -510,7 +516,7 @@ export default function App() {
 
   // Special editions the current player has earned and not yet received.
   useEffect(() => {
-    if (!currentPlayer || isLoading) return;
+    if (!currentPlayer || isLoading || cardsLoading) return;
     const cupTitles = tournaments
       .map((cup) => ({ week: cup.week, state: resolveCup(cup, matches, clock) }))
       .filter((entry) => entry.state?.champion === currentPlayer.id)
@@ -529,13 +535,15 @@ export default function App() {
         .catch((error) => console.warn('Special card not granted:', error));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
+  }, [currentPlayer?.id, isLoading, cardsLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
 
   // Each player's photo right now, as it would be printed on a new card.
   // The photo a player's cards carry this season: the one on their first card
   // of the season, so a photo changed mid-season only shows from next season.
   const photoShots = useMemo(() => {
-    const out: Record<string, { id: string; data: string }> = {};
+    // `data` rides along only when the photo store does not have it yet, so a
+    // photo is written once, never again per card.
+    const out: Record<string, { id: string; data?: string }> = {};
     const firstOfSeason = new Map<string, Card>();
     for (const card of [...cards].sort((a, b) => a.createdAt - b.createdAt)) {
       if ((card.seasonId || currentSeason.id) !== currentSeason.id || !card.photoId || card.photoId === 'none') continue;
@@ -544,8 +552,11 @@ export default function App() {
     for (const player of players) {
       const held = firstOfSeason.get(player.id);
       const data = held ? photos.get(held.photoId!) : undefined;
-      if (held && data) out[player.id] = { id: held.photoId!, data };
-      else if (player.avatarUrl) out[player.id] = { id: photoIdOf(player.avatarUrl), data: player.avatarUrl };
+      if (held && data) out[player.id] = { id: held.photoId! };
+      else if (player.avatarUrl) {
+        const id = photoIdOf(player.avatarUrl);
+        out[player.id] = photos.has(id) ? { id } : { id, data: player.avatarUrl };
+      }
     }
     return out;
   }, [players, cards, photos, currentSeason.id]);
@@ -574,14 +585,14 @@ export default function App() {
   );
   // Cards from before photos and seasons were stored get them once, as they are now.
   useEffect(() => {
-    if (!currentPlayer || isLoading) return;
+    if (!currentPlayer || isLoading || cardsLoading) return;
     const stale = cards.filter((card) => !card.seasonId || !card.photoId);
     if (stale.length === 0) return;
     void poolService
       .backfillCards(stale.map((card) => ({ cardId: card.id, seasonId: card.seasonId ? undefined : currentSeason.id, photo: card.photoId ? undefined : photoShots[card.playerId] ?? 'none' })))
       .catch((error) => console.warn('Cards not backfilled:', error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, cards.length]);
+  }, [currentPlayer?.id, isLoading, cardsLoading, cards.length]);
 
   // Unlock rewards: a pack for most unlocks, a themed card for the special ones.
   // Every open phone pays out for everyone, including what was earned before
@@ -922,7 +933,7 @@ export default function App() {
   };
 
   const handleSaveProfile = async (
-    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor'>
+    updates: Pick<Player, 'name' | 'department' | 'title' | 'avatarUrl' | 'ballPreference' | 'ball' | 'sponsor' | 'avatarChangedAt'>
   ) => {
     if (!currentPlayer) return;
     await poolService.updatePlayer(currentPlayer.id, updates);

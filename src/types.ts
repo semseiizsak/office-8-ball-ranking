@@ -11,6 +11,8 @@ export interface Player {
   ball?: number;
   /** The restaurant they play for, if any: 'simons', 'travis', 'smashy' or 'buddys'. */
   sponsor?: string;
+  /** When the profile photo last changed: once a day, since every photo is stored and printed. */
+  avatarChangedAt?: number;
   elo: number;
   peakElo: number;
   wins: number;
