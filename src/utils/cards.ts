@@ -10,7 +10,7 @@ import { mondayOf } from './tournament';
  * refreshing cannot reroll it. Packs are capped at two a week: a free weekly
  * pack, plus one earned pack for the first of five wins that week, a new
  * achievement tier that week, or three matches of the day in a row. The cup
- * champion also gets a champion pack. Unopened packs expire with their week.
+ * champion also gets three champion packs. Unopened packs expire with their week.
  *
  * Special editions (crown, cup, team of the week, clown, moment, rivalry) never
  * come out of a pack: they go to the player who earned them, once per event.
@@ -333,6 +333,8 @@ export function specialAwards(params: {
   crownHolderId: string | null;
   crownSince: number | null;
   cupTitles: Array<{ week: string }>;
+  /** Cup cards say which week of the season they were won in. */
+  seasonStartedAt?: number;
   weeklyAwards: Array<{ week: string; key: string }>;
 }): SpecialAward[] {
   const { playerId } = params;
@@ -341,7 +343,10 @@ export function specialAwards(params: {
   if (params.crownHolderId === playerId && params.crownSince !== null) {
     out.push({ id: `crown-${playerId}-${params.crownSince}`, type: 'crown', playerId, note: `Took the crown ${date(params.crownSince)}` });
   }
-  for (const cup of params.cupTitles) out.push({ id: `cup-${playerId}-${cup.week}`, type: 'cup', playerId, note: `Weekly cup, week of ${cup.week}` });
+  for (const cup of params.cupTitles) {
+    const n = params.seasonStartedAt ? Math.round((mondayOf(new Date(`${cup.week}T12:00:00`).getTime()).getTime() - mondayOf(params.seasonStartedAt).getTime()) / (7 * 86_400_000)) + 1 : 0;
+    out.push({ id: `cup-${playerId}-${cup.week}`, type: 'cup', playerId, note: n >= 1 ? `Week ${n}` : `Weekly cup, week of ${cup.week}` });
+  }
   const weeks = new Set(params.weeklyAwards.filter((award) => !['clown', 'ghost', 'freefall', 'butter', 'burner', 'jinx'].includes(award.key)).map((award) => award.week));
   for (const week of weeks) out.push({ id: `totw-${playerId}-${week}`, type: 'totw', playerId, note: `Team of the week, ${week}` });
 

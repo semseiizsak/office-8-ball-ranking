@@ -1691,7 +1691,8 @@ export function subscribeToTrades(onChange: (trades: Trade[]) => void): () => vo
   return onSnapshot(tradesCollection, (snapshot) => onChange(snapshot.docs.map((entry) => toTrade(entry.id, entry.data()))));
 }
 
-export const packIdOf = (ownerId: string, week: string, kind: PackKind) => `${ownerId}_${week}_${kind}`;
+/** `slot` numbers extra packs of one kind in a week (the cup champion gets three); the first keeps the plain id. */
+export const packIdOf = (ownerId: string, week: string, kind: PackKind, slot = 1) => `${ownerId}_${week}_${kind}${slot > 1 ? slot : ''}`;
 
 /**
  * Rewards for unlocks: the first time a player is seen, what they already had
@@ -1730,8 +1731,8 @@ export async function ensureRewardPack(ownerId: string, key: string, label: stri
 }
 
 /** Creates a player's pack for the week unless it exists; returns whether it was new. */
-export async function ensurePack(ownerId: string, week: string, kind: PackKind, reason?: string): Promise<boolean> {
-  const ref = doc(packsCollection, packIdOf(ownerId, week, kind));
+export async function ensurePack(ownerId: string, week: string, kind: PackKind, reason?: string, slot = 1): Promise<boolean> {
+  const ref = doc(packsCollection, packIdOf(ownerId, week, kind, slot));
   return runTransaction(db, async (transaction) => {
     const existing = await transaction.get(ref);
     if (existing.exists()) return false;

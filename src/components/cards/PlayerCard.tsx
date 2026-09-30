@@ -49,6 +49,34 @@ export const RARITY_GLOW: Record<Rarity, string> = {
 
 export const positionOf = (card: Pick<Card, 'type' | 'rarity'>) => (card.type === 'player' ? POSITION[card.rarity] : SPECIAL_POSITION[card.type]);
 const first = (player: Pick<Player, 'name'> | null | undefined) => (player?.name ?? '?').split(' ')[0];
+/** The cup champion's laurel: two gold branches of pointed leaves framing the photo. */
+const LAUREL_LEAVES = Array.from({ length: 11 }, (_, i) => {
+  const a = ((106 + i * 6.6) * Math.PI) / 180;
+  return {
+    x: 130 + 122 * Math.cos(a),
+    y: 8 + 122 * Math.sin(a),
+    // Along the branch, towards its tip.
+    tangent: (Math.atan2(Math.cos(a), -Math.sin(a)) * 180) / Math.PI,
+    size: 1.15 - i * 0.04,
+  };
+});
+const LEAF = 'M0 0 Q 7 -5 15 0 Q 7 5 0 0 Z';
+const Laurel = () => (
+  <svg className="pc-laurel" viewBox="0 0 260 140" aria-hidden="true">
+    {[1, -1].map((side) => (
+      <g key={side} transform={side === -1 ? 'translate(260 0) scale(-1 1)' : undefined} fill="#F2B705" stroke="#0A0A0A" strokeWidth="0.7">
+        <path d="M 122 132 A 122 122 0 0 1 12 18" fill="none" stroke="#F2B705" strokeWidth="2" strokeLinecap="round" />
+        {LAUREL_LEAVES.map((leaf, i) =>
+          [-42, 42].map((turn) => (
+            <path key={`${i}${turn}`} d={LEAF} transform={`translate(${leaf.x} ${leaf.y}) rotate(${leaf.tangent + turn}) scale(${leaf.size})`} />
+          ))
+        )}
+        <path d={LEAF} transform={`translate(12 18) rotate(${LAUREL_LEAVES[10].tangent + 4}) scale(1)`} />
+      </g>
+    ))}
+  </svg>
+);
+
 const seasonLabel = (season: string) => (/^season/i.test(season) ? season : `Season ${season || 1}`);
 
 const WIDTH: Record<CardSize, number> = { full: 300, medium: 150, mini: 0 };
@@ -74,9 +102,13 @@ export const PlayerCard: React.FC<{
   const photo = card.photo ?? (card.photoId ? '' : player?.avatarUrl || '');
   const special = card.type !== 'player';
   const sponsor = sponsorOf(player);
-  const fullArt = !special && (card.rarity === 'legendary' || card.rarity === 'mythic');
+  const cup = card.type === 'cup';
+  // The cup champion's card is a 1 of 1, full art like the top rarities.
+  const fullArt = cup || (!special && (card.rarity === 'legendary' || card.rarity === 'mythic'));
+  // Cup cards carry the week of the season; the first ones only had the date.
+  const cupWeek = cup ? (/^Week \d+$/.test(card.note ?? '') ? card.note : card.note?.match(/week of (\S+)/)?.[1] ?? '') : '';
   const tilt = fullArt && size === 'full';
-  const glows = !special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity);
+  const glows = cup || (!special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity));
   const Icon = special ? SPECIAL_ICON[card.type as Exclude<CardType, 'player'>] : null;
   const name = card.type === 'rivalry' ? `${first(player)} vs ${first(other)}` : first(player);
   const initial = (player?.name ?? '?').charAt(0);
@@ -149,6 +181,7 @@ export const PlayerCard: React.FC<{
             <div className="pc-sh pc-inset pc-art" />
             {!photo && <div className="pc-mono">{initial}</div>}
             {card.rarity === 'legendary' && <div className="pc-sh pc-inset pc-foil" />}
+            {cup && <Laurel />}
             <div className="pc-sh pc-inset pc-sweep" />
             <div className="pc-sh pc-inset pc-glare" />
           </>
@@ -181,11 +214,11 @@ export const PlayerCard: React.FC<{
             ) : (
               <span className="pc-gem" />
             )}
-            <span className="pc-flag">{special ? SPECIAL_FLAG[card.type as Exclude<CardType, 'player'>] : card.rarity === 'mythic' ? '1 of 1' : card.rarity}</span>
+            <span className="pc-flag">{cup ? '1 of 1' : special ? SPECIAL_FLAG[card.type as Exclude<CardType, 'player'>] : card.rarity === 'mythic' ? '1 of 1' : card.rarity}</span>
           </div>
           <div className="pc-bottom">
             <div className="pc-name">{name}</div>
-            {card.note && special && <div className="pc-note">{card.note}</div>}
+            {cup ? <div className="pc-note">Weekly cup champion</div> : card.note && special && <div className="pc-note">{card.note}</div>}
             <div className="pc-line" />
             <div className="pc-stats">
               {(['WIN', 'CLU', 'FRM', 'BRK', 'CAL', 'GRT'] as const).map((key) => (
@@ -197,7 +230,11 @@ export const PlayerCard: React.FC<{
             </div>
             <div className="pc-foot">
               <span>{seasonLabel(card.season)}</span>
-              <span>{card.rarity === 'mythic' && !special ? '1 of 1' : `No ${String(card.serial).padStart(2, '0')}`}</span>
+              {cup ? (
+                cupWeek && <span>{cupWeek}</span>
+              ) : (
+                <span>{card.rarity === 'mythic' && !special ? '1 of 1' : `No ${String(card.serial).padStart(2, '0')}`}</span>
+              )}
             </div>
           </div>
           {size === 'mini' && <div className="pc-mini-pos">{positionOf(card)}</div>}

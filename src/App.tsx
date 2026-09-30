@@ -541,13 +541,14 @@ export default function App() {
   useEffect(() => {
     if (!currentPlayer || isLoading || !cardsSeen.packs) return;
     // Only ask the database for a pack this phone does not already see.
-    const make = (kind: PackKind, reason?: string) =>
-      packs.some((pack) => pack.id === `${currentPlayer.id}_${cardWeek}_${kind}`)
+    const make = (kind: PackKind, reason?: string, slot = 1) =>
+      packs.some((pack) => pack.id === poolService.packIdOf(currentPlayer.id, cardWeek, kind, slot))
         ? undefined
-        : poolService.ensurePack(currentPlayer.id, cardWeek, kind, reason).catch((error) => console.warn('Pack not created:', error));
+        : poolService.ensurePack(currentPlayer.id, cardWeek, kind, reason, slot).catch((error) => console.warn('Pack not created:', error));
     void make('weekly');
     if (earned) void make('earned', earned.reason);
-    if (champion) void make('champion', 'Weekly cup champion');
+    // The cup champion gets three packs.
+    if (champion) for (const slot of [1, 2, 3]) void make('champion', 'Weekly cup champion', slot);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cardsSeen.packs, cardWeek, earned?.reason, champion]);
 
@@ -570,6 +571,7 @@ export default function App() {
       crownHolderId: league.crown.holderId,
       crownSince: league.crown.heldSince,
       cupTitles,
+      seasonStartedAt: currentSeason.startedAt,
       weeklyAwards: awardRecords.get(currentPlayer.id) ?? [],
     }).filter((award) => !cards.some((card) => card.id === award.id));
     for (const award of due) {

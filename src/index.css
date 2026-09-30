@@ -347,7 +347,14 @@ input, textarea, select { font-size: 16px; }
 .pc-t-crown { --acc: #F2B705; --ink: #F2B705; }
 .pc-t-crown .pc-bg { --rim: #F2B705; --fill: linear-gradient(160deg, #3a0d12, #0A0A0A); }
 .pc-t-cup { --acc: #F2B705; --ink: #fff; }
-.pc-t-cup .pc-bg { --rim: #F2B705; --fill: radial-gradient(80% 55% at 50% 30%, #0f5a33, #0A0A0A 75%); }
+/* The cup card is full art: a gold rim, green felt light behind the photo and a laurel around it. */
+.pc-t-cup { --glow: rgba(242,183,5,.6); }
+.pc-t-cup .pc-bg { background: linear-gradient(160deg, #fff3b0 0%, #F2B705 22%, #8a6400 50%, #F2B705 78%, #fff3b0 100%); }
+.pc-t-cup .pc-bg::after { content: none; }
+.pc-t-cup .pc-art { background: var(--photo, none) 50% 0 / cover no-repeat, radial-gradient(80% 55% at 50% 30%, #0f5a33, #0A0A0A 75%); }
+.pc-t-cup .pc-art::before { background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,0) 22%, rgba(10,10,10,0) 48%, rgba(10,10,10,.82) 68%, rgba(10,10,10,.96) 100%), radial-gradient(70% 40% at 50% 0%, rgba(242,183,5,.45), transparent 70%); }
+.pc-laurel { position: absolute; left: calc(30 * var(--k)); top: calc(112 * var(--k)); width: calc(260 * var(--k)); height: calc(140 * var(--k)); transform: translateZ(6px); pointer-events: none; }
+.pc-mini .pc-laurel { top: calc(150 * var(--k)); }
 .pc-t-crown .pc-center, .pc-t-cup .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #F2B705; }
 .pc-t-totw { --acc: #fff; --ink: #fff; }
 .pc-t-totw .pc-bg { --rim: #FFFFFF; --fill: linear-gradient(160deg, #111, #000); }
