@@ -602,7 +602,7 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
   );
 
   return (
-    <div id="player-dossier-modal" role="dialog" aria-modal="true" aria-label={player.name} className="anim-fade fixed inset-0 z-50 overflow-y-auto bg-bg">
+    <div id="player-dossier-modal" role="dialog" aria-modal="true" aria-label={player.name} className="anim-fade fixed inset-0 z-[57] overflow-y-auto bg-bg">
       <div className="mx-auto grid w-full max-w-md gap-3 px-3 pb-[calc(var(--safe-bottom)+1.5rem)]">
         {header}
         <div key={tab} className="stagger grid gap-3">

@@ -110,7 +110,7 @@ export const MatchSuccessModal: React.FC<MatchSuccessModalProps> = ({
   rows.push(...extraRows);
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="win-title" className="anim-fade fixed inset-0 z-50 grid place-items-center overflow-hidden overflow-y-auto bg-black px-6 py-8 text-center">
+    <div role="dialog" aria-modal="true" aria-labelledby="win-title" className="anim-fade fixed inset-0 z-[59] grid place-items-center overflow-hidden overflow-y-auto bg-black px-6 py-8 text-center">
       <BallBurst />
       <div className="relative z-10 grid w-full max-w-sm justify-items-center gap-3.5">
         {result.crownChangedHands ? (

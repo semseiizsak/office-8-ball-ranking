@@ -82,6 +82,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
       title="Your profile"
       onClose={onClose}
       closeDisabled={isSaving}
+      z={59}
       footer={
         <button type="button" onClick={save} disabled={isSaving || !name.trim()} className={`${button} bg-white text-bg`}>
           {isSaving ? 'Saving' : 'Save profile'}

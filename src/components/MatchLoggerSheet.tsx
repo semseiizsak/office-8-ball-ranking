@@ -37,7 +37,7 @@ export const MatchLoggerSheet: React.FC<MatchLoggerSheetProps> = ({
   onRecordMatch,
   onClose,
 }) => (
-  <div role="dialog" aria-modal="true" aria-label="Log a match" className="fixed inset-0 z-50 flex items-end justify-center">
+  <div role="dialog" aria-modal="true" aria-label="Log a match" className="fixed inset-0 z-[58] flex items-end justify-center">
     <button type="button" aria-label="Close" onClick={onClose} disabled={isSubmitting} className="anim-fade absolute inset-0 bg-black/60" />
     <div className="anim-sheet relative flex max-h-[92vh] w-full max-w-md flex-col rounded-t-3xl bg-elev">
       <div className="flex shrink-0 flex-col gap-2.5 px-4 pt-2.5">

@@ -91,6 +91,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
       title={instant ? "We're on the table" : 'Call out'}
       onClose={onClose}
       closeDisabled={isSending}
+      z={59}
       footer={
         <button
           type="button"

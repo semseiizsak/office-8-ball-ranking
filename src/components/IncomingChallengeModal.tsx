@@ -52,7 +52,7 @@ export const IncomingChallengeModal: React.FC<IncomingChallengeModalProps> = ({
 
   return (
     <Sheet
-      z={55}
+      z={59}
       title={isOutgoing ? `Waiting on ${themName.split(' ')[0]}` : `${themName.split(' ')[0]} called you out`}
       onClose={() => onDismiss(challenge)}
       closeDisabled={busy}
