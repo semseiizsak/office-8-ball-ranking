@@ -4,6 +4,9 @@ import {
   Season, SeasonStanding, SeasonTitle,
 } from './types';
 import { poolService } from './services/poolService';
+
+/** Cups from this week on give every player in the field a pack when they finish. */
+const CUP_PACKS_FROM = '2026-09-28';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { LeaderboardView } from './components/LeaderboardView';
@@ -575,6 +578,30 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cardsSeen.packs, seasonTitles]);
+
+  // One reward pack for everyone who played a closed season, and for everyone
+  // in the field of a finished cup (from the week this started, so earlier
+  // cups do not pay out all at once). Ids are the event, so never twice.
+  const packsAsked = useRef(new Set<string>());
+  useEffect(() => {
+    if (!currentPlayer || isLoading || !cardsSeen.packs) return;
+    const give = (key: string, label: string) => {
+      const id = `${currentPlayer.id}_reward_${key.replace(/[^a-z0-9]/gi, '-')}`;
+      // Asked once per open: the clock ticks before the new pack shows up.
+      if (packsAsked.current.has(id) || packs.some((pack) => pack.id === id)) return;
+      packsAsked.current.add(id);
+      void poolService.ensureRewardPack(currentPlayer.id, key, label).catch((error) => console.warn('Pack not given:', error));
+    };
+    for (const season of seasons) {
+      if (season.endedAt !== null && season.standings.some((row) => row.playerId === currentPlayer.id)) give(`season-${season.id}-played`, `${season.name} is over`);
+    }
+    for (const cup of tournaments) {
+      if (cup.week < CUP_PACKS_FROM || !cup.field?.includes(currentPlayer.id)) continue;
+      const state = resolveCup(cup, matches, clock);
+      if (state && (state.champion || state.unfinished)) give(`cup-${cup.week}-played`, 'Played the weekly cup');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cardsSeen.packs, seasons, tournaments, matches.length, clock]);
 
   // Special editions the current player has earned and not yet received.
   useEffect(() => {
