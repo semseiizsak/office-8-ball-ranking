@@ -36,18 +36,14 @@ import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
 import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
-import { OfflineLeague } from './components/OfflineLeague';
 import { OfflineReview } from './components/OfflineReview';
 import {
   OfflineMatch,
   isDatabaseDown,
   loadOutbox,
-  loadRoster,
   planSync,
   queueMatch,
-  quotaResetsAt,
   saveOutbox,
-  saveRoster,
 } from './utils/outbox';
 import { WeekAwards, awardsArchive, latestReleasedMonday } from './utils/awards';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
@@ -96,16 +92,9 @@ export default function App() {
   const [clock, setClock] = useState(() => Date.now());
   const closingSeasonRef = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  /** Set when the database would not answer at load: the app runs as an offline logger. */
-  const [offlineReason, setOfflineReason] = useState<string | null>(() =>
-    // ?offline opens the offline logger straight away, whatever the database
-    // does. Needed because an exhausted quota still lets the odd request
-    // through, so a load can half-succeed and never reach the offline screen.
-    new URLSearchParams(window.location.search).has('offline') ? 'Opened in offline mode.' : null
-  );
+  const [loadError, setLoadError] = useState<string | null>(null);
   /** Results logged while the database could not take them, kept on this phone. */
   const [outbox, setOutbox] = useState<OfflineMatch[]>(() => loadOutbox());
-  const [checkingDb, setCheckingDb] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
@@ -238,10 +227,6 @@ export default function App() {
       });
 
     async function loadData() {
-      if (new URLSearchParams(window.location.search).has('offline')) {
-        setIsLoading(false);
-        return;
-      }
       try {
         // Matches and challenges arrive through the live feeds the app keeps
         // open anyway. Reading them once up front and then again through the
@@ -308,9 +293,8 @@ export default function App() {
       } catch (error) {
         if (cancelled) return;
         console.error('Failed to load league data:', error);
-        // Whatever went wrong, the one thing that must keep working is logging.
         const code = (error as { code?: string } | null)?.code;
-        setOfflineReason(
+        setLoadError(
           code === 'resource-exhausted'
             ? 'Firestore: quota exceeded.'
             : code
@@ -849,38 +833,6 @@ export default function App() {
 
   const removeOffline = (id: string) => updateOutbox((entries) => entries.filter((entry) => entry.id !== id));
 
-  /** Asks the server for one document; if it answers, the league is back and the app reloads into it. */
-  const retryLeague = async () => {
-    setCheckingDb(true);
-    try {
-      await poolService.pingLeague();
-      window.location.replace(window.location.pathname);
-    } catch (error) {
-      console.warn('League still unavailable:', error);
-      setCheckingDb(false);
-    }
-  };
-
-  // Offline, look again every ten minutes and whenever the phone comes back to the app.
-  useEffect(() => {
-    // Opened with ?offline on purpose: stay put until someone taps "Try the league now".
-    if (!offlineReason || new URLSearchParams(window.location.search).has('offline')) return;
-    const check = () => {
-      if (document.visibilityState === 'visible') void retryLeague();
-    };
-    const timer = window.setInterval(check, 10 * 60_000);
-    document.addEventListener('visibilitychange', check);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', check);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offlineReason]);
-
-  // The roster, without photos, so this phone can still log if the database goes away.
-  useEffect(() => {
-    if (!offlineReason && players.length > 0) saveRoster(players);
-  }, [players, offlineReason]);
 
   // Hand queued results to the league once it answers again. One attempt per
   // load; anything unresolved waits for someone to say who was meant.
@@ -909,14 +861,14 @@ export default function App() {
     }
   };
   useEffect(() => {
-    if (isLoading || offlineReason || outbox.length === 0) return;
+    if (isLoading || loadError || outbox.length === 0) return;
     // A sync reads the whole league, so only go when something can actually
     // be settled; games waiting on a name pick wait without costing anything.
     const plan = planSync(outbox, players, matches);
     if (plan.ready.length === 0 && plan.duplicates.length === 0) return;
     void syncOutbox(outbox);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, offlineReason, outbox.length]);
+  }, [isLoading, loadError, outbox.length]);
 
   const refreshPlayers = async () => {
     setPlayers(await poolService.getPlayers());
@@ -1461,19 +1413,19 @@ export default function App() {
     );
   }
 
-  if (offlineReason) {
+  if (loadError) {
     return (
-      <OfflineLeague
-        roster={loadRoster()}
-        outbox={outbox}
-        currentPlayerId={localStorage.getItem(LOCAL_PLAYER_KEY)}
-        resetsAt={quotaResetsAt(clock)}
-        reason={offlineReason}
-        checking={checkingDb}
-        onQueue={queueOffline}
-        onRemove={removeOffline}
-        onRetry={() => void retryLeague()}
-      />
+      <div className="grid min-h-screen place-items-center bg-bg p-6">
+        <div className="grid w-full max-w-md justify-items-center gap-3 rounded-2xl bg-card p-6 text-center">
+          <Ball n={8} size={64} />
+          <h1 className="text-2xl">Can't reach the league</h1>
+          <p className="text-sm text-white/70">The app loaded, but the database did not answer. Try again in a moment.</p>
+          <pre className="w-full overflow-x-auto rounded-xl bg-surface p-3 text-left text-[11px] tabular-nums text-white/70">{loadError}</pre>
+          <button type="button" onClick={() => window.location.reload()} className="press h-12 w-full rounded-full bg-white text-[13px] font-extrabold uppercase tracking-[0.06em] text-bg">
+            Try again
+          </button>
+        </div>
+      </div>
     );
   }
 

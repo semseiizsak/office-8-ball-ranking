@@ -1,5 +1,5 @@
 import { runLeagueReplay, deriveLeagueInsights, computeRivalry, bountyForReign, softResetElo, matchesInSeason, IMPLICIT_SEASON, DAY_MS } from '../src/utils/league';
-import { isDatabaseDown, planSync, provisionalStandings, queueMatch, quotaResetsAt, resolveName, offlineMatchDocId } from '../src/utils/outbox';
+import { isDatabaseDown, planSync, queueMatch, resolveName, offlineMatchDocId } from '../src/utils/outbox';
 import { Season } from '../src/types';
 import { calculateMatchElo, calculateProjectedStakes } from '../src/utils/elo';
 import { previewStakes } from '../src/utils/stakes';
@@ -635,21 +635,10 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('outbox: a rematch later is not a duplicate', planSync(twice, roster, []).ready.length, 2);
   eq('outbox: a player cannot beat themselves', planSync(queueMatch([], { winnerId: null, loserId: null, winnerName: 'Sarah', loserName: 'sarah jenkins', loggedById: null }), roster, []).unresolved.length, 1);
 
-  const cached = [
-    { id: 'p1', name: 'Ármin Kovács', elo: 1000, wins: 0, losses: 0 },
-    { id: 'p2', name: 'Sarah Jenkins', elo: 1000, wins: 0, losses: 0 },
-  ];
-  const provisional = provisionalStandings(cached, queueMatch([], { winnerId: 'p2', loserId: 'p1', winnerName: 'Sarah Jenkins', loserName: 'Ármin Kovács', loggedById: null }));
-  eq('outbox: provisional standings play queued games on top', provisional.map((player) => [player.id, player.elo, player.wins, player.losses]), [['p2', 1016, 1, 0], ['p1', 984, 0, 1]]);
-
   eq('outbox: quota error means the database is down', isDatabaseDown({ code: 'resource-exhausted', message: 'Quota exceeded.' }), true);
   eq('outbox: a timeout means the database is down', isDatabaseDown(new Error('Timed out reaching the league database.')), true);
   eq('outbox: a real bug is not mistaken for an outage', isDatabaseDown(new Error('Players not found')), false);
 
-  // 14:08 in Budapest on 29 September is 05:08 in Los Angeles; the quota comes back at 09:00 Budapest.
-  eq('outbox: quota resets at Pacific midnight (summer)', new Date(quotaResetsAt(Date.UTC(2026, 8, 29, 12, 8))).toISOString(), '2026-09-30T07:00:00.000Z');
-  eq('outbox: quota resets at Pacific midnight (winter)', new Date(quotaResetsAt(Date.UTC(2026, 11, 1, 12, 0))).toISOString(), '2026-12-02T08:00:00.000Z');
-  eq('outbox: just after Pacific midnight it is the next one', new Date(quotaResetsAt(Date.UTC(2026, 8, 30, 7, 1))).toISOString(), '2026-10-01T07:00:00.000Z');
 }
 
 console.log(`\n${ok} passed, ${fail} failed`);
