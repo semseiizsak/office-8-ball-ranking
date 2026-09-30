@@ -26,7 +26,7 @@ interface CollectionViewProps {
   currentSeasonId: string;
 }
 
-const TYPES: CardType[] = ['player', 'crown', 'cup', 'totw', 'clown', 'moment', 'rivalry'];
+const TYPES: CardType[] = ['player', 'season', 'crown', 'cup', 'totw', 'clown', 'moment', 'rivalry'];
 const SOURCE: Record<Card['source'], string> = { pack: 'Pulled from a pack', award: 'Earned on the table', trade: 'Came in a trade' };
 const chip = (on: boolean) =>
   `press h-8 flex-none rounded-full px-3 text-[10px] font-extrabold uppercase tracking-[0.1em] transition-colors duration-200 ease-[var(--ease)] ${on ? 'bg-white text-bg' : 'bg-surface-alt text-white'}`;

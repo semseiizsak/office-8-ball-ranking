@@ -558,6 +558,24 @@ export default function App() {
     [players, seasonMatches, challenges]
   );
 
+  // Closed seasons the current player finished first in.
+  const seasonTitles = useMemo(
+    () => (currentPlayer ? seasons.filter((season) => season.endedAt !== null && season.standings.find((row) => row.rank === 1)?.playerId === currentPlayer.id) : []),
+    [seasons, currentPlayer?.id]
+  );
+  // The season champion gets five reward packs; ids are the season, so never twice.
+  useEffect(() => {
+    if (!currentPlayer || isLoading || !cardsSeen.packs) return;
+    for (const season of seasonTitles) {
+      for (const i of [1, 2, 3, 4, 5]) {
+        const key = `season-${season.id}-${i}`;
+        if (packs.some((pack) => pack.id === `${currentPlayer.id}_reward_${key.replace(/[^a-z0-9]/gi, '-')}`)) continue;
+        void poolService.ensureRewardPack(currentPlayer.id, key, `${season.name} champion`, 'epic').catch((error) => console.warn('Season packs not given:', error));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cardsSeen.packs, seasonTitles]);
+
   // Special editions the current player has earned and not yet received.
   useEffect(() => {
     if (!currentPlayer || isLoading || cardsLoading) return;
@@ -571,16 +589,26 @@ export default function App() {
       crownHolderId: league.crown.holderId,
       crownSince: league.crown.heldSince,
       cupTitles,
+      seasonTitles: seasonTitles.map((season) => ({ seasonId: season.id, name: season.name })),
       seasonStartedAt: currentSeason.startedAt,
       weeklyAwards: awardRecords.get(currentPlayer.id) ?? [],
     }).filter((award) => !cards.some((card) => card.id === award.id));
     for (const award of due) {
+      // A season champion card is printed as of the season it was won in: its stats and its photo.
+      const won = award.type === 'season' ? seasonTitles.find((season) => award.id === `season-${currentPlayer.id}-${season.id}`) : undefined;
+      const wonPhoto = won && cards.find((card) => card.playerId === currentPlayer.id && card.seasonId === won.id && card.photoId && card.photoId !== 'none')?.photoId;
       void poolService
-        .grantSpecial({ award, stats: cardStatsById[currentPlayer.id], season: currentSeason.name, seasonId: currentSeason.id, photo: photoShots[currentPlayer.id] })
+        .grantSpecial({
+          award,
+          stats: won ? cardStats(currentPlayer, matchesInSeason(matches, won), challenges) : cardStatsById[currentPlayer.id],
+          season: won?.name ?? currentSeason.name,
+          seasonId: won?.id ?? currentSeason.id,
+          photo: wonPhoto ? { id: wonPhoto } : photoShots[currentPlayer.id],
+        })
         .catch((error) => console.warn('Special card not granted:', error));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer?.id, isLoading, cardsLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length]);
+  }, [currentPlayer?.id, isLoading, cardsLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length, seasonTitles]);
 
   // Each player's photo right now, as it would be printed on a new card.
   // The photo a player's cards carry this season: the one on their first card

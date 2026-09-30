@@ -25,15 +25,15 @@ const THEME: Record<ThemedType, { c: string; e: string; pos: string; flag: strin
 };
 const themed = (type: CardType): type is ThemedType => type in THEME;
 const SPECIAL_POSITION: Record<Exclude<CardType, 'player'>, string> = {
-  crown: 'KING', cup: 'CUP', totw: 'TOTW', clown: 'CLN', moment: 'BRK', rivalry: 'VS',
+  crown: 'KING', cup: 'CUP', season: 'CHAMP', totw: 'TOTW', clown: 'CLN', moment: 'BRK', rivalry: 'VS',
   ...(Object.fromEntries(Object.entries(THEME).map(([k, v]) => [k, v.pos])) as Record<ThemedType, string>),
 };
 const SPECIAL_FLAG: Record<Exclude<CardType, 'player'>, string> = {
-  crown: 'Crown', cup: 'Cup', totw: 'TOTW', clown: 'Clown', moment: 'Moment', rivalry: 'Rivalry',
+  crown: 'Crown', cup: 'Cup', season: 'Champion', totw: 'TOTW', clown: 'Clown', moment: 'Moment', rivalry: 'Rivalry',
   ...(Object.fromEntries(Object.entries(THEME).map(([k, v]) => [k, v.flag])) as Record<ThemedType, string>),
 };
 const SPECIAL_ICON: Record<Exclude<CardType, 'player'>, typeof Star> = {
-  crown: Crown, cup: Trophy, totw: Star, clown: Laugh, moment: Zap, rivalry: Swords,
+  crown: Crown, cup: Trophy, season: Crown, totw: Star, clown: Laugh, moment: Zap, rivalry: Swords,
   ...(Object.fromEntries(Object.keys(THEME).map((k) => [k, Star])) as Record<ThemedType, typeof Star>),
 };
 
@@ -103,12 +103,13 @@ export const PlayerCard: React.FC<{
   const special = card.type !== 'player';
   const sponsor = sponsorOf(player);
   const cup = card.type === 'cup';
-  // The cup champion's card is a 1 of 1, full art like the top rarities.
-  const fullArt = cup || (!special && (card.rarity === 'legendary' || card.rarity === 'mythic'));
+  const champ = card.type === 'season';
+  // The cup and season champions' cards are 1 of 1s, full art like the top rarities.
+  const fullArt = cup || champ || (!special && (card.rarity === 'legendary' || card.rarity === 'mythic'));
   // Cup cards carry the week of the season; the first ones only had the date.
   const cupWeek = cup ? (/^Week \d+$/.test(card.note ?? '') ? card.note : card.note?.match(/week of (\S+)/)?.[1] ?? '') : '';
   const tilt = fullArt && size === 'full';
-  const glows = cup || (!special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity));
+  const glows = cup || champ || (!special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity));
   const Icon = special ? SPECIAL_ICON[card.type as Exclude<CardType, 'player'>] : null;
   const name = card.type === 'rivalry' ? `${first(player)} vs ${first(other)}` : first(player);
   const initial = (player?.name ?? '?').charAt(0);
@@ -181,7 +182,7 @@ export const PlayerCard: React.FC<{
             <div className="pc-sh pc-inset pc-art" />
             {!photo && <div className="pc-mono">{initial}</div>}
             {card.rarity === 'legendary' && <div className="pc-sh pc-inset pc-foil" />}
-            {cup && <Laurel />}
+            {(cup || champ) && <Laurel />}
             <div className="pc-sh pc-inset pc-sweep" />
             <div className="pc-sh pc-inset pc-glare" />
           </>
@@ -214,11 +215,11 @@ export const PlayerCard: React.FC<{
             ) : (
               <span className="pc-gem" />
             )}
-            <span className="pc-flag">{cup ? '1 of 1' : special ? SPECIAL_FLAG[card.type as Exclude<CardType, 'player'>] : card.rarity === 'mythic' ? '1 of 1' : card.rarity}</span>
+            <span className="pc-flag">{cup || champ ? '1 of 1' : special ? SPECIAL_FLAG[card.type as Exclude<CardType, 'player'>] : card.rarity === 'mythic' ? '1 of 1' : card.rarity}</span>
           </div>
           <div className="pc-bottom">
             <div className="pc-name">{name}</div>
-            {cup ? <div className="pc-note">Weekly cup champion</div> : card.note && special && <div className="pc-note">{card.note}</div>}
+            {champ ? <div className="pc-note">Season champion</div> : cup ? <div className="pc-note">Weekly cup champion</div> : card.note && special && <div className="pc-note">{card.note}</div>}
             <div className="pc-line" />
             <div className="pc-stats">
               {(['WIN', 'CLU', 'FRM', 'BRK', 'CAL', 'GRT'] as const).map((key) => (
@@ -230,7 +231,9 @@ export const PlayerCard: React.FC<{
             </div>
             <div className="pc-foot">
               <span>{seasonLabel(card.season)}</span>
-              {cup ? (
+              {champ ? (
+                <span>No 1</span>
+              ) : cup ? (
                 cupWeek && <span>{cupWeek}</span>
               ) : (
                 <span>{card.rarity === 'mythic' && !special ? '1 of 1' : `No ${String(card.serial).padStart(2, '0')}`}</span>
