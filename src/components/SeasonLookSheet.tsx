@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { Player } from '../types';
-import { readImage } from '../utils/image';
+import { PhotoCropper } from './PhotoCropper';
 import { playerBall } from '../utils/balls';
 import { BallPicker, PlayerAvatar, Sheet, SponsorPicker, labelClass } from './ui';
 
@@ -19,17 +19,14 @@ export const SeasonLookSheet: React.FC<{
   const [ball, setBall] = useState(player.nextBall ?? playerBall(player));
   const [sponsor, setSponsor] = useState(player.nextSponsor !== undefined ? player.nextSponsor : player.sponsor ?? '');
   const [saving, setSaving] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
-  const pickPhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const pickPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      setAvatarUrl(await readImage(file));
-      setError('');
-    } catch {
-      setError('That image could not be loaded.');
-    }
+    // Cleared so picking the same file again still opens the cropper.
+    event.target.value = '';
+    if (file) setCropFile(file);
   };
 
   const confirm = async () => {
@@ -43,6 +40,7 @@ export const SeasonLookSheet: React.FC<{
   };
 
   return (
+    <>
     <Sheet title="New season" label="Your look for the new season" onClose={() => void confirm()} closeDisabled={saving} z={65}>
       <div className="grid gap-4 pb-6">
         <p className="rounded-xl bg-surface p-3 text-sm font-semibold text-white/80">
@@ -77,5 +75,17 @@ export const SeasonLookSheet: React.FC<{
         </button>
       </div>
     </Sheet>
+    {cropFile && (
+      <PhotoCropper
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onDone={(url) => {
+          setAvatarUrl(url);
+          setError('');
+          setCropFile(null);
+        }}
+      />
+    )}
+    </>
   );
 };

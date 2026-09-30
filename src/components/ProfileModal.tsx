@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ImagePlus, Repeat, RotateCw } from 'lucide-react';
 import { Player } from '../types';
 import { hardRefresh } from '../utils/refresh';
-import { readImage } from '../utils/image';
+import { PhotoCropper } from './PhotoCropper';
 import { playerBall } from '../utils/balls';
 import { BallPicker, PlayerAvatar, Sheet, SponsorPicker, fieldClass, labelClass } from './ui';
 
@@ -19,6 +19,7 @@ interface ProfileModalProps {
 /** Editing your own profile: photo, name, team, title and the ball you play under. */
 export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onSwitchPlayer, onSave, locked = false, seasonName = 'this season' }) => {
   const [name, setName] = useState('');
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [department, setDepartment] = useState('');
   const [title, setTitle] = useState('');
   const [ball, setBall] = useState(1);
@@ -45,15 +46,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
   const photoLockedFor = player.avatarChangedAt ? player.avatarChangedAt + 86_400_000 - Date.now() : 0;
   const photoLocked = photoLockedFor > 0;
 
-  const handleImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      setAvatarUrl(await readImage(file));
-      setError('');
-    } catch {
-      setError('That image could not be loaded.');
-    }
+    // Cleared so picking the same file again still opens the cropper.
+    event.target.value = '';
+    if (file) setCropFile(file);
   };
 
   const save = async () => {
@@ -80,6 +77,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
   const button = 'press flex h-12 w-full items-center justify-center gap-2 rounded-full text-[13px] font-extrabold uppercase tracking-[0.06em] disabled:opacity-50';
 
   return (
+    <>
     <Sheet
       title="Your profile"
       onClose={onClose}
@@ -130,5 +128,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ player, onClose, onS
         Check for updates
       </button>
     </Sheet>
+    {cropFile && (
+      <PhotoCropper
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onDone={(url) => {
+          setAvatarUrl(url);
+          setError('');
+          setCropFile(null);
+        }}
+      />
+    )}
+    </>
   );
 };

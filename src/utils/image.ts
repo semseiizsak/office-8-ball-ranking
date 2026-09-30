@@ -25,6 +25,44 @@ export const readImage = (file: File, maxSize = 320, quality = 0.82): Promise<st
     reader.readAsDataURL(file);
   });
 
+/** Profile photos are framed 4:5: the whole frame fills full-art cards, the circle crop shows its middle. */
+export const PHOTO_ASPECT = 4 / 5;
+export const PHOTO_WIDTH = 384;
+/** How far down the 4:5 frame the round crop sits (0 = top square, 1 = bottom square). Shared by avatars, card circles and the cropper guide. */
+export const FACE_Y = 0.35;
+
+/** Loads a picked file into an image element, ready to draw. */
+export const loadImageFile = (file: File): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Invalid image'));
+    };
+    image.src = url;
+  });
+
+/** Draws the chosen part of an image (source pixels) into a 4:5 JPEG data URI. */
+export const cropToPhoto = (
+  image: HTMLImageElement,
+  area: { x: number; y: number; w: number; h: number },
+  quality = 0.8,
+): string => {
+  const canvas = document.createElement('canvas');
+  canvas.width = PHOTO_WIDTH;
+  canvas.height = Math.round(PHOTO_WIDTH / PHOTO_ASPECT);
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(image, area.x, area.y, area.w, area.h, 0, 0, canvas.width, canvas.height);
+  }
+  return canvas.toDataURL('image/jpeg', quality);
+};
+
 /** Above this, base64 inflation risks blowing past Firestore's ~1MB document cap. */
 export const MAX_GIF_BYTES = 650_000;
 

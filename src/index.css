@@ -76,8 +76,8 @@ input, textarea, select { font-size: 16px; }
   background: linear-gradient(160deg, #3a3a3a, #1b1b1b); display: grid; place-items: center;
   font: 800 calc(var(--av) * .34)/1 var(--font-display); color: #fff; text-transform: uppercase;
 }
-/* Faces sit in the upper part of most photos; centring crops the top of the head. */
-.pavatar .face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; }
+/* Photos are framed 4:5 in the cropper; the circle shows the square at FACE_Y (utils/image.ts), same as its guide. */
+.pavatar .face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; }
 .pavatar > .ball { --size: calc(var(--av) * .42); position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px #0A0A0A; }
 .pavatar.small > .ball .n { display: none; }
 
@@ -283,7 +283,7 @@ input, textarea, select { font-size: 16px; }
 .pc-icon { width: calc(34 * var(--k)); height: calc(34 * var(--k)); border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--on-acc, #0A0A0A); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
 .pc-icon svg { width: 58%; height: 58%; }
 .pc-flag { font: 800 calc(9 * var(--k)) / 1 var(--font-sans); letter-spacing: .16em; padding-left: .16em; color: var(--acc); text-transform: uppercase; white-space: nowrap; }
-.pc-center { position: absolute; left: 50%; top: calc(166 * var(--k)); width: calc(124 * var(--k)); height: calc(124 * var(--k)); margin: calc(-62 * var(--k)) 0 0 calc(-62 * var(--k)); border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #0A0A0A center 22% / cover no-repeat; font: 800 calc(56 * var(--k)) / 1 var(--font-display); color: #fff; text-transform: uppercase; }
+.pc-center { position: absolute; left: 50%; top: calc(166 * var(--k)); width: calc(124 * var(--k)); height: calc(124 * var(--k)); margin: calc(-62 * var(--k)) 0 0 calc(-62 * var(--k)); border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #0A0A0A 50% 35% / cover no-repeat; font: 800 calc(56 * var(--k)) / 1 var(--font-display); color: #fff; text-transform: uppercase; }
 .pc-center.big { top: calc(168 * var(--k)); width: calc(140 * var(--k)); height: calc(140 * var(--k)); margin: calc(-70 * var(--k)) 0 0 calc(-70 * var(--k)); }
 .pc-mono { position: absolute; left: 0; right: 0; top: calc(70 * var(--k)); height: calc(160 * var(--k)); display: grid; place-items: center; font: 800 calc(150 * var(--k)) / 1 var(--font-display); color: rgba(255,255,255,.9); text-transform: uppercase; }
 .pc-bottom { position: absolute; left: calc(22 * var(--k)); right: calc(22 * var(--k)); top: calc(246 * var(--k)); display: grid; justify-items: center; }
@@ -329,7 +329,7 @@ input, textarea, select { font-size: 16px; }
 .pc-mythic .pc-bg { background: #000; }
 .pc-spin { position: absolute; left: 50%; top: 40%; width: 150%; aspect-ratio: 1; translate: -50% -50%; background: conic-gradient(from 0deg, #F2B705, #0A0A0A 20%, #C9CCD1 35%, #0A0A0A 50%, #F2B705 65%, #0A0A0A 80%, #F2B705); animation: pc-spin 6s linear infinite; }
 @keyframes pc-spin { to { rotate: 360deg; } }
-.pc-art { background: var(--photo, none) center 12% / 118% auto no-repeat, linear-gradient(180deg, var(--c), #0A0A0A); }
+.pc-art { background: var(--photo, none) 50% 0 / cover no-repeat, linear-gradient(180deg, var(--c), #0A0A0A); }
 .pc-art::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,0) 22%, rgba(10,10,10,0) 48%, rgba(10,10,10,.82) 68%, rgba(10,10,10,.96) 100%), radial-gradient(70% 40% at 50% 0%, color-mix(in srgb, var(--c) 55%, transparent), transparent 70%); }
 .pc-foil { mix-blend-mode: soft-light; opacity: calc(.45 + var(--o, 0) * .4); -webkit-mask-image: linear-gradient(180deg, #000 0 58%, transparent 80%); mask-image: linear-gradient(180deg, #000 0 58%, transparent 80%);
   background: repeating-linear-gradient(115deg, rgba(255,255,255,0) 0 6px, rgba(255,255,255,.08) 6px 7px), linear-gradient(115deg, #ff0080, #ffcc00, #00ffaa, #00a2ff, #b400ff, #ff0080);
