@@ -42,6 +42,10 @@ body { font: 400 14px/1.45 var(--font-sans); -webkit-font-smoothing: antialiased
 h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; text-transform: uppercase; }
 button:focus-visible, [role="button"]:focus-visible, a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 input, textarea, select { font-size: 16px; }
+/* App, not a web page: a long press must not select text or pop the image menu. Typing still works as usual. */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+img { -webkit-user-drag: none; }
+input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 
 @layer components {
 /* ---------- Golyó és avatar ---------- */
@@ -290,6 +294,7 @@ input, textarea, select { font-size: 16px; }
 .pc { position: relative; container-type: inline-size; aspect-ratio: 320 / 458; flex: none; --c: #F2B705; --c2: #C8102E; --acc: #F2B705; --ink: #fff; --glow: transparent; }
 .pc-in { --k: calc(100cqw / 320); position: absolute; inset: 0; color: var(--ink); transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transform-style: preserve-3d; transition: transform 500ms var(--ease); }
 .pc.live .pc-in { transition: none; }
+.pc.gyro:not(.live) .pc-in { transition: transform 140ms linear; }
 .pc-tiltable { perspective: 1100px; cursor: grab; touch-action: pan-y; }
 .pc-sh { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); overflow: hidden; }
 .pc-inset { inset: calc(5 * var(--k)); }

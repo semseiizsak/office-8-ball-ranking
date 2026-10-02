@@ -102,6 +102,15 @@ export interface ChatMessage {
   createdAt: number;
 }
 
+/**
+ * The office-wide chat. Almost everything in it is people talking; the app
+ * itself only speaks up for the rare things the whole room should hear
+ * (somebody new joined, a season closed), never for routine results.
+ */
+export interface LobbyMessage extends ChatMessage {
+  kind: 'user' | 'system';
+}
+
 export interface EloStakes {
   playerAWinsDelta: number;
   playerBWinsDelta: number;

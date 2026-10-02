@@ -24,6 +24,7 @@ import {
   Timestamp,
   updateDoc,
   increment,
+  limit,
   where,
   writeBatch,
 } from 'firebase/firestore';
@@ -33,6 +34,7 @@ import {
   ChallengeStatus,
   ChatMessage,
   Cheer,
+  LobbyMessage,
   MatchComment,
   MatchModifier,
   MatchRecord,
@@ -127,6 +129,8 @@ export function getMessagingOrNull(): Messaging | null {
 const playersCollection = collection(db, 'players');
 const matchesCollection = collection(db, 'matches');
 const challengesCollection = collection(db, 'challenges');
+/** The office-wide chat on the Ranks tab and the kiosk's idle screen. */
+const lobbyCollection = collection(db, 'lobby');
 /** Single document holding who wears the crown and since when. */
 const leagueStateRef = doc(db, 'league', 'state');
 
@@ -248,7 +252,17 @@ export async function addPlayer(params: {
     createdAt: serverTimestamp(),
   };
 
-  await setDoc(playerRef, playerData);
+  const batch = writeBatch(db);
+  batch.set(playerRef, playerData);
+  // Keyed by the player, so the welcome can only ever be posted once.
+  batch.set(doc(lobbyCollection, `player-${playerRef.id}`), {
+    kind: 'system',
+    authorId: '',
+    authorName: 'Office 8-Ball',
+    text: `${playerData.name} just joined the league. Welcome to the table 🎱`,
+    createdAt: Date.now(),
+  });
+  await batch.commit();
   return toPlayer(playerRef.id, { ...playerData, createdAt: new Date().toISOString() });
 }
 
@@ -1147,6 +1161,45 @@ export function subscribeToChatMessages(
   });
 }
 
+/** How far back the office chat reaches; older lines stay stored but unread. */
+const LOBBY_WINDOW = 60;
+
+export async function sendLobbyMessage(params: { authorId: string; authorName: string; text: string }): Promise<void> {
+  const text = params.text.trim().slice(0, 280);
+  if (!text) return;
+  await addDoc(lobbyCollection, {
+    kind: 'user',
+    authorId: params.authorId,
+    authorName: params.authorName,
+    text,
+    createdAt: Date.now(),
+  });
+}
+
+/**
+ * Only the latest window is listened to, newest first from the server and
+ * flipped here, so an old chat never costs more reads than a fresh one.
+ */
+export function subscribeToLobby(onChange: (messages: LobbyMessage[]) => void): () => void {
+  return onSnapshot(query(lobbyCollection, orderBy('createdAt', 'desc'), limit(LOBBY_WINDOW)), (snapshot) => {
+    onChange(
+      snapshot.docs
+        .map((messageDoc) => {
+          const data = messageDoc.data();
+          return {
+            id: messageDoc.id,
+            kind: data.kind === 'system' ? 'system' : 'user',
+            authorId: String(data.authorId ?? ''),
+            authorName: String(data.authorName ?? 'Someone'),
+            text: String(data.text ?? ''),
+            createdAt: timestampToMillis(data.createdAt) ?? 0,
+          } satisfies LobbyMessage;
+        })
+        .reverse()
+    );
+  });
+}
+
 export async function cancelChallenge(challengeId: string): Promise<void> {
   const challengeRef = doc(db, 'challenges', challengeId);
   await runTransaction(db, async (transaction) => {
@@ -1381,6 +1434,17 @@ export async function startNewSeason(params: {
       crownHolderId: null,
       crownSince: null,
       updatedAt: serverTimestamp(),
+    });
+
+    // Inside the transaction, so only the client that actually closed the
+    // season announces it.
+    const champion = params.standings[0];
+    transaction.set(doc(lobbyCollection, `season-end-${params.current.number}`), {
+      kind: 'system',
+      authorId: '',
+      authorName: 'Office 8-Ball',
+      text: `${params.current.name} is over${champion ? ` — ${champion.name} takes it` : ''}. Season ${params.current.number + 1} starts now 🏆`,
+      createdAt: endedAt,
     });
   });
 

@@ -27,6 +27,8 @@ interface LeaderboardViewProps {
   hideTitles?: boolean;
   /** On the kiosk's much wider rows, a handful of tiny dots reads sparse — cap it down from the phone's 5. */
   formDotsLimit?: number;
+  /** The office chat, sitting where the titles section used to. */
+  chat?: React.ReactNode;
 }
 
 /** Recent-form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
@@ -63,6 +65,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   hideCrown = false,
   hideTitles = false,
   formDotsLimit = 5,
+  chat,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -235,12 +238,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
         </section>
       )}
 
-      {!hideTitles && league.titles.length > 0 && (
-        <section className="mt-2 grid gap-2">
-          <h3 className="px-1 text-base">Titles</h3>
-          <TitleBadges titles={league.titles} variant="card" />
-        </section>
-      )}
+      {chat}
 
       {visibleDormant.length > 0 && (
         <section className="mt-2 grid gap-2">

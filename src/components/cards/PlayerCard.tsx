@@ -4,8 +4,12 @@ import { Player } from '../../types';
 import { Card, CardType, Rarity, ThemedType } from '../../utils/cards';
 import { ballColor, playerBall } from '../../utils/balls';
 import { sponsorOf } from '../../utils/sponsors';
+import { useGyroTilt } from '../../utils/gyro';
 
 export type CardSize = 'full' | 'medium' | 'mini';
+
+/** How hard a full-size card leans with the phone or pointer: commons barely rock, full art swings all the way. */
+const TILT_STRENGTH: Record<Rarity, number> = { common: 0.35, uncommon: 0.45, rare: 0.6, epic: 0.75, legendary: 1, mythic: 1 };
 
 /** The short printed under the OVR. */
 export const POSITION: Record<Rarity, string> = { common: 'COM', uncommon: 'UNC', rare: 'RAR', epic: 'EPC', legendary: 'LEG', mythic: 'ICON' };
@@ -108,7 +112,10 @@ export const PlayerCard: React.FC<{
   const fullArt = cup || champ || (!special && (card.rarity === 'legendary' || card.rarity === 'mythic'));
   // Cup cards carry the week of the season; the first ones only had the date.
   const cupWeek = cup ? (/^Week \d+$/.test(card.note ?? '') ? card.note : card.note?.match(/week of (\S+)/)?.[1] ?? '') : '';
-  const tilt = fullArt && size === 'full';
+  const tilt = size === 'full';
+  const strength = fullArt ? 1 : special ? 0.6 : TILT_STRENGTH[card.rarity];
+  const pointerActive = useRef(false);
+  useGyroTilt(ref, { enabled: tilt, strength, glare: fullArt, pointerActive });
   const glows = cup || champ || (!special && ['rare', 'epic', 'legendary', 'mythic'].includes(card.rarity));
   const Icon = special ? SPECIAL_ICON[card.type as Exclude<CardType, 'player'>] : null;
   const name = card.type === 'rivalry' ? `${first(player)} vs ${first(other)}` : first(player);
@@ -121,9 +128,10 @@ export const PlayerCard: React.FC<{
     const r = el.getBoundingClientRect();
     const px = Math.min(1, Math.max(0, (event.clientX - r.left) / r.width));
     const py = Math.min(1, Math.max(0, (event.clientY - r.top) / r.height));
+    pointerActive.current = true;
     el.classList.add('live');
-    el.style.setProperty('--ry', `${(px - 0.5) * 22}deg`);
-    el.style.setProperty('--rx', `${(0.5 - py) * 18}deg`);
+    el.style.setProperty('--ry', `${(px - 0.5) * 22 * strength}deg`);
+    el.style.setProperty('--rx', `${(0.5 - py) * 18 * strength}deg`);
     el.style.setProperty('--mx', `${px * 100}%`);
     el.style.setProperty('--my', `${py * 100}%`);
     el.style.setProperty('--o', '1');
@@ -131,6 +139,7 @@ export const PlayerCard: React.FC<{
   const leave = () => {
     const el = ref.current;
     if (!el) return;
+    pointerActive.current = false;
     el.classList.remove('live');
     el.style.setProperty('--rx', '0deg');
     el.style.setProperty('--ry', '0deg');

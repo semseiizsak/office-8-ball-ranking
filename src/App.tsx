@@ -10,6 +10,8 @@ const CUP_PACKS_FROM = '2026-09-28';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import { LeaderboardView } from './components/LeaderboardView';
+import { LobbyChat } from './components/LobbyChat';
+import { PullToRefresh } from './components/PullToRefresh';
 import { MatchLoggerSheet } from './components/MatchLoggerSheet';
 import { ArenaView, deriveChallengeView, LiveMatchScreen } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
@@ -1488,6 +1490,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen justify-center bg-bg text-white">
       <div className="relative flex min-h-screen w-full max-w-md flex-col bg-bg">
+        <PullToRefresh />
         <Header
           activeTab={activeTab}
           currentUser={currentPlayer}
@@ -1537,6 +1540,16 @@ export default function App() {
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}
                 onAddPlayer={() => setShowAddPlayer(true)}
+                chat={
+                  <LobbyChat
+                    subscribe={poolService.subscribeToLobby}
+                    players={players}
+                    currentPlayer={currentPlayer}
+                    onSend={(text) =>
+                      poolService.sendLobbyMessage({ authorId: currentPlayer.id, authorName: currentPlayer.name, text })
+                    }
+                  />
+                }
               />
             </div>
           )}

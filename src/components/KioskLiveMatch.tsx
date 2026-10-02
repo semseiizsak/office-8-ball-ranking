@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Challenge, ChatMessage, Player, Prediction } from '../types';
 import { VOTE_WINDOW_MS } from '../utils/league';
-import { CallSplit } from './ui';
+import { Ball, CallSplit } from './ui';
 import { VoterStack } from './ArenaView';
 import { FightPosterHero } from './FightPoster';
 
@@ -16,22 +16,22 @@ const countdown = (ms: number): string => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
-/** How long a tap-to-arm "won" button stays armed before it needs tapping again. */
-const ARM_TIMEOUT_MS = 4000;
+/** How long a picked winner waits for the ball before the pick drops again. */
+const ARM_TIMEOUT_MS = 10_000;
 
 /**
  * Whatever's happening at the table, mirrored on the wall — no identity on
  * this tablet to call it or chat as, so those stay phone-only. But logging a
  * result needs no identity at all, so the two players standing right here
- * can settle it from the kiosk itself: tap a name to arm it, tap again to
- * confirm — a stray single tap on a shared tablet shouldn't be able to
- * record a real result.
+ * can settle it from the kiosk itself, the same way as on a phone: tap the
+ * winner, then say which balls they were on. Two taps, so a stray one on a
+ * shared tablet can't record a real result.
  */
 export const KioskLiveMatch: React.FC<{
   challenge: Challenge;
   players: Player[];
   onSubscribeChat: (challengeId: string, onChange: (messages: ChatMessage[]) => void) => () => void;
-  onLogResult: (winnerId: string) => Promise<void>;
+  onLogResult: (winnerId: string, winnerBall?: 'solids' | 'stripes') => Promise<void>;
   onClose: () => void;
 }> = ({ challenge, players, onSubscribeChat, onLogResult, onClose }) => {
   const [, setTick] = useState(0);
@@ -68,17 +68,23 @@ export const KioskLiveMatch: React.FC<{
     if (isLogging) return;
     if (armedWinnerId === id) {
       if (armTimerRef.current) window.clearTimeout(armTimerRef.current);
-      setIsLogging(true);
-      onLogResult(id).catch(() => {
-        setIsLogging(false);
-        setArmedWinnerId(null);
-        setLogError('Could not log that result. Try again.');
-      });
-      // No onClose here on success — the kiosk's own live subscription drops
-      // this screen once the challenge flips to 'played' on its own.
+      setArmedWinnerId(null);
       return;
     }
     armWinner(id);
+  };
+
+  const logWith = (ball?: 'solids' | 'stripes') => {
+    if (isLogging || !armedWinnerId) return;
+    if (armTimerRef.current) window.clearTimeout(armTimerRef.current);
+    setIsLogging(true);
+    onLogResult(armedWinnerId, ball).catch(() => {
+      setIsLogging(false);
+      setArmedWinnerId(null);
+      setLogError('Could not log that result. Try again.');
+    });
+    // No onClose here on success — the kiosk's own live subscription drops
+    // this screen once the challenge flips to 'played' on its own.
   };
 
   useEffect(() => () => { if (armTimerRef.current) window.clearTimeout(armTimerRef.current); }, []);
@@ -174,11 +180,43 @@ export const KioskLiveMatch: React.FC<{
                         armed ? 'bg-felt text-white' : 'bg-white text-bg'
                       }`}
                     >
-                      {isLogging && armed ? 'Logging…' : armed ? 'Tap again to confirm' : `${side.name.split(' ')[0]} won`}
+                      {armed ? `${side.name.split(' ')[0]} won ✓` : `${side.name.split(' ')[0]} won`}
                     </button>
                   );
                 })}
               </div>
+              {armedWinnerId && (
+                <div key={armedWinnerId} className="anim-rise grid gap-2 pt-1">
+                  <p className="text-center font-display text-lg font-extrabold uppercase">
+                    What was {(sides.find((side) => side.id === armedWinnerId)?.name ?? '').split(' ')[0]}'s ball?
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ['solids', 1, 'Solids'],
+                      ['stripes', 9, 'Stripes'],
+                    ] as const).map(([group, n, label]) => (
+                      <button
+                        key={group}
+                        type="button"
+                        disabled={isLogging}
+                        onClick={() => logWith(group)}
+                        className="press flex h-16 items-center justify-center gap-3 rounded-2xl bg-surface text-base font-extrabold uppercase tracking-[0.06em] disabled:opacity-50"
+                      >
+                        <Ball n={n} size={40} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isLogging}
+                    onClick={() => logWith()}
+                    className="press h-11 rounded-full text-xs font-extrabold uppercase tracking-[0.06em] text-white/55 disabled:opacity-50"
+                  >
+                    {isLogging ? 'Logging…' : 'Not sure, log it anyway'}
+                  </button>
+                </div>
+              )}
               {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}
             </div>
           </div>

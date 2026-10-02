@@ -15,6 +15,7 @@ import { KioskLastMatch } from './components/KioskLastMatch';
 import { KioskJoinQr } from './components/KioskJoinQr';
 import { KioskDiceModal } from './components/KioskDiceModal';
 import { KioskScreensaver } from './components/KioskScreensaver';
+import { KioskLobby } from './components/LobbyChat';
 import { AddPlayerModal } from './components/AddPlayerModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 
@@ -150,8 +151,21 @@ export default function KioskApp() {
 
   // Nobody stands at a wall display — the screensaver is the only thing that
   // notices it has been sitting untouched.
+  const isIdleRef = useRef(false);
+  isIdleRef.current = isIdle;
   useEffect(() => {
     const resetIdle = () => {
+      // The tap that wakes the screen only wakes it — it must not land on
+      // whatever button happens to sit under the finger on the start screen.
+      if (isIdleRef.current) {
+        isIdleRef.current = false;
+        const swallow = (event: MouseEvent) => {
+          event.preventDefault();
+          event.stopPropagation();
+        };
+        window.addEventListener('click', swallow, true);
+        window.setTimeout(() => window.removeEventListener('click', swallow, true), 500);
+      }
       setIsIdle(false);
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
       idleTimerRef.current = window.setTimeout(() => setIsIdle(true), IDLE_AFTER_MS);
@@ -203,10 +217,10 @@ export default function KioskApp() {
   useEffect(() => {
     if (liveChallenge) setIsIdle(false);
   }, [liveChallenge]);
-  // ?screensaver=1 jumps straight in and keeps it locked on, for previewing
-  // the animations without waiting out IDLE_AFTER_MS.
+  // Idle time now goes to the office chat. The screensaver is only reachable
+  // with ?screensaver=1, which keeps it locked on for previewing.
   const forceScreensaver = useMemo(() => new URLSearchParams(window.location.search).get('screensaver') === '1', []);
-  const showScreensaver = forceScreensaver || (isIdle && !liveChallenge);
+  const showLobby = isIdle && !liveChallenge;
 
   const lastMatch = useMemo(() => matches[0] ?? null, [matches]);
 
@@ -267,7 +281,7 @@ export default function KioskApp() {
   const rankOf = (id: string, roster: Player[]) =>
     [...roster].sort((a, b) => b.elo - a.elo).findIndex((player) => player.id === id) + 1;
 
-  const handleKioskLogResult = async (challenge: Challenge, winnerId: string) => {
+  const handleKioskLogResult = async (challenge: Challenge, winnerId: string, winnerBall?: 'solids' | 'stripes') => {
     const before = { a: rankOf(challenge.challengerId, players), b: rankOf(challenge.opponentId, players) };
     const result = await poolService.logMatch({
       playerAId: challenge.challengerId,
@@ -275,6 +289,7 @@ export default function KioskApp() {
       winnerId,
       modifiers: { eightOnBreak: false, scratchOnEight: false, tableRun: false },
       challengeId: challenge.id,
+      winnerBall,
     });
     await poolService.resolveChallenge({ challengeId: challenge.id, matchId: result.match.id, winnerId });
     // No manual patching of players/matches/challenges — the kiosk's own live
@@ -322,7 +337,7 @@ export default function KioskApp() {
     );
   }
 
-  if (showScreensaver) {
+  if (forceScreensaver) {
     return (
       <KioskScreensaver
         players={players}
@@ -333,13 +348,19 @@ export default function KioskApp() {
     );
   }
 
+  if (showLobby) {
+    return (
+      <KioskLobby subscribe={poolService.subscribeToLobby} players={players} now={clock} onDismiss={() => setIsIdle(false)} />
+    );
+  }
+
   if (showingLive && liveChallenge) {
     return (
       <KioskLiveMatch
         challenge={liveChallenge}
         players={players}
         onSubscribeChat={poolService.subscribeToChatMessages}
-        onLogResult={(winnerId) => handleKioskLogResult(liveChallenge, winnerId)}
+        onLogResult={(winnerId, winnerBall) => handleKioskLogResult(liveChallenge, winnerId, winnerBall)}
         onClose={() => setManualLadder(true)}
       />
     );
