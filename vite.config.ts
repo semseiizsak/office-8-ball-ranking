@@ -11,6 +11,16 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        // The default build only picks up index.html; the kiosk display is a
+        // second, separate entry that needs listing explicitly to ship at all.
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          kiosk: path.resolve(__dirname, 'kiosk.html'),
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
