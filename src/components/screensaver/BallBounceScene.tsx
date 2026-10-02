@@ -28,15 +28,22 @@ export const BallBounceScene: React.FC = () => {
       gsap.set(ballRefs.current, { xPercent: -50, yPercent: -50 });
       if (prefersReducedMotion()) return;
 
+      // Measure the real box rather than using vw/vh — those are sized to the
+      // whole device viewport, not this tablet's actual rendered width, so a
+      // ball could sail straight past the edge of the screen.
+      const rect = sceneRef.current?.getBoundingClientRect();
+      const maxX = rect ? rect.width / 2 - 50 : 300;
+      const maxY = rect ? rect.height / 2 - 50 : 200;
+
       ballRefs.current.forEach((el) => {
         if (!el) return;
 
         const bounce = () => {
-          const x = rand(-42, 42);
-          const y = rand(-36, 36);
+          const x = rand(-maxX, maxX);
+          const y = rand(-maxY, maxY);
           gsap.to(el, {
-            x: `${x}vw`,
-            y: `${y}vh`,
+            x,
+            y,
             duration: rand(1.6, 2.8),
             ease: 'sine.inOut',
             onComplete: bounce,

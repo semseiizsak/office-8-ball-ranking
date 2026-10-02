@@ -347,7 +347,7 @@ export default function KioskApp() {
 
   return (
     <div className="flex min-h-screen justify-center bg-bg text-white">
-      <div className="relative flex min-h-screen w-full max-w-lg flex-col bg-bg">
+      <div className="relative flex min-h-screen w-full flex-col bg-bg">
         <header className="sticky top-0 z-40 w-full bg-bg px-4 pb-3 pt-[calc(var(--safe-top)+0.9rem)]">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">

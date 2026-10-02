@@ -17,8 +17,10 @@ export const BowlingScene: React.FC<{ player?: Player }> = ({ player }) => {
     () =>
       Array.from({ length: PIN_COUNT }, (_, index) => ({
         n: (index % 15) + 1,
-        x: gsap.utils.random(-46, 46, 1),
-        y: gsap.utils.random(-34, 34, 1),
+        // Fractions of the real measured box, not vw/vh — those size to the
+        // whole device viewport, not this tablet's actual rendered width.
+        fx: gsap.utils.random(-0.46, 0.46),
+        fy: gsap.utils.random(-0.34, 0.34),
       })),
     []
   );
@@ -32,6 +34,10 @@ export const BowlingScene: React.FC<{ player?: Player }> = ({ player }) => {
 
   useGSAP(
     () => {
+      const rect = sceneRef.current?.getBoundingClientRect();
+      const w = rect?.width ?? 800;
+      const h = rect?.height ?? 500;
+
       const tl = gsap.timeline();
 
       tl.set(pinRefs.current, { opacity: 0, scale: 0.4, x: 0, y: 0 });
@@ -46,8 +52,8 @@ export const BowlingScene: React.FC<{ player?: Player }> = ({ player }) => {
       tl.to(pinRefs.current, {
         opacity: 1,
         scale: 1,
-        x: (i) => `${pins[i].x}vw`,
-        y: (i) => `${pins[i].y}vh`,
+        x: (i) => pins[i].fx * w,
+        y: (i) => pins[i].fy * h,
         rotate: () => gsap.utils.random(-280, 280),
         duration: d(0.7),
         ease: 'power3.out',
