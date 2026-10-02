@@ -21,6 +21,9 @@ interface LeaderboardViewProps {
   onSelectPlayer: (player: Player) => void;
   onChallenge: (player: Player) => void;
   onAddPlayer: () => void;
+  /** The kiosk has nobody to crown a challenger or show off titles to — just the ladder. */
+  hideCrown?: boolean;
+  hideTitles?: boolean;
 }
 
 /** Five form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
@@ -54,6 +57,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   onSelectPlayer,
   onChallenge,
   onAddPlayer,
+  hideCrown = false,
+  hideTitles = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -125,7 +130,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 You
               </span>
             )}
-            <TitleBadges titles={titles} />
+            {!hideTitles && <TitleBadges titles={titles} />}
           </span>
           {isDormantRow ? (
             <span className="text-xs font-semibold text-white/55">
@@ -147,7 +152,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
   return (
     <div id="leaderboard-view" className="stagger grid gap-3 pb-28 pt-1">
-      <CrownBanner crown={league.crown} players={players} currentPlayer={currentPlayer} onChallenge={onChallenge} />
+      {!hideCrown && <CrownBanner crown={league.crown} players={players} currentPlayer={currentPlayer} onChallenge={onChallenge} />}
 
       {finale && <SeasonFinaleBanner finale={finale} />}
 
@@ -226,7 +231,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
         </section>
       )}
 
-      {league.titles.length > 0 && (
+      {!hideTitles && league.titles.length > 0 && (
         <section className="mt-2 grid gap-2">
           <h3 className="px-1 text-base">Titles</h3>
           <TitleBadges titles={league.titles} variant="card" />

@@ -8,6 +8,8 @@ import { hardRefresh } from './utils/refresh';
 import { Ball } from './components/ui';
 import { LeaderboardView } from './components/LeaderboardView';
 import { KioskStartMatchSheet } from './components/KioskStartMatchSheet';
+import { ActiveChallengeTeaser, KioskChallengesSheet } from './components/KioskChallenges';
+import { KioskLiveMatch } from './components/KioskLiveMatch';
 import { AddPlayerModal } from './components/AddPlayerModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 
@@ -20,9 +22,12 @@ const RETRY_AFTER_MS = 30_000;
 
 /**
  * The tablet on the wall: nobody is "signed in" to it, so there is no profile,
- * no identity, no tabs — just the standings everyone can see, and the one
- * button that puts a match on the table. Every other screen in the app still
- * reacts to the challenge this creates exactly like it would from a phone.
+ * no identity, no tabs — just the standings everyone can see, a way to put an
+ * already-agreed challenge on the table, and the one-tap flow for a game
+ * nobody called out in advance. Whatever goes live — from here or a phone —
+ * takes over the screen the same way it would in the real app, minus the
+ * parts that only make sense from somebody's own phone: betting chips,
+ * chatting, and logging a result all stay identity-bound.
  */
 export default function KioskApp() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -34,9 +39,12 @@ export default function KioskApp() {
   const [clock, setClock] = useState(() => Date.now());
 
   const [showStartMatch, setShowStartMatch] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [acceptedDuel, setAcceptedDuel] = useState<Challenge | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  /** Set when someone backs out of watching a live match to check the ladder instead. */
+  const [manualLadder, setManualLadder] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,25 +142,61 @@ export default function KioskApp() {
     [players, seasonMatches, challenges, currentSeason, clock]
   );
 
+  const liveChallenge = useMemo(() => challenges.find((challenge) => challenge.status === 'live') ?? null, [challenges]);
+  const activeChallenges = useMemo(
+    () =>
+      challenges
+        .filter((challenge) => challenge.status === 'accepted' || challenge.status === 'pending')
+        .sort((left, right) => {
+          if (left.status !== right.status) return left.status === 'accepted' ? -1 : 1;
+          return right.predictions.length - left.predictions.length || right.createdAt - left.createdAt;
+        }),
+    [challenges]
+  );
+
+  // A fresh live match (or the lack of one) always wins over a manual peek at
+  // the ladder — that override is only for the match already on screen.
+  const prevLiveIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = liveChallenge?.id ?? null;
+    if (id !== prevLiveIdRef.current) {
+      prevLiveIdRef.current = id;
+      setManualLadder(false);
+    }
+  }, [liveChallenge?.id]);
+
+  const showingLive = Boolean(liveChallenge) && !manualLadder;
+
   const handleAddPlayer = async (params: Parameters<typeof poolService.addPlayer>[0]) => {
     const newPlayer = await poolService.addPlayer(params);
     setPlayers((prev) => [...prev, newPlayer]);
     return newPlayer;
   };
 
+  const pingRoom = async (challengerId: string, opponentId: string, challengeId: string, body: string) => {
+    const room = players.filter((player) => player.id !== challengerId && player.id !== opponentId).map((p) => p.id);
+    await notifyMany(room, {
+      type: 'match_live',
+      title: `${players.find((p) => p.id === challengerId)?.name.split(' ')[0] ?? 'Someone'} vs ${
+        players.find((p) => p.id === opponentId)?.name.split(' ')[0] ?? 'someone'
+      } — on the table now`,
+      body,
+      challengeId,
+    }).catch((error) => console.warn('Live match ping not delivered:', error));
+  };
+
   const handleStartMatch = async (challenger: Player, opponent: Player, stakes: ChallengeStakes) => {
     const challenge = await poolService.startInstantMatch({ challenger, opponent, stakes });
     setShowStartMatch(false);
     setAcceptedDuel(challenge);
-    const room = players
-      .filter((player) => player.id !== challenger.id && player.id !== opponent.id)
-      .map((player) => player.id);
-    await notifyMany(room, {
-      type: 'match_live',
-      title: `${challenger.name.split(' ')[0]} vs ${opponent.name.split(' ')[0]} — on the table now`,
-      body: 'Started from the kiosk. Calls are open for the next four minutes.',
-      challengeId: challenge.id,
-    }).catch((error) => console.warn('Live match ping not delivered:', error));
+    await pingRoom(challenger.id, opponent.id, challenge.id, 'Started from the kiosk. Calls are open for the next four minutes.');
+  };
+
+  const handleStartExisting = async (challenge: Challenge) => {
+    await poolService.startChallenge(challenge.id);
+    setShowChallenges(false);
+    setAcceptedDuel(challenge);
+    await pingRoom(challenge.challengerId, challenge.opponentId, challenge.id, 'Started from the kiosk. Calls are open for the next four minutes.');
   };
 
   const handleRefresh = async () => {
@@ -189,12 +233,23 @@ export default function KioskApp() {
     );
   }
 
+  if (showingLive && liveChallenge) {
+    return (
+      <KioskLiveMatch
+        challenge={liveChallenge}
+        players={players}
+        onSubscribeChat={poolService.subscribeToChatMessages}
+        onClose={() => setManualLadder(true)}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen justify-center bg-bg text-white">
-      <div className="relative flex min-h-screen w-full max-w-md flex-col bg-bg">
+      <div className="relative flex min-h-screen w-full max-w-lg flex-col bg-bg">
         <header className="sticky top-0 z-40 w-full bg-bg px-4 pb-3 pt-[calc(var(--safe-top)+0.9rem)]">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="min-w-0 truncate font-display text-[28px] font-extrabold uppercase leading-none tracking-[-0.02em] text-white min-[440px]:text-[32px]">
+            <h1 className="min-w-0 truncate font-display text-[32px] font-extrabold uppercase leading-none tracking-[-0.02em] text-white">
               Office 8-Ball
             </h1>
             <button
@@ -211,6 +266,17 @@ export default function KioskApp() {
         </header>
 
         <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[calc(var(--safe-bottom)+1rem)]">
+          {liveChallenge && (
+            <button
+              type="button"
+              onClick={() => setManualLadder(false)}
+              className="press mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-live text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
+            >
+              <span className="live-dot h-[9px] w-[9px]" />
+              On the table now — tap to watch
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowStartMatch(true)}
@@ -219,6 +285,12 @@ export default function KioskApp() {
             <span className="live-dot h-[9px] w-[9px]" />
             Start a game
           </button>
+
+          {activeChallenges.length > 0 && (
+            <div className="mb-3">
+              <ActiveChallengeTeaser challenge={activeChallenges[0]} players={players} onOpen={() => setShowChallenges(true)} />
+            </div>
+          )}
 
           <LeaderboardView
             players={players}
@@ -231,6 +303,8 @@ export default function KioskApp() {
             onSelectPlayer={() => undefined}
             onChallenge={() => setShowStartMatch(true)}
             onAddPlayer={() => setShowAddPlayer(true)}
+            hideCrown
+            hideTitles
           />
         </main>
 
@@ -241,6 +315,15 @@ export default function KioskApp() {
             matches={seasonMatches}
             onStart={handleStartMatch}
             onClose={() => setShowStartMatch(false)}
+          />
+        )}
+
+        {showChallenges && (
+          <KioskChallengesSheet
+            challenges={activeChallenges}
+            players={players}
+            onStart={handleStartExisting}
+            onClose={() => setShowChallenges(false)}
           />
         )}
 
