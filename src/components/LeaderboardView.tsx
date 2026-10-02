@@ -29,7 +29,16 @@ interface LeaderboardViewProps {
   formDotsLimit?: number;
   /** The office chat, sitting where the titles section used to. */
   chat?: React.ReactNode;
+  /**
+   * The roster as it stood right before a just-logged match. When given, rows
+   * that moved slide from their old rank to their new one instead of just
+   * appearing re-sorted.
+   */
+  previousPlayers?: Player[];
 }
+
+/** A row is `min-h-[54px]` in a `gap-0.5` stack — the slide distance per rank moved. */
+const ROW_HEIGHT_PX = 56;
 
 /** Recent-form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
 const FormDots: React.FC<{ form: ('W' | 'L')[]; onYellow?: boolean; limit?: number }> = ({ form, onYellow, limit = 5 }) => {
@@ -66,8 +75,18 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   hideTitles = false,
   formDotsLimit = 5,
   chat,
+  previousPlayers,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Same sort + dormancy filter used for both the current ranks and (when
+  // given) the pre-match ranks, so the two are always comparable apples-to-apples.
+  const rankAmong = (list: Player[]) => {
+    const sorted = [...list].sort((a, b) => b.elo - a.elo || a.id.localeCompare(b.id));
+    const activeOnly = sorted.filter((player) => !league.insights.get(player.id)?.isDormant);
+    return new Map(activeOnly.map((player, index) => [player.id, index + 1]));
+  };
+  const previousRanks = previousPlayers ? rankAmong(previousPlayers) : null;
 
   const sortedPlayers = [...players].sort((a, b) => b.elo - a.elo || a.id.localeCompare(b.id));
 
@@ -91,6 +110,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const visibleActive = active.filter(matchesQuery);
   const visibleDormant = dormant.filter(matchesQuery);
 
+  // Rows that are about to slide are numbered in on-screen order as they're
+  // rendered, so the cascade below can stagger them one after another instead
+  // of firing every move at once.
+  let slideSequence = 0;
+
   const renderRow = (player: Player, rank: number, isDormantRow: boolean, index: number) => {
     const insight = league.insights.get(player.id);
     const titles = league.titlesByPlayer.get(player.id) ?? [];
@@ -99,18 +123,26 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     const isMe = currentPlayer?.id === player.id;
     const medal = !isDormantRow && rank >= 2 && rank <= 3 ? rank : 0;
 
+    const prevRank = previousRanks?.get(player.id);
+    const rankDelta = !isDormantRow && prevRank !== undefined ? prevRank - rank : 0;
+    const showSlide = previousRanks !== null && rankDelta !== 0;
+    const slideIndex = showSlide ? slideSequence++ : 0;
+
     return (
       <button
         type="button"
         key={player.id}
         id={`player-row-${player.id}`}
         onClick={() => onSelectPlayer(player)}
-        style={{ ['--j' as string]: Math.min(index, 12) }}
+        style={{
+          ['--j' as string]: Math.min(index, 12),
+          ...(showSlide ? { ['--dy' as string]: `${rankDelta * ROW_HEIGHT_PX}px`, ['--slide-i' as string]: slideIndex } : {}),
+        }}
         className={`press grid min-h-[54px] w-full grid-cols-[22px_auto_1fr_auto] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
           first ? 'bg-crown text-bg' : 'bg-card hover:bg-[#161616]'
         } ${medal === 2 ? 'shadow-[inset_0_0_0_1.5px_#C9CCD1]' : ''} ${medal === 3 ? 'shadow-[inset_0_0_0_1.5px_#A8622C]' : ''} ${
           isMe && !first && !medal ? 'shadow-[inset_0_0_0_1.5px_rgba(255,255,255,.26)]' : ''
-        } ${change === 'woke' ? 'leaderboard-woke' : change === 'reordered' ? 'leaderboard-reordered' : ''}`}
+        } ${showSlide ? 'leaderboard-slide' : change === 'woke' ? 'leaderboard-woke' : change === 'reordered' ? 'leaderboard-reordered' : ''}`}
       >
         {isDormantRow ? (
           <Moon className="h-[15px] w-[15px] justify-self-center text-white/55" aria-label="Dormant" />

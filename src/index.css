@@ -107,8 +107,24 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
 /* Ranglista: helycsere és visszatérés, rugózás nélkül */
 @keyframes leaderboard-reordered { from { transform: translateX(-10px); opacity: .6; } }
 @keyframes leaderboard-woke { from { opacity: .4; transform: scale(.98); } }
+/*
+ * Picked up off the line, held aloft while it crosses the rows between, then
+ * dropped back in. Coils down first (anticipation) before the lift, so the
+ * move reads as deliberate rather than a sudden jump; rows stagger in on
+ * --slide-i so several moves cascade one after another instead of firing at
+ * once, stretching the whole reorder out to a couple of seconds of tension.
+ */
+@keyframes leaderboard-slide {
+  0%, 8% { transform: translateY(var(--dy, 0)) scale(1); box-shadow: 0 0 0 rgba(0,0,0,0); z-index: 1; }
+  20% { transform: translateY(calc(var(--dy, 0) + 4px)) scale(.98); box-shadow: 0 0 0 rgba(0,0,0,0); z-index: 1; }
+  45% { transform: translateY(calc(var(--dy, 0) - 12px)) scale(1.05); box-shadow: 0 22px 38px rgba(0,0,0,.55); z-index: 5; }
+  75% { transform: translateY(calc(var(--dy, 0) * 0.1 - 12px)) scale(1.05); box-shadow: 0 22px 38px rgba(0,0,0,.55); z-index: 5; }
+  92% { transform: translateY(3px) scale(1.012); box-shadow: 0 6px 14px rgba(0,0,0,.3); z-index: 5; }
+  100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(0,0,0,0); z-index: 1; }
+}
 .leaderboard-reordered { animation: leaderboard-reordered 420ms var(--ease) both; }
 .leaderboard-woke { animation: leaderboard-woke 520ms var(--ease) both; }
+.leaderboard-slide { position: relative; animation: leaderboard-slide 1500ms cubic-bezier(.22,.9,.26,1) both; animation-delay: calc(var(--slide-i, 0) * 240ms); }
 
 /* A kacsa: egy kilengés */
 @keyframes duck-waddle { 0% { opacity: 0; transform: translateX(-12px) rotate(-6deg); } 50% { opacity: 1; transform: translateX(12px) rotate(6deg); } 100% { transform: none; } }

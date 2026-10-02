@@ -57,6 +57,8 @@ export default function KioskApp() {
   const [manualLadder, setManualLadder] = useState(false);
   /** The two rows to highlight on the ladder right after a kiosk-logged result. */
   const [kioskLeaderboardChanges, setKioskLeaderboardChanges] = useState<Record<string, 'reordered'>>({});
+  /** The roster right before that result, so the ladder can animate rows sliding into their new ranks. */
+  const [previousPlayers, setPreviousPlayers] = useState<Player[] | undefined>(undefined);
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<number | null>(null);
 
@@ -283,6 +285,7 @@ export default function KioskApp() {
 
   const handleKioskLogResult = async (challenge: Challenge, winnerId: string, winnerBall?: 'solids' | 'stripes') => {
     const before = { a: rankOf(challenge.challengerId, players), b: rankOf(challenge.opponentId, players) };
+    const playersBefore = players;
     const result = await poolService.logMatch({
       playerAId: challenge.challengerId,
       playerBId: challenge.opponentId,
@@ -292,9 +295,15 @@ export default function KioskApp() {
       winnerBall,
     });
     await poolService.resolveChallenge({ challengeId: challenge.id, matchId: result.match.id, winnerId });
-    // No manual patching of players/matches/challenges — the kiosk's own live
-    // subscriptions pick up this write and flip `liveChallenge` to null on
-    // their own, which is what returns the screen to the ladder.
+    // matches/challenges arrive live through the kiosk's own subscriptions —
+    // that's what flips `liveChallenge` to null and returns the screen to the
+    // ladder — but there is no live players subscription anywhere in this
+    // app, so the roster has to be patched by hand or it stays stale until
+    // the tab is refreshed.
+    setPlayers(result.players);
+    setPreviousPlayers(playersBefore);
+    window.setTimeout(() => setPreviousPlayers(undefined), 3000);
+
     const after = { a: rankOf(challenge.challengerId, result.players), b: rankOf(challenge.opponentId, result.players) };
     const changes: Record<string, 'reordered'> = {};
     if (before.a !== after.a) changes[challenge.challengerId] = 'reordered';
@@ -440,6 +449,7 @@ export default function KioskApp() {
             currentPlayer={null}
             now={clock}
             leaderboardChanges={kioskLeaderboardChanges}
+            previousPlayers={previousPlayers}
             onSelectPlayer={() => undefined}
             onChallenge={() => setShowStartMatch(true)}
             onAddPlayer={() => setShowAddPlayer(true)}

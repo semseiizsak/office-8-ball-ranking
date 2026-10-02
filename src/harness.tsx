@@ -25,6 +25,8 @@ import { CalloutSentOverlay } from './components/CalloutSentOverlay';
 import { ChallengeAcceptedOverlay } from './components/ChallengeAcceptedOverlay';
 import { Header } from './components/Header';
 import { FightPoster } from './components/FightPoster';
+import { KioskLiveMatch } from './components/KioskLiveMatch';
+import { calculateMatchElo } from './utils/elo';
 import { Season } from './types';
 import { CollectionView } from './components/cards/CollectionView';
 import { Card, CardStats, Pack, Trade, weekKeyOf } from './utils/cards';
@@ -357,6 +359,40 @@ const Harness: React.FC = () => {
   const [showSent, setShowSent] = useState(false);
   const [showAccept, setShowAccept] = useState(false);
   const [showPoster, setShowPoster] = useState(false);
+
+  // ---------- Kiosk sandbox: a fake live match you can log end to end, entirely
+  // local (no Firestore writes), to check the ball-pick flow + ladder reorder. ----------
+  const [showKiosk, setShowKiosk] = useState(false);
+  const [kioskPlayers, setKioskPlayers] = useState<Player[]>(players);
+  const [kioskPrevPlayers, setKioskPrevPlayers] = useState<Player[] | undefined>(undefined);
+  const kioskChallenge = liveChallenge;
+  const openKioskSandbox = () => {
+    setKioskPlayers(players);
+    setKioskPrevPlayers(undefined);
+    setTab('leaderboard');
+    setShowKiosk(true);
+  };
+  const handleKioskSandboxLog = async (winnerId: string, winnerBall?: 'solids' | 'stripes') => {
+    const a = kioskPlayers.find((p) => p.id === kioskChallenge.challengerId)!;
+    const b = kioskPlayers.find((p) => p.id === kioskChallenge.opponentId)!;
+    const winnerIsA = winnerId === a.id;
+    const loserId = winnerIsA ? b.id : a.id;
+    const elo = calculateMatchElo(a.elo, b.elo, winnerIsA ? 'A' : 'B');
+    const winnerNewElo = winnerIsA ? elo.newRatingA : elo.newRatingB;
+    const loserNewElo = winnerIsA ? elo.newRatingB : elo.newRatingA;
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    setKioskPrevPlayers(kioskPlayers);
+    setKioskPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === winnerId) return { ...p, elo: winnerNewElo, wins: p.wins + 1, currentStreak: Math.max(1, p.currentStreak + 1), recentForm: ['W' as const, ...p.recentForm] };
+        if (p.id === loserId) return { ...p, elo: loserNewElo, losses: p.losses + 1, currentStreak: Math.min(-1, p.currentStreak - 1), recentForm: ['L' as const, ...p.recentForm] };
+        return p;
+      })
+    );
+    setShowKiosk(false);
+    window.setTimeout(() => setKioskPrevPlayers(undefined), 3000);
+    console.log('demo onLogResult', winnerId, winnerBall);
+  };
   const [showAwards, setShowAwards] = useState(false);
   const [showWrap, setShowWrap] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
@@ -428,6 +464,8 @@ const Harness: React.FC = () => {
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">toast</button>
           <button id="demo-poster" onClick={() => setShowPoster(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">poster</button>
+          <button id="demo-kiosk-sandbox" onClick={openKioskSandbox}
+            className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">kiosk sandbox</button>
           <button id="demo-wrap" onClick={() => setShowWrap(true)}
             className="rounded bg-[#171717] px-2 py-1 text-[11px] text-white">wrap</button>
           <button id="demo-awards" onClick={() => setShowAwards(true)}
@@ -487,8 +525,9 @@ const Harness: React.FC = () => {
                 subscribeChat: (_id, cb) => { cb([{ id: 'c1', authorId: players[1].id, authorName: players[1].name, text: 'That 8 ball was filthy', createdAt: Date.now() - 600000 }, { id: 'c2', authorId: players[2].id, authorName: players[2].name, text: 'Rematch. Now.', createdAt: Date.now() - 300000 }]); return () => {}; },
                 subscribeCheers: (_id, cb) => { cb([{ id: 'h1', playerId: 'x', playerName: 'x', emoji: '🔥', createdAt: 0 }, { id: 'h2', playerId: 'y', playerName: 'y', emoji: '🔥', createdAt: 0 }, { id: 'h3', playerId: 'z', playerName: 'z', emoji: '😱', createdAt: 0 }]); return () => {}; } }} />
           ) : tab === 'leaderboard' ? (
-            <LeaderboardView players={players} matches={seasonMatches} league={league}
-              season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}} />
+            <LeaderboardView players={kioskPlayers} matches={seasonMatches} league={league}
+              season={currentSeason} currentPlayer={me} now={now} leaderboardChanges={{}} onSelectPlayer={setDossier} onChallenge={() => setChallenging(true)} onAddPlayer={() => {}}
+              previousPlayers={kioskPrevPlayers} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
               chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
@@ -546,6 +585,15 @@ const Harness: React.FC = () => {
         )}
         {showPoster && (
           <FightPoster challenge={liveChallenge} players={players} matches={seasonMatches} crown={league.crown} pot={140} onClose={() => setShowPoster(false)} />
+        )}
+        {showKiosk && (
+          <KioskLiveMatch
+            challenge={kioskChallenge}
+            players={kioskPlayers}
+            onSubscribeChat={() => () => {}}
+            onLogResult={handleKioskSandboxLog}
+            onClose={() => setShowKiosk(false)}
+          />
         )}
         {showSent && (
           <CalloutSentOverlay opponent={players[1]} winDelta={41} crownBounty={24}
