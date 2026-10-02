@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Player } from '../../types';
-import { PlayerAvatar } from '../ui';
+import { BallBurst, PlayerAvatar } from '../ui';
 
 const STAMPS = ['POW!', 'CRACK!', "RACK 'EM!", 'SNAP!', 'THWACK!'];
 
@@ -15,6 +15,7 @@ export const BallClashScene: React.FC<{ left?: Player; right?: Player }> = ({ le
 
   return (
     <div className="relative mx-auto grid w-full max-w-sm flex-1 content-center justify-items-center gap-3.5 px-6">
+      <BallBurst />
       <span className="duel-shake pointer-events-none absolute inset-0 bg-white opacity-0" style={{ animation: 'duel-shake 1300ms var(--ease) both' }} />
       <div className="relative grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2.5">
         <span className="duel-shock pointer-events-none absolute left-1/2 top-[34px] -ml-[60px] -mt-[60px] h-[120px] w-[120px] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,.55),rgba(255,255,255,0))]" />

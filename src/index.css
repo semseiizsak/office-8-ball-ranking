@@ -216,6 +216,24 @@ input, textarea, select { font-size: 16px; }
 @keyframes bowl-scatter { from { opacity: 0; transform: translate(0,0) rotate(0) scale(.5); } 20% { opacity: 1; } to { opacity: .9; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1); } }
 .bowl-pin { position: absolute; animation: bowl-scatter 900ms var(--ease) both; }
 
+/* Kiosk screensaver: the whole screen pops full of pool balls. */
+@keyframes ball-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(var(--r, 0deg)); }
+  65% { transform: translate(-50%, -50%) scale(1.18) rotate(calc(var(--r, 0deg) * .25)); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+.ball-pop { position: absolute; opacity: 0; animation: ball-pop 560ms var(--ease) both; }
+
+/* Kiosk screensaver: pool balls careening around and "bouncing" off the edges, DVD-logo style. */
+@keyframes ball-bounce-path {
+  0% { transform: translate(-50%, -50%) var(--p0); }
+  25% { transform: translate(-50%, -50%) var(--p1); }
+  50% { transform: translate(-50%, -50%) var(--p2); }
+  75% { transform: translate(-50%, -50%) var(--p3); }
+  100% { transform: translate(-50%, -50%) var(--p0); }
+}
+.ball-bounce { position: absolute; left: 50%; top: 50%; animation-name: ball-bounce-path; animation-timing-function: linear; animation-iteration-count: infinite; }
+
 /* Weekly cup: the play off poster. Every entrance runs on one timeline set inline (--k, --d, --dur). */
 @keyframes cup-crest-in { from { opacity: 0; transform: translateY(-24px) scale(.9); } }
 @keyframes cup-shine { 0% { transform: translateX(0) skewX(-20deg); } 22%, 100% { transform: translateX(170px) skewX(-20deg); } }

@@ -6,6 +6,9 @@ import { StatSpotlightScene } from './screensaver/StatSpotlightScene';
 import { BowlingScene } from './screensaver/BowlingScene';
 import { LeaderboardSpotlightScene } from './screensaver/LeaderboardSpotlightScene';
 import { FunFactScene } from './screensaver/FunFactScene';
+import { BallFloodScene } from './screensaver/BallFloodScene';
+import { BallBounceScene } from './screensaver/BallBounceScene';
+import { LuckyNumberScene } from './screensaver/LuckyNumberScene';
 
 /** Seconds each screensaver scene stays before auto-advancing. */
 const SCENE_SECONDS = 7;
@@ -30,11 +33,17 @@ export const KioskScreensaver: React.FC<{
   }, [players]);
   const spotlight = useMemo(() => players[Math.floor(Math.random() * Math.max(1, players.length))], [players]);
 
+  // Mostly spectacle, a couple of calm beats for pacing — leaning hard into
+  // "overkill" per the brief, including a few scenes that are pure, unrelated
+  // nonsense in the honored bowling-alley-screensaver tradition.
   const scenes = [
     <BallClashScene key="clash" left={p1} right={p2} />,
     <StatSpotlightScene key="stat" player={spotlight} />,
+    <BallFloodScene key="flood" />,
     <BowlingScene key="bowl" player={p2} />,
+    <LuckyNumberScene key="lucky" />,
     <LeaderboardSpotlightScene key="ladder" players={players} league={league} />,
+    <BallBounceScene key="bounce" />,
     <FunFactScene key="fact" players={players} matches={matches} league={league} />,
   ];
 

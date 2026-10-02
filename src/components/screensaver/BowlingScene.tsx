@@ -13,11 +13,11 @@ export const BowlingScene: React.FC<{ player?: Player }> = ({ player }) => {
   const result = useMemo(() => RESULTS[Math.floor(Math.random() * RESULTS.length)], []);
   const pins = useMemo(
     () =>
-      Array.from({ length: 10 }, (_, index) => ({
+      Array.from({ length: 18 }, (_, index) => ({
         n: (index % 15) + 1,
         style: {
-          ['--x' as string]: `${Math.round((Math.random() - 0.5) * 320)}px`,
-          ['--y' as string]: `${Math.round((Math.random() - 0.5) * 220)}px`,
+          ['--x' as string]: `${(Math.random() - 0.5) * 150}vw`,
+          ['--y' as string]: `${(Math.random() - 0.5) * 110}vh`,
           ['--r' as string]: `${Math.round(Math.random() * 360)}deg`,
           animationDelay: `${index * 40}ms`,
         } as React.CSSProperties,
