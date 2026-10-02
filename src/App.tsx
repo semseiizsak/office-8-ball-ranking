@@ -640,30 +640,23 @@ export default function App() {
   }, [currentPlayer?.id, isLoading, cardsLoading, seasonMatches.length, league.crown.holderId, awardRecords, tournaments.length, cards.length, seasonTitles]);
 
   // Each player's photo right now, as it would be printed on a new card.
-  // The photo a player's cards carry this season: the one on their first card
-  // of the season, so a photo changed mid-season only shows from next season.
+  // The current season always tracks a player's live photo — change it, and
+  // every card from this season updates to match. A closed season's cards
+  // keep whatever photo they were printed with; only this season is live.
   const photoShots = useMemo(() => {
     // `data` rides along only when the photo store does not have it yet, so a
     // photo is written once, never again per card.
     const out: Record<string, { id: string; data?: string }> = {};
-    const firstOfSeason = new Map<string, Card>();
-    for (const card of [...cards].sort((a, b) => a.createdAt - b.createdAt)) {
-      if ((card.seasonId || currentSeason.id) !== currentSeason.id || !card.photoId || card.photoId === 'none') continue;
-      if (!firstOfSeason.has(card.playerId)) firstOfSeason.set(card.playerId, card);
-    }
     for (const player of players) {
-      const held = firstOfSeason.get(player.id);
-      const data = held ? photos.get(held.photoId!) : undefined;
-      if (held && data) out[player.id] = { id: held.photoId! };
-      else if (player.avatarUrl) {
-        const id = photoIdOf(player.avatarUrl);
-        out[player.id] = photos.has(id) ? { id } : { id, data: player.avatarUrl };
-      }
+      if (!player.avatarUrl) continue;
+      const id = photoIdOf(player.avatarUrl);
+      out[player.id] = photos.has(id) ? { id } : { id, data: player.avatarUrl };
     }
     return out;
-  }, [players, cards, photos, currentSeason.id]);
+  }, [players, photos]);
 
-  // Cards pulled this season with a different photo go back to the season's one.
+  // Cards pulled this season with a photo other than the player's current one
+  // get backfilled to match — the mechanism that keeps the current season live.
   useEffect(() => {
     if (!currentPlayer || isLoading || cardsLoading || photos.size === 0) return;
     const off = cards.filter(
