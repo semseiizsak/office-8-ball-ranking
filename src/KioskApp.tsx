@@ -429,11 +429,12 @@ export default function KioskApp() {
         <button
           type="button"
           onClick={() => setShowJoinQr(true)}
-          aria-label="Want to join?"
-          title="Want to join?"
-          className="press fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-surface-alt text-white shadow-lg"
+          className="press fixed bottom-5 right-4 z-30 flex h-14 items-center gap-2.5 rounded-full bg-surface-alt py-1.5 pl-4 pr-1.5 text-white shadow-lg"
         >
-          <QrCode className="h-6 w-6" strokeWidth={2.25} />
+          <span className="text-xs font-extrabold uppercase tracking-[0.08em]">Want to join?</span>
+          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-white/15">
+            <QrCode className="h-5 w-5" strokeWidth={2.25} />
+          </span>
         </button>
 
         {showStartMatch && (
