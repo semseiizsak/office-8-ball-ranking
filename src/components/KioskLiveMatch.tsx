@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { Challenge, ChatMessage, Player, Prediction } from '../types';
 import { VOTE_WINDOW_MS } from '../utils/league';
-import { CallSplit, PlayerAvatar } from './ui';
+import { CallSplit } from './ui';
 import { VoterStack } from './ArenaView';
+import { FightPosterHero } from './FightPoster';
 
 const elapsed = (startedAt: number, now: number): string => {
   const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
@@ -118,32 +119,34 @@ export const KioskLiveMatch: React.FC<{
         <span className="h-11 w-11" />
       </div>
 
-      <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
-        <div className="stagger grid gap-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-2 text-center">
+      <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto pb-[calc(var(--safe-bottom)+1.5rem)]">
+        <div className="stagger flex flex-1 flex-col gap-4">
+          <FightPosterHero
+            a={challenger ?? { id: challenge.challengerId, name: challenge.challengerName, avatarUrl: '' }}
+            b={opponent ?? { id: challenge.opponentId, name: challenge.opponentName, avatarUrl: '' }}
+            height={210}
+          />
+
+          <div className="grid grid-cols-2 gap-2 px-4">
             {sides.map((side, index) => (
-              <React.Fragment key={side.id}>
-                {index === 1 && <span className="font-display text-[44px] font-extrabold text-white/55">VS</span>}
-                <div className={`${index === 0 ? 'duel-in-left' : 'duel-in-right'} grid min-w-0 justify-items-center gap-2`}>
-                  <PlayerAvatar player={side.player ?? { id: side.id, name: side.name, avatarUrl: '' }} size={72} />
-                  <span className="font-display text-[clamp(16px,5.5vw,22px)] font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
-                    {side.name.split(' ')[0]}
-                  </span>
-                  <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
-                    Win +{side.win}
-                  </span>
-                </div>
-              </React.Fragment>
+              <div key={side.id} className={`grid gap-1 ${index === 1 ? 'justify-items-end text-right' : 'justify-items-start'}`}>
+                <span className="font-display text-2xl font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
+                  {side.name.split(' ')[0]}
+                </span>
+                <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
+                  Win +{side.win}
+                </span>
+              </div>
             ))}
           </div>
 
           {challenge.stakes.crownBounty > 0 && (
-            <span className="justify-self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+            <span className="justify-self-center self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
               👑 {challenge.stakes.crownBounty} bounty riding
             </span>
           )}
 
-          <div className="grid gap-2">
+          <div className="grid gap-2 px-4">
             <CallSplit
               left={{ player: challenger ?? { id: challenge.challengerId }, count: forChallenger }}
               right={{ player: opponent ?? { id: challenge.opponentId }, count: forOpponent }}
@@ -155,7 +158,7 @@ export const KioskLiveMatch: React.FC<{
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-2 px-4">
             <span className="px-0.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Log the result</span>
             <div className="grid grid-cols-2 gap-2">
               {sides.map((side) => {
@@ -181,7 +184,7 @@ export const KioskLiveMatch: React.FC<{
           <div
             ref={chatScrollRef}
             aria-live="polite"
-            className="no-scrollbar grid min-h-[160px] flex-1 content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
+            className="no-scrollbar mx-4 grid min-h-[160px] flex-1 content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
           >
             {chatMessages.length === 0 ? (
               <p className="self-center text-center text-xs text-white/55">Nobody's said anything yet.</p>

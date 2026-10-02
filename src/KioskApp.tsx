@@ -206,7 +206,7 @@ export default function KioskApp() {
   // ?screensaver=1 jumps straight in and keeps it locked on, for previewing
   // the animations without waiting out IDLE_AFTER_MS.
   const forceScreensaver = useMemo(() => new URLSearchParams(window.location.search).get('screensaver') === '1', []);
-  const showScreensaver = (isIdle || forceScreensaver) && !liveChallenge;
+  const showScreensaver = forceScreensaver || (isIdle && !liveChallenge);
 
   const lastMatch = useMemo(() => matches[0] ?? null, [matches]);
 

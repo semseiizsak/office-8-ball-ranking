@@ -31,6 +31,30 @@ export function posterReason(challenge: Challenge, players: Player[], matches: M
   return null;
 }
 
+/** The poster's banner on its own: two players on their ball colours, split down a diagonal, a giant VS between them — reused anywhere a match deserves the fight-night treatment. */
+export const FightPosterHero: React.FC<{
+  a: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'>;
+  b: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'>;
+  height?: number;
+}> = ({ a, b, height = 250 }) => {
+  const colourA = ballColor(playerBall(a)).c;
+  const colourB = ballColor(playerBall(b)).c;
+  return (
+    <div className="relative overflow-hidden" style={{ height }}>
+      <span className="accept-close-left absolute inset-0" style={{ background: colourA, clipPath: 'polygon(0 0, 64% 0, 36% 100%, 0 100%)' }} />
+      <span className="accept-close-right absolute inset-0" style={{ background: colourB, clipPath: 'polygon(64% 0, 100% 0, 100% 100%, 36% 100%)' }} />
+      <span className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(10,10,10,1) 100%)' }} />
+      <span className="duel-in-left absolute left-[8%] top-[14%]"><PlayerAvatar player={a} size={112} /></span>
+      <span className="duel-in-right absolute bottom-[12%] right-[8%]"><PlayerAvatar player={b} size={112} /></span>
+      <span className="absolute left-1/2 top-1/2 -ml-[38px] -mt-[38px]">
+        <span className="accept-stamp grid h-[76px] w-[76px] place-items-center rounded-full bg-bg font-display text-[34px] font-extrabold text-white shadow-[0_0_0_3px_#fff]">
+          VS
+        </span>
+      </span>
+    </div>
+  );
+};
+
 /**
  * A boxing-style poster for a match on the table: the two of them on their
  * ball colours split down a diagonal, a giant VS, and underneath everything
@@ -53,8 +77,6 @@ export const FightPoster: React.FC<{
   const bountyOn = (p: Player) => (crown.holderId === p.id ? crown.bounty : 0);
   const stakeA = previewStakes(a, b, players, bountyOn(b), bountyOn(a));
   const stakeB = previewStakes(b, a, players, bountyOn(a), bountyOn(b));
-  const colourA = ballColor(playerBall(a)).c;
-  const colourB = ballColor(playerBall(b)).c;
   const forA = challenge.predictions.filter((p) => p.predictedWinnerId === a.id).length;
   const forB = challenge.predictions.filter((p) => p.predictedWinnerId === b.id).length;
   const streak = (p: Player) => (p.currentStreak > 0 ? `W${p.currentStreak}` : p.currentStreak < 0 ? `L${-p.currentStreak}` : 'Even');
@@ -85,18 +107,7 @@ export const FightPoster: React.FC<{
           </span>
         </div>
 
-        <div className="relative h-[250px] overflow-hidden">
-          <span className="accept-close-left absolute inset-0" style={{ background: colourA, clipPath: 'polygon(0 0, 64% 0, 36% 100%, 0 100%)' }} />
-          <span className="accept-close-right absolute inset-0" style={{ background: colourB, clipPath: 'polygon(64% 0, 100% 0, 100% 100%, 36% 100%)' }} />
-          <span className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(10,10,10,1) 100%)' }} />
-          <span className="duel-in-left absolute left-[8%] top-[14%]"><PlayerAvatar player={a} size={112} /></span>
-          <span className="duel-in-right absolute bottom-[12%] right-[8%]"><PlayerAvatar player={b} size={112} /></span>
-          <span className="absolute left-1/2 top-1/2 -ml-[38px] -mt-[38px]">
-            <span className="accept-stamp grid h-[76px] w-[76px] place-items-center rounded-full bg-bg font-display text-[34px] font-extrabold text-white shadow-[0_0_0_3px_#fff]">
-              VS
-            </span>
-          </span>
-        </div>
+        <FightPosterHero a={a} b={b} />
 
         <div className="grid grid-cols-2 gap-2 px-4">
           {[[a, stakeA], [b, stakeB]].map(([p, s], index) => (
