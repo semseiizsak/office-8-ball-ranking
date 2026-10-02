@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Moon, Search, UserPlus, X } from 'lucide-react';
 import { Player, MatchRecord, Season } from '../types';
 import { LeagueInsights, DORMANT_AFTER_DAYS, describeTimeLeft, isFinalDay } from '../utils/league';
+import { displayRecentForm } from '../utils/tempHideMatches';
 import { SeasonFinaleBanner } from './SeasonFinaleBanner';
 import { buildSeasonFinale } from '../utils/finale';
 import { CrownBanner } from './CrownBanner';
@@ -142,7 +143,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 : `Last played ${insight.daysSincePlayed} days ago`}
             </span>
           ) : (
-            <FormDots form={player.recentForm} onYellow={first} limit={formDotsLimit} />
+            <FormDots form={displayRecentForm(player, matches)} onYellow={first} limit={formDotsLimit} />
           )}
         </span>
 

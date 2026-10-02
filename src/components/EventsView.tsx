@@ -4,6 +4,7 @@ import { WeekAwards } from '../utils/awards';
 import { MatchDetailProps, MatchDetailSheet } from './MatchDetailSheet';
 import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
+import { withoutTemporarilyHiddenMatches } from '../utils/tempHideMatches';
 import { Ball, PlayerAvatar } from './ui';
 import { shamed } from '../utils/shame';
 
@@ -101,7 +102,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
   };
   const [isEnding, setIsEnding] = useState(false);
 
-  const currentMatches = matchesInSeason(matches, season);
+  const currentMatches = withoutTemporarilyHiddenMatches(matchesInSeason(matches, season));
   const detailMatch = detailId ? currentMatches.find((match) => match.id === detailId) ?? null : null;
   const pastSeasons = seasons.filter((entry) => entry.endedAt !== null);
 
