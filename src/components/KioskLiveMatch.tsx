@@ -120,71 +120,73 @@ export const KioskLiveMatch: React.FC<{
       </div>
 
       <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto pb-[calc(var(--safe-bottom)+1.5rem)]">
-        <div className="stagger flex flex-1 flex-col gap-4">
-          <FightPosterHero
-            a={challenger ?? { id: challenge.challengerId, name: challenge.challengerName, avatarUrl: '' }}
-            b={opponent ?? { id: challenge.opponentId, name: challenge.opponentName, avatarUrl: '' }}
-            height={210}
-          />
+        <FightPosterHero
+          a={challenger ?? { id: challenge.challengerId, name: challenge.challengerName, avatarUrl: '' }}
+          b={opponent ?? { id: challenge.opponentId, name: challenge.opponentName, avatarUrl: '' }}
+          height="34vh"
+        />
 
-          <div className="grid grid-cols-2 gap-2 px-4">
-            {sides.map((side, index) => (
-              <div key={side.id} className={`grid gap-1 ${index === 1 ? 'justify-items-end text-right' : 'justify-items-start'}`}>
-                <span className="font-display text-2xl font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
-                  {side.name.split(' ')[0]}
-                </span>
-                <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
-                  Win +{side.win}
-                </span>
+        <div className="stagger flex flex-1 flex-col justify-between gap-5 pt-5">
+          <div className="grid gap-5">
+            <div className="grid grid-cols-2 gap-2 px-4">
+              {sides.map((side, index) => (
+                <div key={side.id} className={`grid gap-1 ${index === 1 ? 'justify-items-end text-right' : 'justify-items-start'}`}>
+                  <span className="font-display text-2xl font-extrabold uppercase leading-none [overflow-wrap:anywhere]">
+                    {side.name.split(' ')[0]}
+                  </span>
+                  <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">
+                    Win +{side.win}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {challenge.stakes.crownBounty > 0 && (
+              <span className="justify-self-center self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
+                👑 {challenge.stakes.crownBounty} bounty riding
+              </span>
+            )}
+
+            <div className="grid gap-2 px-4">
+              <CallSplit
+                left={{ player: challenger ?? { id: challenge.challengerId }, count: forChallenger }}
+                right={{ player: opponent ?? { id: challenge.opponentId }, count: forOpponent }}
+                onRed
+              />
+              <div className="flex items-center justify-between gap-2">
+                <VoterStack voters={challengerVoters} align="start" />
+                <VoterStack voters={opponentVoters} align="end" />
               </div>
-            ))}
-          </div>
-
-          {challenge.stakes.crownBounty > 0 && (
-            <span className="justify-self-center self-center rounded-full bg-crown px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-bg">
-              👑 {challenge.stakes.crownBounty} bounty riding
-            </span>
-          )}
-
-          <div className="grid gap-2 px-4">
-            <CallSplit
-              left={{ player: challenger ?? { id: challenge.challengerId }, count: forChallenger }}
-              right={{ player: opponent ?? { id: challenge.opponentId }, count: forOpponent }}
-              onRed
-            />
-            <div className="flex items-center justify-between gap-2">
-              <VoterStack voters={challengerVoters} align="start" />
-              <VoterStack voters={opponentVoters} align="end" />
             </div>
-          </div>
 
-          <div className="grid gap-2 px-4">
-            <span className="px-0.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Log the result</span>
-            <div className="grid grid-cols-2 gap-2">
-              {sides.map((side) => {
-                const armed = armedWinnerId === side.id;
-                return (
-                  <button
-                    key={side.id}
-                    type="button"
-                    disabled={isLogging}
-                    onClick={() => tapWinner(side.id)}
-                    className={`press flex h-14 items-center justify-center rounded-2xl text-sm font-extrabold uppercase tracking-[0.06em] transition-colors disabled:opacity-60 ${
-                      armed ? 'bg-felt text-white' : 'bg-white text-bg'
-                    }`}
-                  >
-                    {isLogging && armed ? 'Logging…' : armed ? 'Tap again to confirm' : `${side.name.split(' ')[0]} won`}
-                  </button>
-                );
-              })}
+            <div className="grid gap-2 px-4">
+              <span className="px-0.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Log the result</span>
+              <div className="grid grid-cols-2 gap-2">
+                {sides.map((side) => {
+                  const armed = armedWinnerId === side.id;
+                  return (
+                    <button
+                      key={side.id}
+                      type="button"
+                      disabled={isLogging}
+                      onClick={() => tapWinner(side.id)}
+                      className={`press flex h-16 items-center justify-center rounded-2xl text-base font-extrabold uppercase tracking-[0.06em] transition-colors disabled:opacity-60 ${
+                        armed ? 'bg-felt text-white' : 'bg-white text-bg'
+                      }`}
+                    >
+                      {isLogging && armed ? 'Logging…' : armed ? 'Tap again to confirm' : `${side.name.split(' ')[0]} won`}
+                    </button>
+                  );
+                })}
+              </div>
+              {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}
             </div>
-            {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}
           </div>
 
           <div
             ref={chatScrollRef}
             aria-live="polite"
-            className="no-scrollbar mx-4 grid min-h-[160px] flex-1 content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
+            className="no-scrollbar mx-4 grid max-h-[260px] min-h-[120px] content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
           >
             {chatMessages.length === 0 ? (
               <p className="self-center text-center text-xs text-white/55">Nobody's said anything yet.</p>

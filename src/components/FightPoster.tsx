@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Challenge, MatchRecord, Player } from '../types';
 import { CrownState, computeRivalry } from '../utils/league';
 import { previewStakes } from '../utils/stakes';
@@ -6,6 +6,7 @@ import { ballColor, playerBall } from '../utils/balls';
 import { shamed } from '../utils/shame';
 import { CallSplit, PlayerAvatar, SponsorPatch } from './ui';
 import { sponsorOf } from '../utils/sponsors';
+import { gsap, useGSAP, prefersReducedMotion } from '../utils/gsap';
 
 export type PosterReason = 'crown' | 'derby' | 'grudge' | null;
 
@@ -31,23 +32,56 @@ export function posterReason(challenge: Challenge, players: Player[], matches: M
   return null;
 }
 
-/** The poster's banner on its own: two players on their ball colours, split down a diagonal, a giant VS between them — reused anywhere a match deserves the fight-night treatment. */
+/**
+ * The poster's banner on its own: two players on their ball colours, split
+ * down a diagonal, a giant VS between them, and a slow idle pulse/shine so it
+ * stays alive for however long it sits on screen — reused anywhere a match
+ * deserves the fight-night treatment.
+ */
 export const FightPosterHero: React.FC<{
   a: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'>;
   b: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball'>;
-  height?: number;
+  height?: number | string;
 }> = ({ a, b, height = 250 }) => {
   const colourA = ballColor(playerBall(a)).c;
   const colourB = ballColor(playerBall(b)).c;
+
+  const heroRef = useRef<HTMLDivElement>(null);
+  const stampRef = useRef<HTMLSpanElement>(null);
+  const avatarARef = useRef<HTMLSpanElement>(null);
+  const avatarBRef = useRef<HTMLSpanElement>(null);
+  const shineRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.set(shineRef.current, { skewX: -20 });
+      if (prefersReducedMotion()) return;
+      gsap.to(stampRef.current, { scale: 1.08, duration: 1.1, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      gsap.to(avatarARef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      gsap.to(avatarBRef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.4 });
+      gsap.fromTo(
+        shineRef.current,
+        { xPercent: -150 },
+        { xPercent: 250, duration: 2.2, ease: 'power1.inOut', repeat: -1, repeatDelay: 2.4 }
+      );
+    },
+    { scope: heroRef }
+  );
+
   return (
-    <div className="relative overflow-hidden" style={{ height }}>
+    <div ref={heroRef} className="relative overflow-hidden" style={{ height }}>
       <span className="accept-close-left absolute inset-0" style={{ background: colourA, clipPath: 'polygon(0 0, 64% 0, 36% 100%, 0 100%)' }} />
       <span className="accept-close-right absolute inset-0" style={{ background: colourB, clipPath: 'polygon(64% 0, 100% 0, 100% 100%, 36% 100%)' }} />
+      <span
+        ref={shineRef}
+        className="pointer-events-none absolute inset-y-0 left-0 w-1/3 opacity-60"
+        style={{ background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent)' }}
+      />
       <span className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0) 55%, rgba(10,10,10,1) 100%)' }} />
-      <span className="duel-in-left absolute left-[8%] top-[14%]"><PlayerAvatar player={a} size={112} /></span>
-      <span className="duel-in-right absolute bottom-[12%] right-[8%]"><PlayerAvatar player={b} size={112} /></span>
+      <span ref={avatarARef} className="duel-in-left absolute left-[8%] top-[14%]"><PlayerAvatar player={a} size={112} /></span>
+      <span ref={avatarBRef} className="duel-in-right absolute bottom-[12%] right-[8%]"><PlayerAvatar player={b} size={112} /></span>
       <span className="absolute left-1/2 top-1/2 -ml-[38px] -mt-[38px]">
-        <span className="accept-stamp grid h-[76px] w-[76px] place-items-center rounded-full bg-bg font-display text-[34px] font-extrabold text-white shadow-[0_0_0_3px_#fff]">
+        <span ref={stampRef} className="accept-stamp grid h-[76px] w-[76px] place-items-center rounded-full bg-bg font-display text-[34px] font-extrabold text-white shadow-[0_0_0_3px_#fff]">
           VS
         </span>
       </span>
