@@ -210,6 +210,12 @@ input, textarea, select { font-size: 16px; }
 .wa-podium { transform-origin: bottom; animation: wa-podium 700ms var(--ease) both; }
 .wa-rain { position: absolute; top: 0; animation: wa-rain var(--t, 2.6s) var(--ease) var(--d, 0ms) both; }
 
+/* Kiosk screensaver: a bowling-alley beat, pool balls scattering like pins. */
+@keyframes bowl-bounce { 0% { opacity: 0; transform: scale(2.4) rotate(-8deg); } 60% { transform: scale(.9) rotate(3deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+.bowl-in { animation: bowl-bounce 700ms var(--ease) both; }
+@keyframes bowl-scatter { from { opacity: 0; transform: translate(0,0) rotate(0) scale(.5); } 20% { opacity: 1; } to { opacity: .9; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1); } }
+.bowl-pin { position: absolute; animation: bowl-scatter 900ms var(--ease) both; }
+
 /* Weekly cup: the play off poster. Every entrance runs on one timeline set inline (--k, --d, --dur). */
 @keyframes cup-crest-in { from { opacity: 0; transform: translateY(-24px) scale(.9); } }
 @keyframes cup-shine { 0% { transform: translateX(0) skewX(-20deg); } 22%, 100% { transform: translateX(170px) skewX(-20deg); } }

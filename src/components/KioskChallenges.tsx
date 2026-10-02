@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Tv } from 'lucide-react';
 import { Challenge, Player } from '../types';
-import { CallSplit, Sheet } from './ui';
+import { playerBall } from '../utils/balls';
+import { Ball, CallSplit, PlayerAvatar, Sheet } from './ui';
 
 const ghost = (id: string, name: string) => ({ id, name, avatarUrl: '' });
 
@@ -25,19 +26,36 @@ export const ActiveChallengeTeaser: React.FC<{
 }> = ({ challenge, players, onOpen }) => {
   const byId = new Map(players.map((player) => [player.id, player]));
   const { challenger, opponent, forChallenger, forOpponent } = splitFor(challenge, byId);
+  const startable = challenge.status === 'accepted';
   return (
-    <button type="button" onClick={onOpen} className="press card-drop grid gap-2 rounded-2xl bg-card p-3.5 text-left">
-      <div className="flex items-center justify-between px-0.5">
-        <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-[0.1em] text-white/55">
-          <Tv className="h-3.5 w-3.5" strokeWidth={2.5} />
-          {challenge.status === 'accepted' ? 'Agreed — ready to start' : 'Waiting on an answer'}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="press card-drop group relative grid w-full gap-3.5 overflow-hidden rounded-[20px] bg-card p-[18px] pt-[104px] text-left shadow-[inset_0_0_0_2px_rgba(255,255,255,0.08)]"
+    >
+      <Ball n={playerBall(challenger)} size={128} className="absolute -left-[34px] -top-10 transition-transform duration-500 ease-[var(--ease)] group-hover:rotate-12" />
+      <Ball n={playerBall(opponent)} size={128} className="absolute -right-[34px] -top-10 transition-transform duration-500 ease-[var(--ease)] group-hover:-rotate-12" />
+      <div className="relative grid grid-cols-[1fr_auto_1fr] items-end gap-2.5">
+        <span className="min-w-0 font-display text-2xl font-extrabold uppercase leading-[1.05] tracking-[-0.02em] [overflow-wrap:anywhere]">
+          {challenger.name.split(' ')[0]}
         </span>
-        <span className="text-xs font-semibold text-white/55">See all →</span>
+        <span className="font-display text-base font-extrabold leading-[1.4] text-white/55">VS</span>
+        <span className="min-w-0 text-right font-display text-2xl font-extrabold uppercase leading-[1.05] tracking-[-0.02em] [overflow-wrap:anywhere]">
+          {opponent.name.split(' ')[0]}
+        </span>
       </div>
-      <p className="px-0.5 text-sm font-bold">
-        {challenger.name.split(' ')[0]} <span className="font-normal text-white/55">vs</span> {opponent.name.split(' ')[0]}
-      </p>
-      <CallSplit left={{ player: challenger, count: forChallenger }} right={{ player: opponent, count: forOpponent }} />
+      <div className="relative">
+        <CallSplit left={{ player: challenger, count: forChallenger }} right={{ player: opponent, count: forOpponent }} />
+      </div>
+      <div className="relative flex items-center justify-between gap-2">
+        <span className="flex h-11 items-center gap-2 rounded-full bg-white px-4 text-xs font-extrabold uppercase tracking-[0.06em] text-bg">
+          <Tv className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          See all
+        </span>
+        <span className="flex h-[26px] items-center rounded-full bg-surface-alt px-2.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-white">
+          {startable ? 'Agreed — ready' : 'Waiting on an answer'}
+        </span>
+      </div>
     </button>
   );
 };
@@ -89,14 +107,20 @@ export const KioskChallengesSheet: React.FC<{
             const startable = challenge.status === 'accepted';
             return (
               <div key={challenge.id} className={`card-drop grid gap-2 rounded-2xl bg-card p-3.5 ${startable ? '' : 'opacity-60'}`}>
-                <div className="flex items-center justify-between px-0.5">
-                  <p className="text-sm font-bold">
-                    {challenger.name.split(' ')[0]} <span className="font-normal text-white/55">vs</span> {opponent.name.split(' ')[0]}
-                  </p>
-                  <span className="text-xs font-semibold text-white/55">
-                    {startable ? 'Agreed' : 'Waiting on an answer'}
+                <div className="flex items-center justify-between gap-2 px-0.5">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <PlayerAvatar player={challenger} size={34} />
+                    <span className="truncate text-sm font-bold">{challenger.name.split(' ')[0]}</span>
+                  </span>
+                  <span className="flex-none text-xs font-semibold text-white/55">vs</span>
+                  <span className="flex min-w-0 flex-row-reverse items-center gap-2">
+                    <PlayerAvatar player={opponent} size={34} />
+                    <span className="truncate text-sm font-bold">{opponent.name.split(' ')[0]}</span>
                   </span>
                 </div>
+                <span className="px-0.5 text-xs font-semibold text-white/55">
+                  {startable ? 'Agreed' : 'Waiting on an answer'}
+                </span>
                 <CallSplit left={{ player: challenger, count: forChallenger }} right={{ player: opponent, count: forOpponent }} />
                 {startable && (
                   <button

@@ -38,7 +38,7 @@ interface ArenaViewProps {
   onPlayDaily?: (opponentId: string) => void;
 }
 
-interface VoterInfo {
+export interface VoterInfo {
   prediction: Prediction;
   player?: Player;
   name: string;
@@ -46,7 +46,7 @@ interface VoterInfo {
 }
 
 /** Who backed a side, as a tight stack of faces. */
-const VoterStack: React.FC<{ voters: VoterInfo[]; align: 'start' | 'end'; onSelectPlayer?: (player: Player) => void }> = ({
+export const VoterStack: React.FC<{ voters: VoterInfo[]; align: 'start' | 'end'; onSelectPlayer?: (player: Player) => void }> = ({
   voters,
   align,
   onSelectPlayer,

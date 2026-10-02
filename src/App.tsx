@@ -93,6 +93,8 @@ export default function App() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   /** Coarse clock so a season countdown moves and its deadline can fire while the app is open. */
   const [clock, setClock] = useState(() => Date.now());
+  /** Set by the kiosk's join QR (`?join=1`) so a brand-new phone lands straight on "add yourself". */
+  const joinMode = useMemo(() => new URLSearchParams(window.location.search).get('join') === '1', []);
   const closingSeasonRef = useRef(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1487,7 +1489,7 @@ export default function App() {
   }
 
   if (!currentPlayer) {
-    return <IdentityPicker players={players} onSelect={handleSelectPlayer} onAdd={handleAddPlayer} />;
+    return <IdentityPicker players={players} onSelect={handleSelectPlayer} onAdd={handleAddPlayer} startInAddMode={joinMode} />;
   }
 
   return (

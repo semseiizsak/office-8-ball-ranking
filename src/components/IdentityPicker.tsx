@@ -7,11 +7,13 @@ interface IdentityPickerProps {
   players: Player[];
   onSelect: (player: Player) => void;
   onAdd: (params: { name: string; ballPreference: BallPreference; ball?: number }) => Promise<Player>;
+  /** Arrived via the kiosk's join QR — skip straight to "add yourself" and show the home-screen hint. */
+  startInAddMode?: boolean;
 }
 
 /** The first screen on a new phone: pick yourself once. No password, the office trusts you. */
-export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelect, onAdd }) => {
-  const [showAdd, setShowAdd] = useState(players.length === 0);
+export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelect, onAdd, startInAddMode = false }) => {
+  const [showAdd, setShowAdd] = useState(players.length === 0 || startInAddMode);
   const [name, setName] = useState('');
   const [ball, setBall] = useState(9);
   const [isSaving, setIsSaving] = useState(false);
@@ -83,6 +85,11 @@ export const IdentityPicker: React.FC<IdentityPickerProps> = ({ players, onSelec
               Pick a ball
               <BallPicker value={ball} onChange={setBall} />
             </div>
+            {startInAddMode && (
+              <p className="rounded-xl bg-surface-alt px-3 py-2.5 text-sm font-semibold normal-case tracking-normal text-white/70">
+                📲 After this, add the page to your home screen — Share → Add to Home Screen (iPhone) or the menu → Add to Home screen (Android) — so it opens like an installed app next time.
+              </p>
+            )}
             {error && <p role="alert" className="text-sm font-bold">{error}</p>}
             <button type="submit" disabled={isSaving || !name.trim()} className={`${button} bg-white text-bg`}>
               {isSaving ? 'Creating' : "Let's play"}
