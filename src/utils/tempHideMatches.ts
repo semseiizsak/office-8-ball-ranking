@@ -1,18 +1,23 @@
 import { MatchRecord, Player } from '../types';
 
 /**
- * TEMPORARY, today only. Every Bálint match after the first stays fully in
- * Firestore with its real scores and results — this only keeps them off
- * the history feed and the leaderboard's recent-form dots. Nothing here
- * touches stored Elo, wins/losses, or the match documents themselves. Safe
- * to delete this file (and its call sites in EventsView/LeaderboardView)
- * once no longer needed.
+ * TEMPORARY, today only. Every Izsák-vs-Bálint match after the first stays
+ * fully in Firestore with its real scores and results — this only keeps
+ * them off the history feed and the leaderboard's recent-form dots. Matches
+ * where Bálint plays someone else (e.g. Ármin vs Bálint) are untouched.
+ * Nothing here touches stored Elo, wins/losses, or the match documents
+ * themselves. Safe to delete this file (and its call sites in
+ * EventsView/LeaderboardView) once no longer needed.
  */
+function isBalintVsIzsak(match: MatchRecord): boolean {
+  const a = match.playerAName.toLowerCase();
+  const b = match.playerBName.toLowerCase();
+  return (a === 'bálint' && b === 'izsák') || (a === 'izsák' && b === 'bálint');
+}
+
 function getTemporarilyHiddenMatchIds(matches: MatchRecord[]): Set<string> {
-  const balintMatches = matches
-    .filter((match) => match.playerAName.toLowerCase() === 'bálint' || match.playerBName.toLowerCase() === 'bálint')
-    .sort((a, b) => a.timestamp - b.timestamp);
-  return new Set(balintMatches.slice(1).map((match) => match.id));
+  const headToHead = matches.filter(isBalintVsIzsak).sort((a, b) => a.timestamp - b.timestamp);
+  return new Set(headToHead.slice(1).map((match) => match.id));
 }
 
 export function withoutTemporarilyHiddenMatches(matches: MatchRecord[]): MatchRecord[] {
