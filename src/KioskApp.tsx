@@ -422,6 +422,7 @@ export default function KioskApp() {
             onSelectPlayer={() => undefined}
             onChallenge={() => setShowStartMatch(true)}
             onAddPlayer={() => setShowAddPlayer(true)}
+            formDotsLimit={2}
             hideCrown
             hideTitles
           />

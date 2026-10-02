@@ -24,11 +24,13 @@ interface LeaderboardViewProps {
   /** The kiosk has nobody to crown a challenger or show off titles to — just the ladder. */
   hideCrown?: boolean;
   hideTitles?: boolean;
+  /** On the kiosk's much wider rows, a handful of tiny dots reads sparse — cap it down from the phone's 5. */
+  formDotsLimit?: number;
 }
 
-/** Five form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
-const FormDots: React.FC<{ form: ('W' | 'L')[]; onYellow?: boolean }> = ({ form, onYellow }) => {
-  const recent = form.slice(0, 5).reverse();
+/** Recent-form dots, green for a win and grey for a loss; on the yellow row, black filled or hollow. */
+const FormDots: React.FC<{ form: ('W' | 'L')[]; onYellow?: boolean; limit?: number }> = ({ form, onYellow, limit = 5 }) => {
+  const recent = form.slice(0, limit).reverse();
   if (recent.length === 0) return null;
   return (
     <span className="flex gap-1" role="img" aria-label={`Form ${recent.join(' ')}`}>
@@ -59,6 +61,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   onAddPlayer,
   hideCrown = false,
   hideTitles = false,
+  formDotsLimit = 5,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -139,7 +142,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 : `Last played ${insight.daysSincePlayed} days ago`}
             </span>
           ) : (
-            <FormDots form={player.recentForm} onYellow={first} />
+            <FormDots form={player.recentForm} onYellow={first} limit={formDotsLimit} />
           )}
         </span>
 
