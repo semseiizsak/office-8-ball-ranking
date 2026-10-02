@@ -56,9 +56,14 @@ export const FightPosterHero: React.FC<{
     () => {
       gsap.set(shineRef.current, { skewX: -20 });
       if (prefersReducedMotion()) return;
-      gsap.to(stampRef.current, { scale: 1.08, duration: 1.1, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      gsap.to(avatarARef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      gsap.to(avatarBRef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.4 });
+      // Each idle tween's first render is when GSAP samples its target's current
+      // transform as a baseline. Starting before the CSS entrance animation
+      // (duel-in-*: 620ms, accept-stamp: 940ms) finishes bakes in its mid-flight
+      // offset forever, since the idle tween only ever touches y/scale from then
+      // on — so delay past the entrance before letting GSAP take over.
+      gsap.to(stampRef.current, { scale: 1.08, duration: 1.1, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.95 });
+      gsap.to(avatarARef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 0.65 });
+      gsap.to(avatarBRef.current, { y: -7, duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.05 });
       gsap.fromTo(
         shineRef.current,
         { xPercent: -150 },
