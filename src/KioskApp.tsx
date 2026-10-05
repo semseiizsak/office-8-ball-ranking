@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dices, QrCode, RotateCw } from 'lucide-react';
+import { Dices, QrCode, RotateCw, Trophy } from 'lucide-react';
 import { Challenge, ChallengeStakes, MatchRecord, Player, Season } from './types';
 import { poolService } from './services/poolService';
 import { notifyMany } from './services/notifications';
@@ -15,7 +15,8 @@ import { KioskLastMatch } from './components/KioskLastMatch';
 import { KioskJoinQr } from './components/KioskJoinQr';
 import { KioskDiceModal } from './components/KioskDiceModal';
 import { KioskScreensaver } from './components/KioskScreensaver';
-import { KioskLobby } from './components/LobbyChat';
+import { KioskCupSignup } from './components/KioskCupSignup';
+import { Tournament, weekTournament } from './utils/tournament';
 import { AddPlayerModal } from './components/AddPlayerModal';
 import { DuelAcceptedOverlay } from './components/DuelAcceptedOverlay';
 
@@ -60,6 +61,9 @@ export default function KioskApp() {
   /** The roster right before that result, so the ladder can animate rows sliding into their new ranks. */
   const [previousPlayers, setPreviousPlayers] = useState<Player[] | undefined>(undefined);
   const [isIdle, setIsIdle] = useState(false);
+  /** This week's cup, followed live only while its sign-ups are open (one document). */
+  const [cup, setCup] = useState<Tournament | null>(null);
+  const [showCupSignup, setShowCupSignup] = useState(false);
   const idleTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -219,10 +223,35 @@ export default function KioskApp() {
   useEffect(() => {
     if (liveChallenge) setIsIdle(false);
   }, [liveChallenge]);
-  // Idle time now goes to the office chat. The screensaver is only reachable
-  // with ?screensaver=1, which keeps it locked on for previewing.
+  // ?screensaver=1 keeps the screensaver locked on for previewing.
   const forceScreensaver = useMemo(() => new URLSearchParams(window.location.search).get('screensaver') === '1', []);
-  const showLobby = isIdle && !liveChallenge;
+
+  // Monday 8 to 12 the cup is open: the wall follows that one document and,
+  // when left alone, shows the sign-up sheet instead of the screensaver.
+  const cupWindow = weekTournament(clock);
+  const cupOpen = clock >= cupWindow.opensAt && clock < cupWindow.closesAt;
+  useEffect(() => {
+    if (!cupOpen) {
+      setCup(null);
+      setShowCupSignup(false);
+      return;
+    }
+    poolService.ensureTournament(cupWindow).catch((error) => console.warn('Cup not created:', error));
+    return poolService.subscribeToTournament(cupWindow.week, setCup);
+  }, [cupOpen, cupWindow.week]);
+  useEffect(() => {
+    if (isIdle && cupOpen && !liveChallenge) {
+      setShowCupSignup(true);
+      // Hand the idle state over to the sign-up sheet, so the first tap on a
+      // name signs someone up instead of just waking the screen.
+      setIsIdle(false);
+    }
+  }, [isIdle, cupOpen, liveChallenge]);
+  const showScreensaver = isIdle && !liveChallenge && !cupOpen;
+
+  const handleCupJoin = async (playerId: string) => {
+    setCup(await poolService.joinTournament(cupWindow.week, playerId));
+  };
 
   const lastMatch = useMemo(() => matches[0] ?? null, [matches]);
 
@@ -352,14 +381,21 @@ export default function KioskApp() {
         players={players}
         matches={seasonMatches}
         league={league}
+        subscribeToChat={poolService.subscribeToLobby}
         onDismiss={() => setIsIdle(false)}
       />
     );
   }
 
-  if (showLobby) {
+  if (showScreensaver) {
     return (
-      <KioskLobby subscribe={poolService.subscribeToLobby} players={players} now={clock} onDismiss={() => setIsIdle(false)} />
+      <KioskScreensaver
+        players={players}
+        matches={seasonMatches}
+        league={league}
+        subscribeToChat={poolService.subscribeToLobby}
+        onDismiss={() => setIsIdle(false)}
+      />
     );
   }
 
@@ -423,6 +459,18 @@ export default function KioskApp() {
             >
               <span className="live-dot h-[9px] w-[9px]" />
               On the table now — tap to watch
+            </button>
+          )}
+
+          {cupOpen && (
+            <button
+              type="button"
+              onClick={() => setShowCupSignup(true)}
+              className="press mb-3 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-felt text-sm font-extrabold uppercase tracking-[0.06em] text-white"
+            >
+              <Trophy className="h-5 w-5" strokeWidth={2.25} />
+              Cup sign-up
+              <span className="font-semibold">{cup?.entrants.length ?? 0} in, closes {new Date(cupWindow.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
             </button>
           )}
 
@@ -497,6 +545,10 @@ export default function KioskApp() {
 
         {showDice && (
           <KioskDiceModal players={players} onComplete={handleDiceComplete} onClose={() => setShowDice(false)} />
+        )}
+
+        {showCupSignup && cupOpen && (
+          <KioskCupSignup cup={cup} players={players} onJoin={handleCupJoin} onClose={() => setShowCupSignup(false)} />
         )}
 
         {acceptedDuel && (

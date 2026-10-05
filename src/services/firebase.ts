@@ -1588,6 +1588,13 @@ export async function ensureTournament(tournament: Tournament): Promise<Tourname
   });
 }
 
+/** Follows one week's cup document only, so the wall can show sign-ups as they land. */
+export function subscribeToTournament(week: string, onChange: (tournament: Tournament | null) => void): () => void {
+  return onSnapshot(doc(tournamentsCollection, week), (snapshot) =>
+    onChange(snapshot.exists() ? toTournament(snapshot.id, snapshot.data()) : null)
+  );
+}
+
 /** Signs a player up, only while sign-ups are open and only once. */
 export async function joinTournament(week: string, playerId: string): Promise<Tournament> {
   const ref = doc(tournamentsCollection, week);

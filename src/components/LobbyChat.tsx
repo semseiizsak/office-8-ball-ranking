@@ -126,51 +126,29 @@ export const LobbyChat: React.FC<{
 };
 
 /**
- * What the wall tablet falls back to when nobody has touched it for a while:
- * the office chat, big enough to read from across the room. Any tap goes
- * straight back to starting a game.
+ * The office chat as the idle wall tablet shows it: big enough to read from
+ * across the room, newest at the bottom, anything that no longer fits simply
+ * dropping off the top. Not interactive; the screen around it handles taps.
  */
-export const KioskLobby: React.FC<{
+export const KioskChatFeed: React.FC<{
   subscribe: LobbySubscribe;
   players: Player[];
-  now: number;
-  onDismiss: () => void;
-}> = ({ subscribe, players, now, onDismiss }) => {
+}> = ({ subscribe, players }) => {
   const messages = useLobby(subscribe);
   const byId = new Map(players.map((player) => [player.id, player]));
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onDismiss}
-      onKeyDown={onDismiss}
-      aria-label="Back to start a game"
-      className="anim-fade cursor-pointer fixed inset-0 z-[54] flex flex-col bg-bg px-6 pb-[calc(var(--safe-bottom)+1.5rem)] pt-[calc(var(--safe-top)+1.5rem)] text-left text-white"
-    >
-      <span className="flex w-full items-end justify-between gap-4">
-        <span className="grid gap-1">
-          <span className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">
-            <span className="live-dot h-[9px] w-[9px]" />
-            Live
-          </span>
-          <span className="font-display text-5xl font-extrabold uppercase leading-none tracking-[-0.02em]">Office chat</span>
-        </span>
-        <span className="font-display text-4xl font-extrabold tabular-nums text-white/70">{clockOf(now)}</span>
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      <span className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">
+        <span className="live-dot h-[9px] w-[9px]" />
+        Office chat
       </span>
-
-      {/* Newest at the bottom; anything that no longer fits simply drops off the top. */}
-      <span className="mt-6 flex min-h-0 w-full flex-1 flex-col justify-end gap-5 overflow-hidden">
+      <div className="mt-4 flex min-h-0 w-full flex-1 flex-col justify-end gap-5 overflow-hidden">
         {messages.length === 0 ? (
-          <span className="self-center pb-[20vh] text-2xl font-semibold text-white/55">Quiet in here. Say something from your phone.</span>
+          <span className="self-center pb-[6vh] text-2xl font-semibold text-white/55">Quiet in here. Say something from your phone.</span>
         ) : (
-          messages.slice(-20).map((message) => <MessageLine key={message.id} message={message} author={byId.get(message.authorId)} big />)
+          messages.slice(-12).map((message) => <MessageLine key={message.id} message={message} author={byId.get(message.authorId)} big />)
         )}
-      </span>
-
-      <span className="mt-6 flex h-[60px] w-full flex-none items-center justify-center gap-2.5 rounded-full bg-live text-base font-extrabold uppercase tracking-[0.06em]">
-        <span className="live-dot h-[10px] w-[10px]" />
-        Tap anywhere to start a game
-      </span>
+      </div>
     </div>
   );
 };
