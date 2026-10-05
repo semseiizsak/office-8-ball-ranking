@@ -13,7 +13,7 @@ import { LeaderboardView } from './components/LeaderboardView';
 import { LobbyChat } from './components/LobbyChat';
 import { PullToRefresh } from './components/PullToRefresh';
 import { MatchLoggerSheet } from './components/MatchLoggerSheet';
-import { ArenaView, deriveChallengeView, LiveMatchScreen } from './components/ArenaView';
+import { ArenaView, deriveChallengeView, LiveMatchScreen, RichestList } from './components/ArenaView';
 import { PlayerDossierModal } from './components/PlayerDossierModal';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
 import { IdentityPicker } from './components/IdentityPicker';
@@ -63,7 +63,8 @@ import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON, DORMANT_AFTER_D
 import { buildMatchRecap, MatchRecap } from './utils/recap';
 import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
-import { Ball } from './components/ui';
+import { Ball, Sheet } from './components/ui';
+import { MessageCircle } from 'lucide-react';
 import { BADGE, buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
 import { rewardFor } from './utils/rewards';
 import { BadgePop } from './components/BadgePop';
@@ -105,6 +106,34 @@ export default function App() {
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  // The office chat opens from the header on Ranks; the badge counts lines
+  // from others since it was last opened, read only while Ranks is showing.
+  const [showChat, setShowChat] = useState(false);
+  const [lobbyLines, setLobbyLines] = useState<Array<{ authorId: string; createdAt: number }>>([]);
+  const [chatReadAt, setChatReadAt] = useState(() => {
+    try {
+      return Number(localStorage.getItem('lobbyReadAt') ?? 0);
+    } catch {
+      return 0;
+    }
+  });
+  const markChatRead = () => {
+    const at = Date.now();
+    setChatReadAt(at);
+    try {
+      localStorage.setItem('lobbyReadAt', String(at));
+    } catch {
+      // Private mode: the badge just resets next visit.
+    }
+  };
+  const openChat = () => {
+    setShowChat(true);
+    markChatRead();
+  };
+  const closeChat = () => {
+    setShowChat(false);
+    markChatRead();
+  };
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickMatch, setShowQuickMatch] = useState(false);
   const [challengeTarget, setChallengeTarget] = useState<{ opponentId?: string; mode?: 'challenge' | 'instant' } | null>(null);
@@ -736,6 +765,12 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cardsLoading, allUnlocks, packs.length, cards.length]);
+
+  useEffect(() => {
+    if (activeTab !== 'leaderboard' || !currentPlayer) return;
+    return poolService.subscribeToLobby(setLobbyLines);
+  }, [activeTab, currentPlayer?.id]);
+  const chatUnread = lobbyLines.filter((line) => line.createdAt > chatReadAt && line.authorId !== currentPlayer?.id).length;
 
   const firstName = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
   const others = () => players.map((player) => player.id).filter((id) => id !== currentPlayer?.id);
@@ -1527,7 +1562,35 @@ export default function App() {
           onQuickMatch={() => setShowQuickMatch(true)}
           activityBadge={activityBadge}
           onOpenActivity={openActivity}
+          tabAction={
+            activeTab === 'leaderboard' ? (
+              <button
+                type="button"
+                onClick={openChat}
+                aria-label={chatUnread > 0 ? `Office chat, ${chatUnread} new` : 'Office chat'}
+                className="press relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-alt text-white transition-colors hover:bg-[#2C2C2C]"
+              >
+                <MessageCircle className="h-5 w-5" strokeWidth={2.25} />
+                {chatUnread > 0 && (
+                  <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-live px-1 text-[10px] font-black tabular-nums text-white">
+                    {chatUnread > 9 ? '9+' : chatUnread}
+                  </span>
+                )}
+              </button>
+            ) : null
+          }
         />
+        {showChat && (
+          <Sheet title="Office chat" onClose={closeChat}>
+            <LobbyChat
+              subscribe={poolService.subscribeToLobby}
+              players={players}
+              currentPlayer={currentPlayer}
+              onSend={(text) => poolService.sendLobbyMessage({ authorId: currentPlayer.id, authorName: currentPlayer.name, text })}
+              inSheet
+            />
+          </Sheet>
+        )}
 
         <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[var(--safe-bottom)]">
           {syncNotice && (
@@ -1568,16 +1631,7 @@ export default function App() {
                 onSelectPlayer={(player) => setDossierPlayer(player)}
                 onChallenge={handleChallenge}
                 onAddPlayer={() => setShowAddPlayer(true)}
-                chat={
-                  <LobbyChat
-                    subscribe={poolService.subscribeToLobby}
-                    players={players}
-                    currentPlayer={currentPlayer}
-                    onSend={(text) =>
-                      poolService.sendLobbyMessage({ authorId: currentPlayer.id, authorName: currentPlayer.name, text })
-                    }
-                  />
-                }
+                coinsLadder={<RichestList players={players} chips={chips} currentPlayer={currentPlayer} onSelectPlayer={(player) => setDossierPlayer(player)} />}
               />
             </div>
           )}
@@ -1612,6 +1666,7 @@ export default function App() {
                   };
                 })()}
                 onPlayDaily={(opponentId) => setChallengeTarget({ opponentId, mode: 'instant' })}
+                onShowHistory={() => setActiveTab('history')}
                 onOpenLiveMatch={setActiveLiveChallengeId}
               />
             </div>

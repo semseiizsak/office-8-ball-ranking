@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { ArrowLeftRight, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
 import { MatchRecord, Player } from '../../types';
 import { Card, CardType, Collector, DUPLICATE_CHIPS, LEGENDARY_PITY, Pack, RARITIES, Rarity, SHOP_LABEL, SHOP_PRICE, ShopTier, TYPE_LABEL, Trade, albumSize, designKey, weekKeyOf, winsThisWeek } from '../../utils/cards';
 import { Coin, PlayerAvatar, Sheet } from '../ui';
@@ -79,6 +80,8 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const [confirmBuy, setConfirmBuy] = useState<string | null>(null);
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
+  /** The shop, trades and album filters each open on their own sheet. */
+  const [panel, setPanel] = useState<'shop' | 'trades' | 'filters' | null>(null);
 
   const me = currentPlayer.id;
   const mine = cards.filter((card) => card.ownerId === me);
@@ -216,7 +219,19 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             {owned.size}
             <span className="text-xl text-white/55"> of {total}</span>
           </span>
-          <span className="pb-1 text-sm font-extrabold tabular-nums">{total ? Math.round((owned.size / total) * 100) : 0}%</span>
+          <span className="flex items-center gap-1.5">
+            <button type="button" onClick={() => setPanel('shop')} aria-label={`Pack shop, ${coins} coins`} className="press flex h-11 items-center gap-1.5 rounded-full bg-surface-alt pl-3 pr-3.5 text-sm font-black tabular-nums">
+              <ShoppingBag className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              <Coin size={16} />
+              {coins}
+            </button>
+            <button type="button" onClick={() => setPanel('trades')} aria-label={incoming.length ? `Trades, ${incoming.length} waiting` : 'Trades'} className="press relative grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
+              <ArrowLeftRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              {incoming.length > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-live px-1 text-[10px] font-black tabular-nums text-white">{incoming.length}</span>
+              )}
+            </button>
+          </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
           <div className="grow-x h-full rounded-full bg-crown" style={{ width: `${total ? (owned.size / total) * 100 : 0}%` }} />
@@ -230,6 +245,23 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Coins cashed in</span>
             <span className="text-2xl font-black leading-none tabular-nums">{collector?.duplicateChips ?? 0}</span>
           </div>
+        </div>
+        {/* The week's earned pack, folded in: one line, one bar, the pity count beside it. */}
+        <div className="grid gap-1.5 rounded-xl bg-surface p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-extrabold">Earned pack</span>
+            <span className="text-xs font-bold tabular-nums text-white/55">
+              {earned || earnedPack ? 'Earned this week' : `${wins} of 5 wins`}, pity {collector?.pity ?? 0} of {LEGENDARY_PITY}
+            </span>
+          </div>
+          {!(earned || earnedPack) && (
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+              <div className="grow-x h-full rounded-full bg-felt" style={{ width: `${(wins / 5) * 100}%` }} />
+            </div>
+          )}
+          <p className="text-xs font-semibold text-white/55">
+            {earned ? `${earned.reason}. One extra pack a week.` : 'Five wins this week, a new achievement tier, or the match of the day three days running.'}
+          </p>
         </div>
       </section>
 
@@ -248,15 +280,91 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
         </section>
       ))}
 
-      {isMine && (
-        <section className="grid gap-3 rounded-3xl bg-card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg">Pack shop</h2>
-            <span className="flex items-center gap-1.5 rounded-full bg-surface-alt px-3 py-1.5 text-sm font-black tabular-nums">
-              <Coin size={18} />
-              {coins}
-            </span>
+      <section className="grid gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="min-w-0 truncate text-xl">{isMine ? 'Your album' : `${viewedPlayer?.name.split(' ')[0] ?? 'Their'} album`}</h2>
+          {!isMine && (
+            <button type="button" onClick={() => setViewId(me)} className={`${chip(false)}`}>
+              Back to mine
+            </button>
+          )}
+        </div>
+        {/* One Filter button; whatever is narrowed shows as a chip that clears it. */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => setPanel('filters')} className={`${chip(false)} flex items-center gap-1.5`}>
+            <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Filter
+          </button>
+          {seasonId !== currentSeasonId && (
+            <button type="button" onClick={() => setSeasonId(currentSeasonId)} className={`${chip(true)} flex items-center gap-1`}>
+              {seasons.find((entry) => entry.id === seasonId)?.name ?? 'Season'}
+              <X className="h-3 w-3" strokeWidth={3} />
+            </button>
+          )}
+          {rarity !== 'all' && (
+            <button type="button" onClick={() => setRarity('all')} className={`${chip(true)} flex items-center gap-1`}>
+              {rarity}
+              <X className="h-3 w-3" strokeWidth={3} />
+            </button>
+          )}
+          {type !== 'all' && (
+            <button type="button" onClick={() => setType('all')} className={`${chip(true)} flex items-center gap-1`}>
+              {type === 'player' ? 'Players' : TYPE_LABEL[type]}
+              <X className="h-3 w-3" strokeWidth={3} />
+            </button>
+          )}
+        </div>
+
+        {(type === 'all' || type === 'player') &&
+          players.map((player) => {
+            const slots = RARITIES.filter((value) => rarity === 'all' || rarity === value);
+            const have = RARITIES.filter((value) => groups.has(designKey({ type: 'player', playerId: player.id, rarity: value }))).length;
+            return (
+              <div key={player.id} className="grid gap-2">
+                <div className="flex items-center gap-2">
+                  <PlayerAvatar player={player} size={24} />
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/70">{player.name}</span>
+                  <span className="text-[12px] font-extrabold tabular-nums text-white/55">
+                    {have} of {RARITIES.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {slots.map((value) => {
+                    const list = groups.get(designKey({ type: 'player', playerId: player.id, rarity: value }));
+                    return list ? mini(list[0], list.length) : <span key={value} className="pc-empty block w-full" aria-label={`${value} missing`} />;
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+        {type !== 'player' && (
+          <div className="grid gap-2">
+            <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/70">Specials</span>
+            {specials.length ? (
+              <div className="grid grid-cols-6 gap-1.5">{specials.map((list) => mini(list[0], list.length))}</div>
+            ) : (
+              <p className="rounded-xl bg-surface p-3 text-sm font-semibold text-white/55">None yet. They come from the crown, the cup, awards and big moments.</p>
+            )}
           </div>
+        )}
+      </section>
+
+      {panel === 'shop' && (
+        <Sheet
+          title={
+            <span className="flex items-center gap-2">
+              Shop
+              <span className="flex items-center gap-1.5 rounded-full bg-surface-alt px-3 py-1 text-sm font-black tabular-nums">
+                <Coin size={16} />
+                {coins}
+              </span>
+            </span>
+          }
+          label="Pack shop"
+          onClose={() => setPanel(null)}
+        >
+          <div className="grid gap-3 pb-2">
           <p className="text-sm font-semibold text-white/70">Spend the coins you win calling matches. Bought packs keep until you open them.</p>
           {offers.map((offer) => {
             const price = SHOP_PRICE[offer.tier];
@@ -288,36 +396,13 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             );
           })}
           {buyError && <p role="alert" className="rounded-xl bg-live p-2.5 text-sm font-semibold text-white">{buyError}</p>}
-        </section>
+          </div>
+        </Sheet>
       )}
 
-      <section className="grid gap-2.5 rounded-3xl bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg">Earned pack</h2>
-          <span className="text-sm font-extrabold tabular-nums">{earned || earnedPack ? 'Earned' : `${wins} of 5 wins`}</span>
-        </div>
-        {!(earned || earnedPack) && (
-          <div className="h-2 overflow-hidden rounded-full bg-surface-alt">
-            <div className="grow-x h-full rounded-full bg-felt" style={{ width: `${(wins / 5) * 100}%` }} />
-          </div>
-        )}
-        <p className="text-sm font-semibold text-white/70">
-          {earned ? `${earned.reason}. One extra pack a week.` : 'Five wins this week, a new achievement tier, or the match of the day three days running.'}
-        </p>
-        <p className="text-xs font-bold tabular-nums text-white/55">
-          Pity: {collector?.pity ?? 0} of {LEGENDARY_PITY}
-        </p>
-      </section>
-
-      <section className="grid gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 truncate text-xl">{isMine ? 'Your album' : `${viewedPlayer?.name.split(' ')[0] ?? 'Their'} album`}</h2>
-          {!isMine && (
-            <button type="button" onClick={() => setViewId(me)} className={`${chip(false)}`}>
-              Back to mine
-            </button>
-          )}
-        </div>
+      {panel === 'filters' && (
+        <Sheet title="Filter the album" onClose={() => setPanel(null)}>
+          <div className="grid gap-3 pb-2">
         <div className="grid grid-cols-2 gap-2">
           {[
             {
@@ -363,49 +448,24 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
           ))}
         </div>
 
-        {(type === 'all' || type === 'player') &&
-          players.map((player) => {
-            const slots = RARITIES.filter((value) => rarity === 'all' || rarity === value);
-            const have = RARITIES.filter((value) => groups.has(designKey({ type: 'player', playerId: player.id, rarity: value }))).length;
-            return (
-              <div key={player.id} className="grid gap-2">
-                <div className="flex items-center gap-2">
-                  <PlayerAvatar player={player} size={24} />
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/70">{player.name}</span>
-                  <span className="text-[12px] font-extrabold tabular-nums text-white/55">
-                    {have} of {RARITIES.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {slots.map((value) => {
-                    const list = groups.get(designKey({ type: 'player', playerId: player.id, rarity: value }));
-                    return list ? mini(list[0], list.length) : <span key={value} className="pc-empty block w-full" aria-label={`${value} missing`} />;
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-        {type !== 'player' && (
-          <div className="grid gap-2">
-            <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/70">Specials</span>
-            {specials.length ? (
-              <div className="grid grid-cols-6 gap-1.5">{specials.map((list) => mini(list[0], list.length))}</div>
-            ) : (
-              <p className="rounded-xl bg-surface p-3 text-sm font-semibold text-white/55">None yet. They come from the crown, the cup, awards and big moments.</p>
-            )}
-          </div>
-        )}
-      </section>
-
-      {isMine && (
-        <section className="grid gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl">Trades</h2>
-            <button type="button" onClick={() => setBuilder({})} className={`${button} bg-white text-bg`}>
-              New offer
+            <button type="button" onClick={() => setPanel(null)} className={`${button} bg-white text-bg`}>
+              Show cards
             </button>
           </div>
+        </Sheet>
+      )}
+
+      {panel === 'trades' && (
+        <Sheet
+          title="Trades"
+          onClose={() => setPanel(null)}
+          footer={
+            <button type="button" onClick={() => { setPanel(null); setBuilder({}); }} className={`${button} w-full bg-white text-bg`}>
+              New offer
+            </button>
+          }
+        >
+          <div className="grid gap-3 pb-2">
           {incoming.length + outgoing.length + history.length === 0 && (
             <p className="rounded-xl bg-surface p-3 text-sm font-semibold text-white/55">No trades yet. Open anyone's album to ask for a card.</p>
           )}
@@ -432,7 +492,8 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
           )}
           {history.length > 0 && <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-white/55">Recent</span>}
           {history.map((trade) => tradeRow(trade, null))}
-        </section>
+          </div>
+        </Sheet>
       )}
 
       {openCard && (

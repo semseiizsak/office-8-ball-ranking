@@ -8,7 +8,7 @@ import { buildSeasonFinale } from '../utils/finale';
 import { CrownBanner } from './CrownBanner';
 import { TitleBadges } from './TitleBadges';
 import { PlayerAvatar } from './ui';
-import { SHAME_STREAK, isShamed, shamed } from '../utils/shame';
+import { shamed } from '../utils/shame';
 
 interface LeaderboardViewProps {
   players: Player[];
@@ -27,8 +27,8 @@ interface LeaderboardViewProps {
   hideTitles?: boolean;
   /** On the kiosk's much wider rows, a handful of tiny dots reads sparse — cap it down from the phone's 5. */
   formDotsLimit?: number;
-  /** The office chat, sitting where the titles section used to. */
-  chat?: React.ReactNode;
+  /** The coin ladder, shown in place of the Elo ladder when the toggle says Coins. */
+  coinsLadder?: React.ReactNode;
   /**
    * The roster as it stood right before a just-logged match. When given, rows
    * that moved slide from their old rank to their new one instead of just
@@ -74,10 +74,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   hideCrown = false,
   hideTitles = false,
   formDotsLimit = 5,
-  chat,
+  coinsLadder,
   previousPlayers,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [board, setBoard] = useState<'elo' | 'coins'>('elo');
 
   // Same sort + dormancy filter used for both the current ranks and (when
   // given) the pre-match ranks, so the two are always comparable apples-to-apples.
@@ -197,7 +198,24 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
 
       <section className="mt-2 grid gap-2">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-base">Ladder</h3>
+          {coinsLadder ? (
+            <div role="tablist" aria-label="Ladder" className="grid grid-cols-2 rounded-full bg-surface p-[3px]">
+              {(['elo', 'coins'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={board === value}
+                  onClick={() => setBoard(value)}
+                  className={`press h-8 rounded-full px-4 text-xs font-extrabold uppercase tracking-[0.08em] transition-colors ${board === value ? 'bg-white text-bg' : 'text-white'}`}
+                >
+                  {value === 'elo' ? 'Elo' : 'Coins'}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <h3 className="text-base">Ladder</h3>
+          )}
           <span className="flex items-center gap-2 text-xs font-semibold text-white/55">
             {season.name}
             {season.endsAt &&
@@ -209,7 +227,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           </span>
         </div>
 
-        {players.length > 8 && (
+        {board === 'coins' && coinsLadder}
+        {board === 'elo' && players.length > 8 && (
           <label className="relative block">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
             <input
@@ -228,11 +247,13 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           </label>
         )}
 
-        <div className="stagger-rows grid gap-0.5">
-          {visibleActive.map((player, index) => renderRow(player, active.indexOf(player) + 1, false, index))}
-        </div>
+        {board === 'elo' && (
+          <div className="stagger-rows grid gap-0.5">
+            {visibleActive.map((player, index) => renderRow(player, active.indexOf(player) + 1, false, index))}
+          </div>
+        )}
 
-        {visibleActive.length === 0 && visibleDormant.length === 0 && (
+        {board === 'elo' && visibleActive.length === 0 && visibleDormant.length === 0 && (
           <div className="grid justify-items-center gap-2.5 rounded-2xl bg-card px-4 py-7 text-center">
             <h3 className="text-lg">{searchQuery ? 'Nobody by that name' : 'Empty ladder'}</h3>
             <p className="text-sm text-white/70">{searchQuery ? `No one matches "${searchQuery}".` : `${matches.length === 0 ? 'Play a match to get on it.' : ''}`}</p>
@@ -240,39 +261,8 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
         )}
       </section>
 
-      {sortedPlayers.some(isShamed) && (
-        <section className="mt-2 grid gap-2">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-base">Wall of shame</h3>
-            <span className="text-xs font-semibold text-white/55">One win takes it off</span>
-          </div>
-          <div className="grid gap-0.5">
-            {sortedPlayers.filter(isShamed).map((player) => (
-              <button
-                key={player.id}
-                type="button"
-                onClick={() => onSelectPlayer(player)}
-                className="press card-drop grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl bg-card px-3 py-2.5 text-left hover:bg-[#161616]"
-              >
-                <span className="relative">
-                  <PlayerAvatar player={player} size={34} />
-                  <span aria-hidden="true" className="duck-waddle absolute -right-2 -top-2 text-lg leading-none">🤡</span>
-                </span>
-                <span className="grid min-w-0 gap-0.5">
-                  <span className="truncate text-sm font-bold">{player.name}</span>
-                  <span className="text-xs font-semibold text-white/55">{-player.currentStreak} losses in a row</span>
-                </span>
-                <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] tabular-nums">L{-player.currentStreak}</span>
-              </button>
-            ))}
-          </div>
-          <p className="px-1 text-xs font-semibold text-white/55">{SHAME_STREAK} losses in a row puts you here. The clown follows your name everywhere until you win.</p>
-        </section>
-      )}
 
-      {chat}
-
-      {visibleDormant.length > 0 && (
+      {board === 'elo' && visibleDormant.length > 0 && (
         <section className="mt-2 grid gap-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-base">Dormant</h3>

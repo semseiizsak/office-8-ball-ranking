@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Flag } from 'lucide-react';
+import { Flag, Settings } from 'lucide-react';
 import { WeekAwards } from '../utils/awards';
 import { MatchDetailProps, MatchDetailSheet } from './MatchDetailSheet';
 import { MatchComment, MatchRecord, Player, Season } from '../types';
 import { describeTimeLeft, isFinalDay, matchesInSeason, softResetElo } from '../utils/league';
 import { withoutTemporarilyHiddenMatches } from '../utils/tempHideMatches';
-import { Ball, PlayerAvatar } from './ui';
+import { Ball, PlayerAvatar, Sheet } from './ui';
 import { shamed } from '../utils/shame';
 
 interface EventsViewProps {
@@ -62,6 +62,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [confirmingEnd, setConfirmingEnd] = useState(false);
+  /** One section at a time, and the season settings behind the gear. */
+  const [view, setView] = useState<'matches' | 'alltime' | 'awards' | 'fame'>('matches');
+  const [showSettings, setShowSettings] = useState(false);
   const [deadlineDraft, setDeadlineDraft] = useState('');
   const [isScheduling, setIsScheduling] = useState(false);
 
@@ -206,14 +209,43 @@ export const EventsView: React.FC<EventsViewProps> = ({
     <div className="stagger grid gap-3 pb-28 pt-1">
       <div className="flex items-center justify-between px-1">
         <span className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em]">{season.name}</span>
-        <span className="text-xs font-semibold text-white/55">
-          {season.startedAt === 0 ? 'Since the beginning' : `Started ${formatDate(season.startedAt)}`}. {currentMatches.length} {currentMatches.length === 1 ? 'match' : 'matches'}
+        <span className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-white/55">
+            {season.startedAt === 0 ? 'Since the beginning' : `Started ${formatDate(season.startedAt)}`}. {currentMatches.length} {currentMatches.length === 1 ? 'match' : 'matches'}
+          </span>
+          <button type="button" onClick={() => setShowSettings(true)} aria-label="Season settings" className="press grid h-10 w-10 flex-none place-items-center rounded-full bg-surface-alt">
+            <Settings className="h-[18px] w-[18px]" strokeWidth={2.25} />
+          </button>
         </span>
       </div>
 
+      {(allTimeRows.length > 0 || awards.length > 0 || pastSeasons.length > 0) && (
+        <div role="tablist" aria-label="History" className="no-scrollbar flex gap-1 overflow-x-auto rounded-full bg-surface p-[3px]">
+          {([
+            ['matches', 'Matches', true],
+            ['alltime', 'All time', allTimeRows.length > 0],
+            ['awards', 'Awards', awards.length > 0],
+            ['fame', 'Hall of fame', pastSeasons.length > 0],
+          ] as const)
+            .filter(([, , shown]) => shown)
+            .map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={view === value}
+                onClick={() => setView(value)}
+                className={`press h-9 flex-1 whitespace-nowrap rounded-full px-3 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors ${view === value ? 'bg-white text-bg' : 'text-white'}`}
+              >
+                {label}
+              </button>
+            ))}
+        </div>
+      )}
+
       {error && <p role="alert" className="rounded-xl bg-surface-alt p-3 text-sm font-semibold">{error}</p>}
 
-      <section className="grid gap-2">
+      {view === 'matches' && <section className="grid gap-2">
         {currentMatches.length === 0 ? (
           <div className="grid justify-items-center gap-2.5 rounded-2xl bg-card px-4 py-7 text-center">
             <Ball n={7} size={64} className="mb-1" />
@@ -229,9 +261,9 @@ export const EventsView: React.FC<EventsViewProps> = ({
             {currentMatches.slice(0, RECENT).map((match, index) => renderMatch(match, index))}
           </>
         )}
-      </section>
+      </section>}
 
-      {allTimeRows.length > 0 && (
+      {view === 'alltime' && allTimeRows.length > 0 && (
         <section className="mt-2 grid gap-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-base">All time</h3>
@@ -282,7 +314,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
         </section>
       )}
 
-      {awards.length > 0 && (
+      {view === 'awards' && awards.length > 0 && (
         <section className="mt-2 grid gap-2">
           <h3 className="px-1 text-base">Weekly awards</h3>
           {awards.slice(0, 8).map((week) => (
@@ -309,7 +341,7 @@ export const EventsView: React.FC<EventsViewProps> = ({
         </section>
       )}
 
-      {pastSeasons.length > 0 && (
+      {view === 'fame' && pastSeasons.length > 0 && (
         <section className="mt-2 grid gap-2">
           <h3 className="px-1 text-base">Hall of fame</h3>
           {pastSeasons.map((entry) => (
@@ -352,8 +384,11 @@ export const EventsView: React.FC<EventsViewProps> = ({
       )}
 
 
+      {showSettings && (
+        <Sheet title={`${season.name} settings`} onClose={() => setShowSettings(false)}>
+          <div className="grid gap-3 pb-2">
       {/* A deadline turns the season into a story with an ending everybody can see coming. */}
-      <section className="mt-2 grid gap-3 rounded-2xl bg-card p-3.5">
+      <section className="grid gap-3 rounded-2xl bg-card p-3.5">
         <h3 className="text-base">Season end</h3>
         <p className="text-sm text-white/70">
           {season.endsAt
@@ -413,6 +448,10 @@ export const EventsView: React.FC<EventsViewProps> = ({
           Close {season.name} now
         </button>
       )}
+          </div>
+        </Sheet>
+      )}
+
       {detailMatch && (
         <MatchDetailSheet
           match={detailMatch}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { HelpCircle, History } from 'lucide-react';
 import { MatchRecord, Player } from '../types';
 import { CUP_MIN_PLAYERS, CupRecord, CupState, Tournament, allGames, resolveCup, weekTournament } from '../utils/tournament';
 import { addSeen, cupIn, cupNames, cupPhase, dayMonth, hm, myRoad, readSeen, usePrefersReducedMotion, weekday } from '../utils/cupView';
@@ -38,6 +39,8 @@ export const CupView: React.FC<{
   const motion = !usePrefersReducedMotion();
   const [replayKey, setReplayKey] = useState(0);
   const [openWeek, setOpenWeek] = useState<string | null>(null);
+  const [panel, setPanel] = useState<'rules' | 'history' | null>(null);
+  const [historyTab, setHistoryTab] = useState<'cabinet' | 'past'>('cabinet');
   const phase = cupPhase(current, currentState, now);
   const week = current?.week ?? '';
   // What this viewer had already watched when the tab opened (or the intro was replayed).
@@ -104,7 +107,26 @@ export const CupView: React.FC<{
   return (
     <div className="-mx-3 grid gap-4 overflow-x-clip px-4 pb-28">
       <React.Fragment key={replayKey}>
-        <CupStage title={title} subline={subline} tone={tone} strong={phase === 'champion'} drawing={phase === 'drawing'} onReplay={() => setReplayKey((key) => key + 1)}>
+        <CupStage
+          title={title}
+          subline={subline}
+          tone={tone}
+          strong={phase === 'champion'}
+          drawing={phase === 'drawing'}
+          onReplay={() => setReplayKey((key) => key + 1)}
+          corner={
+            <>
+              {(cabinet.length > 0 || past.length > 0) && (
+                <button type="button" onClick={() => setPanel('history')} aria-label="Cup history" className="press grid h-10 w-10 place-items-center rounded-full bg-surface-alt">
+                  <History className="h-[18px] w-[18px]" strokeWidth={2.25} />
+                </button>
+              )}
+              <button type="button" onClick={() => setPanel('rules')} aria-label="How the cup works" className="press grid h-10 w-10 place-items-center rounded-full bg-surface-alt">
+                <HelpCircle className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              </button>
+            </>
+          }
+        >
           {countdown && <CupCountdown to={countdown.to} caption={countdown.caption} delay={460} />}
           {stake && <CupStakeBanner delay={560} />}
         </CupStage>
@@ -193,12 +215,43 @@ export const CupView: React.FC<{
         )}
       </React.Fragment>
 
-      <CupHowItWorks now={now} delay={1000} />
-      {cabinet.length > 0 && <CupCabinet cabinet={cabinet} byId={byId} delay={1080} onSelectPlayer={onSelectPlayer} />}
-      {past.length > 0 && <CupPastCups past={past} byId={byId} delay={1160} onOpen={setOpenWeek} />}
+      {panel === 'rules' && (
+        <Sheet title="How it works" onClose={() => setPanel(null)}>
+          <div className="pb-2">
+            <CupHowItWorks now={now} delay={0} />
+          </div>
+        </Sheet>
+      )}
+
+      {panel === 'history' && (
+        <Sheet title="Cup history" onClose={() => setPanel(null)}>
+          <div className="grid gap-3 pb-2">
+            {cabinet.length > 0 && past.length > 0 && (
+              <div role="tablist" aria-label="Cup history" className="grid grid-cols-2 rounded-full bg-surface p-[3px]">
+                {(['cabinet', 'past'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={historyTab === value}
+                    onClick={() => setHistoryTab(value)}
+                    className={`press h-9 rounded-full text-xs font-extrabold uppercase tracking-[0.08em] transition-colors ${historyTab === value ? 'bg-white text-bg' : 'text-white'}`}
+                  >
+                    {value === 'cabinet' ? 'Trophy cabinet' : 'Past cups'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {cabinet.length > 0 && (historyTab === 'cabinet' || past.length === 0) && (
+              <CupCabinet cabinet={cabinet} byId={byId} delay={0} onSelectPlayer={(player) => { setPanel(null); onSelectPlayer(player); }} />
+            )}
+            {past.length > 0 && (historyTab === 'past' || cabinet.length === 0) && <CupPastCups past={past} byId={byId} delay={0} onOpen={setOpenWeek} />}
+          </div>
+        </Sheet>
+      )}
 
       {openCup && (
-        <Sheet title={`Week of ${dayMonth(openCup.cup.opensAt)}`} onClose={() => setOpenWeek(null)}>
+        <Sheet z={60} title={`Week of ${dayMonth(openCup.cup.opensAt)}`} onClose={() => setOpenWeek(null)}>
           <CupBracket
             state={openCup.state}
             byId={byId}

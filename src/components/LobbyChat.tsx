@@ -44,7 +44,9 @@ export const LobbyChat: React.FC<{
   players: Player[];
   currentPlayer: Player;
   onSend: (text: string) => Promise<void>;
-}> = ({ subscribe, players, currentPlayer, onSend }) => {
+  /** Shown in its own sheet: the sheet carries the title, the thread gets the height. */
+  inSheet?: boolean;
+}> = ({ subscribe, players, currentPlayer, onSend, inSheet }) => {
   const messages = useLobby(subscribe);
   const byId = new Map(players.map((player) => [player.id, player]));
   const [draft, setDraft] = useState('');
@@ -74,8 +76,8 @@ export const LobbyChat: React.FC<{
   };
 
   return (
-    <section className="mt-2 grid gap-2">
-      <div className="flex items-center justify-between px-1">
+    <section className={inSheet ? 'grid gap-2 pb-2' : 'mt-2 grid gap-2'}>
+      <div className={`items-center justify-between px-1 ${inSheet ? 'hidden' : 'flex'}`}>
         <h3 className="text-base">Office chat</h3>
         <span className="flex items-center gap-1.5 text-xs font-semibold text-white/55">
           <span className="live-dot h-[7px] w-[7px]" />
@@ -91,7 +93,7 @@ export const LobbyChat: React.FC<{
           }}
           aria-live="polite"
           data-no-pull
-          className="no-scrollbar grid h-[300px] content-start gap-3 overflow-y-auto overscroll-contain rounded-xl bg-elev p-3"
+          className={`no-scrollbar grid ${inSheet ? 'h-[58vh]' : 'h-[300px]'} content-start gap-3 overflow-y-auto overscroll-contain rounded-xl bg-elev p-3`}
         >
           {messages.length === 0 ? (
             <p className="self-center pt-24 text-center text-xs text-white/55">Quiet in here. Say something.</p>

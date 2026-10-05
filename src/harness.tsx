@@ -341,7 +341,7 @@ const collectionTrades: Trade[] = [
 ];
 
 const Harness: React.FC = () => {
-  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'collection' | 'events' | 'log'>(() => (new URLSearchParams(location.search).get('tab') === 'collection' ? 'collection' : new URLSearchParams(location.search).get('tab') === 'arena' ? 'arena' : 'leaderboard'));
+  const [tab, setTab] = useState<'leaderboard' | 'arena' | 'cup' | 'collection' | 'events' | 'log'>(() => { const tab = new URLSearchParams(location.search).get('tab'); return tab === 'collection' || tab === 'arena' || tab === 'cup' || tab === 'events' ? tab : 'leaderboard'; });
   const [cardList, setCardList] = useState<Card[]>(collectionCards);
   const [packList, setPackList] = useState<Pack[]>([collectionPack]);
   const [tradeList, setTradeList] = useState<Trade[]>(collectionTrades);

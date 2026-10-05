@@ -13,6 +13,8 @@ interface HeaderProps {
   /** Unread messages plus callouts still waiting on an answer. */
   activityBadge?: number;
   onOpenActivity: () => void;
+  /** A button that belongs to the current tab only, e.g. the office chat on Ranks. */
+  tabAction?: React.ReactNode;
 }
 
 const TITLES: Record<TabType, string> = {
@@ -34,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onQuickMatch,
   activityBadge = 0,
   onOpenActivity,
+  tabAction,
 }) => {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -53,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
         </h1>
 
         <div className="flex flex-none items-center gap-1.5">
+          {tabAction}
           <button type="button" onClick={handleRefresh} disabled={isRefreshing} aria-label="Refresh" title="Refresh" className={iconButton}>
             <RotateCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} strokeWidth={2.25} />
           </button>

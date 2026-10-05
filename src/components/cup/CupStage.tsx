@@ -142,8 +142,10 @@ export const CupStage: React.FC<{
   /** The draw is running: the crest's sheen passes every 1.6 s. */
   drawing?: boolean;
   onReplay: () => void;
+  /** Small buttons pinned to the top corner: the rules, the cup history. */
+  corner?: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ title, subline, tone, strong, drawing, onReplay, children }) => {
+}> = ({ title, subline, tone, strong, drawing, onReplay, corner, children }) => {
   const silver = tone === 'silver';
   const spot = silver ? 'rgba(201,204,209,.12)' : `rgba(242,183,5,${strong ? 0.36 : 0.26})`;
   return (
@@ -158,6 +160,7 @@ export const CupStage: React.FC<{
         <div className="cup-beam absolute right-[8%] top-[-80px] h-[520px] w-[90px] origin-top rotate-[24deg]" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 70%)', animationDelay: '-3.5s' }} />
       </div>
 
+      {corner && <div className="absolute right-4 top-4 z-10 flex gap-1.5">{corner}</div>}
       <div className="grid justify-items-center text-center">
         <button type="button" aria-label="Replay the cup intro" onClick={onReplay} className="cup-in press rounded-2xl" style={cupIn('cup-crest-in', 80, 560)}>
           <CupCrest tone={tone} fastShine={drawing} />

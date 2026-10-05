@@ -36,6 +36,8 @@ interface ArenaViewProps {
   /** Today's match of the day for the current player, if the draw has run. */
   daily?: { bye: boolean; opponent: Player | null; played: boolean; won: boolean; streak: number } | null;
   onPlayDaily?: (opponentId: string) => void;
+  /** Opens the full match history from the Settled list. */
+  onShowHistory?: () => void;
 }
 
 export interface VoterInfo {
@@ -571,6 +573,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   onOpenLiveMatch,
   daily,
   onPlayDaily,
+  onShowHistory,
 }) => {
   const now = Date.now();
   /**
@@ -592,14 +595,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   const sent = challenges
     .filter((challenge) => challenge.status === 'pending' && challenge.opponentId !== currentPlayer.id)
     .sort((left, right) => right.createdAt - left.createdAt);
-  const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 5);
-
-  // The second ladder: who has won the most chips calling matches.
-  const richest = players
-    .map((player) => ({ player, record: chips.records.get(player.id) }))
-    .filter((entry): entry is { player: Player; record: NonNullable<typeof entry.record> } => !!entry.record && entry.record.bets + entry.record.jackpots > 0)
-    .sort((left, right) => right.record.chips - left.record.chips || right.record.wins - left.record.wins)
-    .slice(0, 8);
+  const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 3);
 
   const chipsLeft = leftToday(challenges, currentPlayer.id, now);
 
@@ -796,17 +792,20 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3">
-        <span className="grid min-w-0 gap-0.5">
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Jackpot</span>
-          <span className="text-xs font-semibold text-white/70">Call the winner and their balls to take it.</span>
+      {/* The jackpot and what is left of today's coins, on one strip. */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5">
+        <span className="flex min-w-0 items-center gap-2.5" title="Call the winner and their balls to take it.">
+          <Coin size={24} />
+          <span className="grid min-w-0">
+            <span className="font-display text-[22px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
+            <span className="text-[11px] font-semibold text-white/55">Jackpot, call the winner and their balls</span>
+          </span>
         </span>
-        <span className="flex flex-none items-center gap-2">
-          <Coin size={28} />
-          <span className="font-display text-[28px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
+        <span className="flex-none text-right">
+          <span className="block text-[15px] font-black leading-none tabular-nums">{chipsLeft}</span>
+          <span className="text-[11px] font-semibold text-white/55">of {DAILY_CHIPS} left today</span>
         </span>
       </div>
-      <span className="-mt-1 px-1 text-xs font-semibold text-white/55">You have {chipsLeft} of {DAILY_CHIPS} coins left to play today.</span>
 
       {forMe.length > 0 && (
         <section className="mt-2 grid gap-2">
@@ -906,23 +905,62 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         )}
       </section>
 
-      {accepted.length > 0 && (
+      {accepted.length + sent.length > 0 && (
         <section className="mt-2 grid gap-2">
-          {sectionHead('Agreed')}
+          {sectionHead('Upcoming', `${accepted.length} agreed, ${sent.length} waiting`)}
           {accepted.map(renderCard)}
-        </section>
-      )}
-
-      {sent.length > 0 && (
-        <section className="mt-2 grid gap-2">
-          {sectionHead('Waiting on an answer')}
           {sent.map(renderCard)}
         </section>
       )}
 
+      {settled.length > 0 && (
+        <section className="mt-2 grid gap-2">
+          {sectionHead('Settled', onShowHistory && (
+            <button type="button" onClick={onShowHistory} className="press font-extrabold text-white">
+              Show all
+            </button>
+          ))}
+          <div className="grid gap-0.5">
+            {settled.map((challenge) => {
+              const winnerIsChallenger = challenge.resolvedWinnerId === challenge.challengerId;
+              const right = challenge.predictions.filter((prediction) => prediction.predictedWinnerId === challenge.resolvedWinnerId).length;
+              return (
+                <div key={challenge.id} className="grid gap-0.5 rounded-xl bg-card px-3.5 py-3">
+                  <span className="text-sm font-bold">
+                    {first(winnerIsChallenger ? challenge.challengerName : challenge.opponentName)}{' '}
+                    <span className="font-normal text-white/55">beat</span>{' '}
+                    {first(winnerIsChallenger ? challenge.opponentName : challenge.challengerName)}
+                  </span>
+                  <span className="text-xs font-semibold text-white/55">
+                    {challenge.predictions.length === 0 ? 'Nobody called it.' : `${right} of ${challenge.predictions.length} called it right.`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
+
+/** The coin ladder: who has won the most calling matches. Lives on the Ranks tab. */
+export const RichestList: React.FC<{
+  players: Player[];
+  chips: ChipsState;
+  currentPlayer: Player;
+  onSelectPlayer?: (player: Player) => void;
+}> = ({ players, chips, currentPlayer, onSelectPlayer }) => {
+  // Everyone who has bet, richest first.
+  const richest = players
+    .map((player) => ({ player, record: chips.records.get(player.id) }))
+    .filter((entry): entry is { player: Player; record: NonNullable<typeof entry.record> } => !!entry.record && entry.record.bets + entry.record.jackpots > 0)
+    .sort((left, right) => right.record.chips - left.record.chips || right.record.wins - left.record.wins)
+    ;
+
+  return (
       <section className="mt-2 grid gap-2">
-        {sectionHead('Richest', 'Coins won calling')}
-        {richest.length === 0 ? (
+                {richest.length === 0 ? (
           <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">
             Nobody has won a coin yet. Everyone gets {DAILY_CHIPS} a day to put on matches. Back the underdog when nobody else does and the
             whole pot is yours. {NERVE_MIN_CALLS} bets earns you a shot at 🔮 The Oracle.
@@ -953,30 +991,5 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           </div>
         )}
       </section>
-
-      {settled.length > 0 && (
-        <section className="mt-2 grid gap-2">
-          {sectionHead('Settled')}
-          <div className="grid gap-0.5">
-            {settled.map((challenge) => {
-              const winnerIsChallenger = challenge.resolvedWinnerId === challenge.challengerId;
-              const right = challenge.predictions.filter((prediction) => prediction.predictedWinnerId === challenge.resolvedWinnerId).length;
-              return (
-                <div key={challenge.id} className="grid gap-0.5 rounded-xl bg-card px-3.5 py-3">
-                  <span className="text-sm font-bold">
-                    {first(winnerIsChallenger ? challenge.challengerName : challenge.opponentName)}{' '}
-                    <span className="font-normal text-white/55">beat</span>{' '}
-                    {first(winnerIsChallenger ? challenge.opponentName : challenge.challengerName)}
-                  </span>
-                  <span className="text-xs font-semibold text-white/55">
-                    {challenge.predictions.length === 0 ? 'Nobody called it.' : `${right} of ${challenge.predictions.length} called it right.`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-    </div>
   );
 };
