@@ -24,9 +24,11 @@ export const SeasonRaceChart: React.FC<{
   labels?: boolean;
   width?: number;
   height?: number;
+  /** Room on the right for the end labels, in chart units. */
+  labelWidth?: number;
   /** Slow the line drawing down for a big screen. */
   drawMs?: number;
-}> = ({ games, startingElo, players, leaderId, highlightId, onlyIds, labels = true, width = 340, height = 300, drawMs = 2200 }) => {
+}> = ({ games, startingElo, players, leaderId, highlightId, onlyIds, labels = true, width = 340, height = 300, labelWidth = 58, drawMs = 2200 }) => {
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const race = useMemo(() => {
     const ids = [...new Set(games.flatMap((m) => [m.playerAId, m.playerBId]))];
@@ -44,7 +46,7 @@ export const SeasonRaceChart: React.FC<{
 
   if (race.ids.length === 0) return null;
 
-  const W = width, H = height, L = 4, R = labels ? 58 : 4, T = 10, B = 10;
+  const W = width, H = height, L = 4, R = labels ? labelWidth : 4, T = 10, B = 10;
   const all = race.ids.flatMap((id) => race.series.get(id)!);
   const lo = Math.min(...all) - 10;
   const hi = Math.max(...all) + 10;

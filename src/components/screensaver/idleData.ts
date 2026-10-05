@@ -3,7 +3,7 @@ import { CupState, Tournament, resolveCup, weekTournament } from '../../utils/to
 
 export const firstName = (name: string) => name.split(' ')[0];
 
-export const clockOf = (at: number) => new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+export const clockOf = (at: number) => new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 /** This week's cup as the wall sees it, plus the last one that crowned someone. */
 export function idleCups(tournaments: Tournament[], matches: MatchRecord[], now: number) {

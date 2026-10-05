@@ -463,7 +463,7 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
 .idle-progress { animation: idle-progress 60s linear both; }
 
 /* Kiosk cup sign-up: balls drifting round the edges, the trophy rocking, a fresh entrant lifting into place. */
-@keyframes cup-drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(14px, -22px); } }
+@keyframes cup-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .cup-drift { animation: cup-drift 6s var(--ease) infinite; }
 @keyframes cup-swing { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
 .cup-swing { animation: cup-swing 3.2s var(--ease) infinite; }

@@ -436,7 +436,7 @@ export default function KioskApp() {
                 Office 8-Ball
               </h1>
               <p className="mt-1 truncate text-xs font-semibold text-white/55">
-                {new Date(clock).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                {new Date(clock).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}
                 {' · '}
                 {new Date(clock).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
               </p>
@@ -485,7 +485,7 @@ export default function KioskApp() {
             >
               <Trophy className="h-5 w-5" strokeWidth={2.25} />
               Cup sign-up
-              <span className="font-semibold">{cup?.entrants.length ?? 0} in, closes {new Date(cupWindow.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="font-semibold">{cup?.entrants.length ?? 0} in, closes {new Date(cupWindow.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}</span>
             </button>
           )}
 

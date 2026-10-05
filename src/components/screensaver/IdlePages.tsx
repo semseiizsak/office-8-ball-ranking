@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MatchRecord, Player, Season } from '../../types';
 import { Tournament } from '../../utils/tournament';
 import { cupNames } from '../../utils/cupView';
@@ -8,6 +8,37 @@ import { SeasonRaceChart } from '../SeasonRaceChart';
 import { clockOf, firstName, idleCups, ladderOf, weekSwings } from './idleData';
 
 const NO_SEEN = new Set<string>();
+
+/**
+ * Lays its content out at a phone-like width, then scales it up to fill the
+ * space it has. The bracket is drawn for a phone and measures itself with
+ * offsets, which a transform leaves alone, so its lines still line up.
+ */
+const ScaleToFit: React.FC<{ width: number; children: React.ReactNode }> = ({ width, children }) => {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState({ scale: 1, height: 0 });
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (!outer.current || !inner.current) return;
+      const h = inner.current.offsetHeight;
+      const scale = Math.min(outer.current.clientWidth / width, h ? outer.current.clientHeight / h : 1);
+      setFit({ scale, height: h });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (outer.current) observer.observe(outer.current);
+    if (inner.current) observer.observe(inner.current);
+    return () => observer.disconnect();
+  }, [width]);
+  return (
+    <div ref={outer} className="relative min-h-0 flex-1 overflow-hidden">
+      <div ref={inner} className="absolute left-1/2 top-0 origin-top" style={{ width, transform: `translateX(-50%) scale(${fit.scale})` }}>
+        {children}
+      </div>
+    </div>
+  );
+};
 const noop = () => undefined;
 
 /** The shared frame of a full-screen idle page: a big title, a subline, and the page. */
@@ -22,7 +53,7 @@ const Page: React.FC<{ kicker: string; title: string; subline?: string; children
 
 const FormDots: React.FC<{ form: ('W' | 'L')[] }> = ({ form }) => (
   <span className="flex gap-1.5">
-    {form.slice(-5).map((result, index) => (
+    {[...form].slice(0, 5).reverse().map((result, index) => (
       <span key={index} className={`h-3.5 w-3.5 rounded-full ${result === 'W' ? 'bg-felt' : 'bg-loss'}`} />
     ))}
   </span>
@@ -72,18 +103,20 @@ export const CupStandingsPage: React.FC<{
     : `Last week's cup, ${shown.cup.field!.length} players.`;
   return (
     <Page kicker={shown.thisWeek ? 'Weekly cup' : 'Last cup'} title={title} subline={subline}>
-      <CupBracket
-        state={shown.state}
-        byId={byId}
-        names={cupNames(shown.cup.field ?? [], byId)}
-        meId=""
-        seen={NO_SEEN}
-        force
-        motion
-        base={300}
-        silver={shown.thisWeek && !shown.state.champion && shown.state.unfinished}
-        onSelectPlayer={noop}
-      />
+      <ScaleToFit width={420}>
+        <CupBracket
+          state={shown.state}
+          byId={byId}
+          names={cupNames(shown.cup.field ?? [], byId)}
+          meId=""
+          seen={NO_SEEN}
+          force
+          motion
+          base={300}
+          silver={shown.thisWeek && !shown.state.champion && shown.state.unfinished}
+          onSelectPlayer={noop}
+        />
+      </ScaleToFit>
     </Page>
   );
 };
@@ -105,7 +138,7 @@ export const SeasonRacePage: React.FC<{
         <p className="text-2xl font-semibold text-white/55">No matches this season yet.</p>
       ) : (
         <div className="rounded-3xl bg-card p-5">
-          <SeasonRaceChart games={games} startingElo={season.startingElo} players={players} leaderId={ladder[0]?.id} width={520} height={360} drawMs={3000} />
+          <SeasonRaceChart games={games} startingElo={season.startingElo} players={players} leaderId={ladder[0]?.id} width={440} height={480} labelWidth={92} drawMs={3000} />
         </div>
       )}
     </Page>
@@ -183,7 +216,7 @@ const dayOf = (at: number, now: number) => {
   const date = new Date(at);
   const today = new Date(now);
   if (date.toDateString() === today.toDateString()) return clockOf(at);
-  return date.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' + clockOf(at);
+  return `${date.toLocaleDateString('en-GB', { weekday: 'short' })} ${clockOf(at)}`;
 };
 
 /** The latest games, newest first: who won, who lost, what it was worth. */
@@ -193,9 +226,9 @@ export const RecentResultsPage: React.FC<{
   now: number;
 }> = ({ players, matches, now }) => {
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
-  const latest = useMemo(() => [...matches].sort((a, b) => b.timestamp - a.timestamp).slice(0, 8), [matches]);
+  const latest = useMemo(() => [...matches].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10), [matches]);
   return (
-    <Page kicker="Results" title="Latest games">
+    <Page kicker="Results" title="Latest games" subline="Winner on the left, with the rating they took.">
       <div className="grid auto-rows-min gap-3">
         {latest.map((match, index) => {
           const winnerIsA = match.winnerId === match.playerAId;
@@ -210,15 +243,18 @@ export const RecentResultsPage: React.FC<{
             match.modifiers.eightOnBreak && '💥',
           ].filter(Boolean) as string[];
           return (
-            <span key={match.id} className="card-drop flex items-center gap-4 rounded-3xl bg-card px-5 py-3.5" style={{ animationDelay: `${index * 70}ms` }}>
-              <span className="w-28 flex-none text-base font-semibold tabular-nums text-white/55">{dayOf(match.timestamp, now)}</span>
-              <PlayerAvatar player={winner} size={48} />
-              <span className="min-w-0 truncate text-2xl font-extrabold">{firstName(winnerName)}</span>
+            <span key={match.id} className="card-drop grid grid-cols-[88px_1fr_auto_1fr] items-center gap-4 rounded-3xl bg-card px-5 py-3.5" style={{ animationDelay: `${index * 70}ms` }}>
+              <span className="text-base font-semibold tabular-nums text-white/55">{dayOf(match.timestamp, now)}</span>
+              <span className="flex min-w-0 items-center gap-3">
+                <PlayerAvatar player={winner} size={48} />
+                <span className="min-w-0 truncate text-2xl font-extrabold">{firstName(winnerName)}</span>
+                {extras.length > 0 && <span className="flex-none text-xl">{extras.join(' ')}</span>}
+              </span>
               <span className="flex-none rounded-full bg-felt px-3 py-1 text-base font-extrabold tabular-nums text-white">+{match.eloDelta + match.bountyCollected}</span>
-              <span className="flex-none text-base font-semibold text-white/55">beat</span>
-              <span className="min-w-0 truncate text-2xl font-bold text-white/60">{firstName(loserName)}</span>
-              <PlayerAvatar player={loser} size={48} />
-              {extras.length > 0 && <span className="ml-auto flex-none text-2xl">{extras.join(' ')}</span>}
+              <span className="flex min-w-0 items-center justify-end gap-3">
+                <span className="min-w-0 truncate text-2xl font-bold text-white/60">{firstName(loserName)}</span>
+                <PlayerAvatar player={loser} size={48} />
+              </span>
             </span>
           );
         })}

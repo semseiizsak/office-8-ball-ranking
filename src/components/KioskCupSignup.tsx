@@ -11,15 +11,15 @@ const countdownOf = (ms: number) => {
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
 };
 
-/** The balls drifting round the edges, placed once so they don't jump about on re-render. */
+/** The balls bobbing beside the title, out of the way of the names. */
 const DRIFTERS = [
-  { n: 1, left: '4%', top: '12%', size: 54, d: 0 },
-  { n: 11, left: '88%', top: '8%', size: 44, d: 1.4 },
-  { n: 3, left: '92%', top: '46%', size: 60, d: 0.6 },
-  { n: 14, left: '2%', top: '58%', size: 40, d: 2.1 },
-  { n: 5, left: '80%', top: '86%', size: 50, d: 1 },
-  { n: 8, left: '10%', top: '90%', size: 46, d: 2.6 },
+  { n: 1, size: 34, d: 0 },
+  { n: 11, size: 28, d: 1.4 },
+  { n: 8, size: 38, d: 0.6 },
 ];
+
+/** Long first names step down in size instead of being cut off. */
+const nameSize = (name: string) => (name.length <= 5 ? 30 : name.length <= 7 ? 26 : name.length <= 9 ? 22 : 19);
 
 /**
  * Monday morning on the wall: the week's cup is open, and everyone can see who
@@ -95,38 +95,40 @@ export const KioskCupSignup: React.FC<{
   };
 
   const isOpen = !!cup && now >= cup.opensAt && now < cup.closesAt;
-  const closesAt = cup ? new Date(cup.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '12:00';
+  const closesAt = cup ? new Date(cup.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '12:00';
 
   return (
     <div className="anim-fade fixed inset-0 z-[60] flex flex-col overflow-hidden bg-bg px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+1.5rem)] text-white">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        {DRIFTERS.map((ball) => (
-          <span key={ball.n} className="cup-drift absolute" style={{ left: ball.left, top: ball.top, animationDelay: `-${ball.d}s` }}>
-            <Ball n={ball.n} size={ball.size} />
+      <header className="relative grid gap-5">
+        <div className="flex items-center gap-4">
+          <span className="cup-swing flex h-16 w-16 flex-none items-center justify-center rounded-full bg-crown text-bg">
+            <Trophy className="h-8 w-8" strokeWidth={2.25} />
           </span>
-        ))}
-      </div>
-
-      <header className="relative flex items-end justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <span className="cup-swing flex h-20 w-20 flex-none items-center justify-center rounded-full bg-crown text-bg">
-            <Trophy className="h-10 w-10" strokeWidth={2.25} />
+          <h1 className="whitespace-nowrap font-display text-[clamp(36px,7vw,60px)] font-extrabold uppercase leading-[1.05] tracking-[-0.02em]">Weekly cup</h1>
+          <span aria-hidden="true" className="ml-auto flex flex-none items-end gap-2">
+            {DRIFTERS.map((ball) => (
+              <span key={ball.n} className="cup-drift" style={{ animationDelay: `-${ball.d}s` }}>
+                <Ball n={ball.n} size={ball.size} />
+              </span>
+            ))}
           </span>
-          <div>
-            <h1 className="font-display text-6xl font-extrabold uppercase leading-[1.05] tracking-[-0.02em]">Weekly cup</h1>
-            <p className="mt-2 text-xl font-semibold text-white/60">
-              <b className="font-extrabold text-white">{entrants.length}</b> in
-              <span className="ml-4">Sign-ups close at {closesAt}</span>
-            </p>
-          </div>
         </div>
-        <div className="flex-none text-right">
-          <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">{isOpen ? 'Draw in' : 'Sign-ups closed'}</p>
-          <p className="font-display text-6xl font-extrabold tabular-nums leading-none">{countdownOf(cup && isOpen ? cup.closesAt - now : 0)}</p>
+        <div className="flex items-center gap-5 rounded-3xl bg-card px-5 py-4">
+          <span className="flex-none">
+            <span className="block font-display text-5xl font-extrabold tabular-nums leading-none">{entrants.length}</span>
+            <span className="mt-1 block text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">Signed up</span>
+          </span>
+          <span className="min-w-0 flex-1 text-lg font-semibold text-white/60">Closes at {closesAt}</span>
+          <span className="flex-none text-right">
+            <span className="block text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">{isOpen ? 'Draw in' : 'Sign-ups closed'}</span>
+            <span className="mt-1 block font-display text-[clamp(32px,6vw,52px)] font-extrabold tabular-nums leading-none">
+              {countdownOf(cup && isOpen ? cup.closesAt - now : 0)}
+            </span>
+          </span>
         </div>
       </header>
 
-      <div className="relative mt-8 grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-4 overflow-y-auto pb-4 md:grid-cols-3 xl:grid-cols-4">
+      <div className="relative mt-5 grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto pb-4 lg:grid-cols-3">
         {ordered.map((player, index) => {
           const isIn = joinedAt.has(player.id);
           const [first, ...rest] = player.name.split(' ');
@@ -140,20 +142,25 @@ export const KioskCupSignup: React.FC<{
                 setConfirming(player);
               }}
               style={{ animationDelay: `${Math.min(index, 16) * 40}ms` }}
-              className={`card-drop press relative flex min-h-[112px] items-center gap-4 rounded-3xl px-5 py-4 text-left transition-colors ${
+              className={`card-drop press relative flex min-h-[88px] items-center gap-3 rounded-3xl py-3 pl-4 pr-12 text-left transition-colors ${
                 isIn ? 'bg-felt text-white' : 'bg-surface-alt text-white'
               } ${fresh === player.id ? 'cup-joined' : ''}`}
             >
-              <PlayerAvatar player={player} size={64} />
+              <PlayerAvatar player={player} size={52} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-display text-[34px] font-extrabold uppercase leading-[1.05] tracking-[-0.02em]">{first}</span>
-                <span className={`mt-1 block truncate text-base font-semibold ${isIn ? 'text-white' : 'text-white/55'}`}>
+                <span
+                  className="block overflow-hidden text-ellipsis whitespace-nowrap font-display font-extrabold uppercase leading-[1.05] tracking-[-0.02em]"
+                  style={{ fontSize: nameSize(first) }}
+                >
+                  {first}
+                </span>
+                <span className={`mt-1 block truncate text-sm font-semibold ${isIn ? 'text-white' : 'text-white/55'}`}>
                   {isIn ? 'In the cup' : rest.join(' ') || 'Tap to join'}
                 </span>
               </span>
               {isIn && (
-                <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-white">
-                  <Check size={24} stroke="#0B7A3E" />
+                <span className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white">
+                  <Check size={18} stroke="#0B7A3E" />
                 </span>
               )}
             </button>

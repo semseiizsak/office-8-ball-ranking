@@ -3,7 +3,7 @@ import { SendHorizontal } from 'lucide-react';
 import { LobbyMessage, Player } from '../types';
 import { PlayerAvatar } from './ui';
 
-const clockOf = (at: number) => new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const clockOf = (at: number) => new Date(at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 type LobbySubscribe = (onChange: (messages: LobbyMessage[]) => void) => () => void;
 
@@ -17,7 +17,7 @@ const useLobby = (subscribe: LobbySubscribe) => {
 const MessageLine: React.FC<{ message: LobbyMessage; author?: Player; big?: boolean }> = ({ message, author, big }) => {
   if (message.kind === 'system') {
     return (
-      <p className={`card-drop justify-self-center rounded-full bg-surface-alt px-3 py-1 text-center font-semibold text-white/70 ${big ? 'text-lg' : 'text-xs'}`}>
+      <p className={`card-drop self-center justify-self-center rounded-full bg-surface-alt px-3 py-1 text-center font-semibold text-white/70 ${big ? 'text-lg' : 'text-xs'}`}>
         {message.text}
       </p>
     );
