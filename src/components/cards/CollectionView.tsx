@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeftRight, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeftRight, Layers, ShoppingBag, SlidersHorizontal, X } from 'lucide-react';
 import { MatchRecord, Player } from '../../types';
-import { Card, CardType, Collector, DUPLICATE_CHIPS, LEGENDARY_PITY, Pack, RARITIES, Rarity, SHOP_LABEL, SHOP_PRICE, ShopTier, TYPE_LABEL, Trade, albumSize, designKey, weekKeyOf, winsThisWeek } from '../../utils/cards';
+import { Card, CardType, Collector, DUPLICATE_CHIPS, LEGENDARY_PITY, Pack, RARITIES, Rarity, SHOP_LABEL, SHOP_PRICE, ShopTier, TYPE_LABEL, UPGRADE_COST, nextRarity, Trade, albumSize, designKey, weekKeyOf, winsThisWeek } from '../../utils/cards';
 import { Coin, PlayerAvatar, Sheet } from '../ui';
 import { PlayerCard } from './PlayerCard';
 import { PackOpening } from './PackOpening';
@@ -23,7 +23,13 @@ interface CollectionViewProps {
   coins: number;
   /** Seasons that have closed: each has its own retro pack in the shop. */
   closedSeasons: Array<{ id: string; name: string }>;
-  onBuyPack: (tier: ShopTier, seasonId: string) => Promise<void>;
+  onBuyPack: (tier: ShopTier, seasonId: string, subjectId?: string) => Promise<void>;
+  /** Today's player pack: three cards, all of this player. */
+  dealPlayer: Player | null;
+  /** Cash in many spare copies at once; resolves to the coins. */
+  onCashInSpares: (cardIds: string[]) => Promise<number>;
+  /** Three spares of one rarity become one card a step up. */
+  onUpgrade: (cardIds: string[]) => Promise<Card | null>;
   onCashIn: (cardId: string) => Promise<number>;
   onOfferTrade: (toId: string, give: string[], want: string[], note?: string) => Promise<void>;
   onRespondTrade: (tradeId: string, answer: 'accept' | 'decline' | 'cancel') => Promise<void>;
@@ -33,7 +39,7 @@ interface CollectionViewProps {
 }
 
 const TYPES: CardType[] = ['player', 'season', 'crown', 'cup', 'totw', 'clown', 'moment', 'rivalry'];
-const SOURCE: Record<Card['source'], string> = { pack: 'Pulled from a pack', award: 'Earned on the table', trade: 'Came in a trade' };
+const SOURCE: Record<Card['source'], string> = { pack: 'Pulled from a pack', award: 'Earned on the table', trade: 'Came in a trade', craft: 'Upgraded from three spares' };
 const chip = (on: boolean) =>
   `press h-8 flex-none rounded-full px-3 text-[10px] font-extrabold uppercase tracking-[0.1em] transition-colors duration-200 ease-[var(--ease)] ${on ? 'bg-white text-bg' : 'bg-surface-alt text-white'}`;
 const button = 'press h-11 rounded-full px-4 text-[12px] font-extrabold uppercase tracking-[0.06em]';
@@ -57,6 +63,9 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   coins,
   closedSeasons,
   onBuyPack,
+  dealPlayer,
+  onCashInSpares,
+  onUpgrade,
   onCashIn,
   onOfferTrade,
   onRespondTrade,
@@ -81,7 +90,10 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
   /** The shop, trades and album filters each open on their own sheet. */
-  const [panel, setPanel] = useState<'shop' | 'trades' | 'filters' | null>(null);
+  const [panel, setPanel] = useState<'shop' | 'trades' | 'filters' | 'spares' | null>(null);
+  const [sparesBusy, setSparesBusy] = useState(false);
+  const [sparesNote, setSparesNote] = useState('');
+  const [confirmCashAll, setConfirmCashAll] = useState(false);
 
   const me = currentPlayer.id;
   const mine = cards.filter((card) => card.ownerId === me);
@@ -92,9 +104,41 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const collector = collectors.find((entry) => entry.id === me);
   const week = weekKeyOf(now);
   // Reward and bought packs keep until opened; the others only last their week.
-  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt && (pack.kind === 'reward' || pack.kind === 'bought' || pack.week === week));
+  // Packs keep until opened.
+  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt);
+  // Spare copies: every player card past the best (lowest serial) of its design in its season.
+  const spares = useMemo(() => {
+    const byDesign = new Map<string, Card[]>();
+    for (const card of mine) {
+      if (card.type !== 'player' || card.rarity === 'mythic') continue;
+      const key = `${card.seasonId}|${designKey(card)}`;
+      byDesign.set(key, [...(byDesign.get(key) ?? []), card]);
+    }
+    const out = new Map<Rarity, Card[]>();
+    for (const list of byDesign.values()) {
+      for (const card of [...list].sort((a, b) => a.serial - b.serial).slice(1)) out.set(card.rarity, [...(out.get(card.rarity) ?? []), card]);
+    }
+    return out;
+  }, [mine]);
+  const spareCount = [...spares.values()].reduce((sum, list) => sum + list.length, 0);
+  const spareCoins = [...spares.values()].flat().reduce((sum, card) => sum + DUPLICATE_CHIPS[card.rarity], 0);
+  const runSpares = async (work: () => Promise<string>) => {
+    setSparesBusy(true);
+    setSparesNote('');
+    try {
+      setSparesNote(await work());
+    } catch (reason) {
+      setSparesNote(reason instanceof Error ? reason.message : 'That did not work.');
+    } finally {
+      setSparesBusy(false);
+      setConfirmCashAll(false);
+    }
+  };
   const currentSeasonName = seasons.find((entry) => entry.id === currentSeasonId)?.name ?? 'this season';
-  const offers: Array<{ key: string; tier: ShopTier; seasonId: string; name: string; line: string }> = [
+  const offers: Array<{ key: string; tier: ShopTier; seasonId: string; name: string; line: string; subjectId?: string }> = [
+    ...(dealPlayer
+      ? [{ key: `player-${dealPlayer.id}`, tier: 'player' as ShopTier, seasonId: currentSeasonId, subjectId: dealPlayer.id, name: `Today: ${dealPlayer.name.split(' ')[0]}`, line: `Three cards, all ${dealPlayer.name.split(' ')[0]}. Only today.` }]
+      : []),
     { key: 'standard', tier: 'standard', seasonId: currentSeasonId, name: SHOP_LABEL.standard, line: `Three cards from ${currentSeasonName}.` },
     { key: 'premium', tier: 'premium', seasonId: currentSeasonId, name: SHOP_LABEL.premium, line: `Three cards from ${currentSeasonName}, one of them epic or better.` },
     ...closedSeasons.map((season) => ({ key: `retro-${season.id}`, tier: 'retro' as ShopTier, seasonId: season.id, name: `${SHOP_LABEL.retro}, ${season.name}`, line: `Three cards from the ${season.name} set, at the ratings it closed on.` })),
@@ -108,7 +152,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
     setBuying(true);
     setBuyError('');
     try {
-      await onBuyPack(offer.tier, offer.seasonId);
+      await onBuyPack(offer.tier, offer.seasonId, offer.subjectId);
       setConfirmBuy(null);
     } catch (reason) {
       setBuyError(reason instanceof Error ? reason.message : 'Could not buy it.');
@@ -225,6 +269,12 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
               <Coin size={16} />
               {coins}
             </button>
+            <button type="button" onClick={() => setPanel('spares')} aria-label={spareCount ? `Spares, ${spareCount}` : 'Spares'} className="press relative grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
+              <Layers className="h-[18px] w-[18px]" strokeWidth={2.25} />
+              {spareCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-black tabular-nums text-bg">{spareCount > 99 ? '99+' : spareCount}</span>
+              )}
+            </button>
             <button type="button" onClick={() => setPanel('trades')} aria-label={incoming.length ? `Trades, ${incoming.length} waiting` : 'Trades'} className="press relative grid h-11 w-11 place-items-center rounded-full bg-surface-alt">
               <ArrowLeftRight className="h-[18px] w-[18px]" strokeWidth={2.25} />
               {incoming.length > 0 && (
@@ -268,11 +318,11 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
       {openable.map((pack) => (
         <section key={pack.id} className="grid grid-cols-[96px_1fr] items-center gap-4 rounded-3xl bg-card p-4 shadow-[inset_0_0_0_1.5px_#F2B705]">
           <div className={`pk ${pack.kind} ${pack.tier ?? ''} h-[132px] w-[96px]`}>
-            <span className={`relative z-10 font-display text-[40px] font-extrabold ${pack.tier === 'premium' || pack.tier === 'retro' || pack.kind === 'champion' ? 'text-white' : 'text-bg'}`}>8</span>
+            <span className={`relative z-10 font-display text-[40px] font-extrabold ${pack.tier === 'premium' || pack.tier === 'retro' || pack.tier === 'player' || pack.kind === 'champion' ? 'text-white' : 'text-bg'}`}>8</span>
           </div>
           <div className="grid min-w-0 content-center gap-2">
             <h2 className="text-xl">{pack.kind === 'bought' ? SHOP_LABEL[pack.tier ?? 'standard'] : pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
-            <p className="text-sm font-semibold text-white/70">{pack.reason ?? 'Three cards. Open it this week or it is gone.'}</p>
+            <p className="text-sm font-semibold text-white/70">{pack.reason ?? 'Three cards. It keeps until you open it.'}</p>
             <button type="button" onClick={() => setOpening(pack)} className={`${button} w-fit bg-white text-bg`}>
               Open
             </button>
@@ -451,6 +501,72 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             <button type="button" onClick={() => setPanel(null)} className={`${button} bg-white text-bg`}>
               Show cards
             </button>
+          </div>
+        </Sheet>
+      )}
+
+      {panel === 'spares' && (
+        <Sheet title="Spares" onClose={() => { setPanel(null); setSparesNote(''); setConfirmCashAll(false); }}>
+          <div className="grid gap-3 pb-2">
+            <p className="text-sm font-semibold text-white/70">
+              Copies past your best of each card. Upgrade {UPGRADE_COST} of a rarity into one card a step up, or cash them in. Your lowest serial always stays.
+            </p>
+            {spareCount === 0 && <p className="rounded-xl bg-surface p-3 text-sm font-semibold text-white/55">No spares yet.</p>}
+            {RARITIES.filter((value) => spares.get(value)?.length).map((value) => {
+              const list = [...(spares.get(value) ?? [])].sort((a, b) => b.serial - a.serial);
+              const up = nextRarity(value);
+              return (
+                <div key={value} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl bg-surface p-3">
+                  <span className="grid min-w-0">
+                    <span className="text-sm font-extrabold capitalize">{list.length} {value}</span>
+                    <span className="text-xs font-semibold text-white/55">
+                      {DUPLICATE_CHIPS[value]} coins each{up ? `, ${UPGRADE_COST} make one ${up}` : ''}
+                    </span>
+                  </span>
+                  {up && list.length >= UPGRADE_COST && (
+                    <button
+                      type="button"
+                      disabled={sparesBusy}
+                      onClick={() =>
+                        void runSpares(async () => {
+                          const made = await onUpgrade(list.slice(0, UPGRADE_COST).map((card) => card.id));
+                          return made ? `New ${made.rarity}: ${byId.get(made.playerId)?.name.split(' ')[0] ?? 'a card'}, No ${made.serial}.` : '';
+                        })
+                      }
+                      className={`${button} bg-white text-bg`}
+                    >
+                      Upgrade {UPGRADE_COST}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {sparesNote && <p role="status" className="rounded-xl bg-felt p-2.5 text-sm font-semibold text-white">{sparesNote}</p>}
+            {spareCount > 0 &&
+              (confirmCashAll ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setConfirmCashAll(false)} className={`${button} bg-surface-alt text-white`}>
+                    Keep them
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sparesBusy}
+                    onClick={() =>
+                      void runSpares(async () => {
+                        const coinsIn = await onCashInSpares([...spares.values()].flat().map((card) => card.id));
+                        return `Cashed in for ${coinsIn} coins.`;
+                      })
+                    }
+                    className={`${button} bg-felt text-white`}
+                  >
+                    {sparesBusy ? 'Cashing in' : 'Confirm'}
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmCashAll(true)} className={`${button} flex items-center justify-center gap-1.5 bg-surface-alt text-white`}>
+                  Cash in all {spareCount} for <Coin size={15} /> {spareCoins}
+                </button>
+              ))}
           </div>
         </Sheet>
       )}

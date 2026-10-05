@@ -7,7 +7,8 @@ import { stakeOf, BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } fr
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
-import { Ball, CallSplit, Coin, PlayerAvatar } from './ui';
+import { Ball, CallSplit, Coin, PlayerAvatar, Sheet } from './ui';
+import { CHALLENGE_REWARD, MATCH_COINS, STREAK_FROM, TaskProgress } from '../utils/coins';
 
 /** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
 const CHEER_EMOJI = ['🔥', '🎱', '😱', '👏', '💀', '😭'];
@@ -38,6 +39,8 @@ interface ArenaViewProps {
   onPlayDaily?: (opponentId: string) => void;
   /** Opens the full match history from the Settled list. */
   onShowHistory?: () => void;
+  /** This week's coin challenges and how far the viewer is. */
+  weekly?: TaskProgress[];
 }
 
 export interface VoterInfo {
@@ -574,6 +577,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
   daily,
   onPlayDaily,
   onShowHistory,
+  weekly,
 }) => {
   const now = Date.now();
   /**
@@ -582,6 +586,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
    * locally lets the card go quiet immediately.
    */
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [showWeekly, setShowWeekly] = useState(false);
 
   const live = challenges
     .filter((challenge) => challenge.status === 'live')
@@ -806,6 +811,51 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           <span className="text-[11px] font-semibold text-white/55">of {DAILY_CHIPS} left today</span>
         </span>
       </div>
+
+      {weekly && weekly.length > 0 && (
+        <button type="button" onClick={() => setShowWeekly(true)} className="press flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5 text-left">
+          <span className="grid min-w-0">
+            <span className="text-sm font-extrabold">Weekly challenges</span>
+            <span className="truncate text-[11px] font-semibold text-white/55">
+              {weekly.filter((task) => task.done).length} of {weekly.length} done, +{CHALLENGE_REWARD} each
+            </span>
+          </span>
+          <span className="flex flex-none items-center gap-1.5">
+            {weekly.map((task) => (
+              <span key={task.id} className={`h-2.5 w-2.5 rounded-full ${task.done ? 'bg-felt' : 'bg-surface-alt'}`} />
+            ))}
+          </span>
+        </button>
+      )}
+
+      {showWeekly && weekly && (
+        <Sheet title="This week" onClose={() => setShowWeekly(false)}>
+          <div className="grid gap-3 pb-2">
+            {weekly.map((task) => (
+              <div key={task.id} className="grid gap-2 rounded-2xl bg-card p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-extrabold">{task.title}</span>
+                  <span className={`flex flex-none items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black tabular-nums ${task.done ? 'bg-felt text-white' : 'bg-surface-alt'}`}>
+                    <Coin size={13} />
+                    {task.done ? 'Paid' : `+${CHALLENGE_REWARD}`}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-alt">
+                  <div className="grow-x h-full rounded-full bg-felt" style={{ width: `${(task.progress / task.target) * 100}%` }} />
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-white/55">{task.progress} of {task.target}</span>
+              </div>
+            ))}
+            <div className="grid gap-1.5 rounded-2xl bg-surface p-3.5 text-sm text-white/70">
+              <b className="text-white">Every match pays</b>
+              <span>+{MATCH_COINS.play} for playing, +{MATCH_COINS.win} more for the win.</span>
+              <span>+{MATCH_COINS.upset} extra for beating someone above you.</span>
+              <span>+{MATCH_COINS.streak} extra a win from your {STREAK_FROM}rd in a row.</span>
+              <span>New challenges every Monday.</span>
+            </div>
+          </div>
+        </Sheet>
+      )}
 
       {forMe.length > 0 && (
         <section className="mt-2 grid gap-2">

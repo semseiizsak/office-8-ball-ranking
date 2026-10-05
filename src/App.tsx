@@ -39,7 +39,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
-import { Card, Collector, Pack, PackKind, ShopTier, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
+import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
 import {
@@ -65,6 +65,7 @@ import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { Ball, Sheet } from './components/ui';
 import { MessageCircle } from 'lucide-react';
+import { deriveChallengeCoins, deriveMatchCoins, matchCoinsFor, seasonCoinLeaders, weekProgress } from './utils/coins';
 import { BADGE, buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
 import { rewardFor } from './utils/rewards';
 import { BadgePop } from './components/BadgePop';
@@ -227,8 +228,11 @@ export default function App() {
     for (const grant of GRANTS) for (const player of players) addBonus(merged, player.id, grant.amount);
     for (const collector of collectors) if (collector.duplicateChips) addBonus(merged, collector.id, collector.duplicateChips);
     for (const collector of collectors) if (collector.spentChips) addBonus(merged, collector.id, -collector.spentChips);
+    for (const collector of collectors) if (collector.rewardChips) addBonus(merged, collector.id, collector.rewardChips);
+    for (const [id, amount] of deriveMatchCoins(matches)) addBonus(merged, id, amount);
+    for (const [id, amount] of deriveChallengeCoins(players.map((player) => player.id), matches, challenges, clock)) addBonus(merged, id, amount);
     return merged;
-  }, [league.chips, dailyRecords, cupRecords, players, collectors]);
+  }, [league.chips, dailyRecords, cupRecords, players, collectors, matches, challenges, clock]);
 
   useEffect(() => {
     let cancelled = false;
@@ -651,12 +655,22 @@ export default function App() {
       crownSince: league.crown.heldSince,
       cupTitles,
       seasonTitles: seasonTitles.map((season) => ({ seasonId: season.id, name: season.name })),
+      highRollerSeasons: seasons
+        .filter((season) => season.endedAt !== null)
+        .map((season) => ({ season, rank: seasonCoinLeaders(season, matches, challenges).indexOf(currentPlayer.id) + 1 }))
+        .filter((entry) => entry.rank > 0)
+        .map((entry) => ({ seasonId: entry.season.id, name: entry.season.name, rank: entry.rank })),
       seasonStartedAt: currentSeason.startedAt,
       weeklyAwards: awardRecords.get(currentPlayer.id) ?? [],
     }).filter((award) => !cards.some((card) => card.id === award.id));
     for (const award of due) {
       // A season champion card is printed as of the season it was won in: its stats and its photo.
-      const won = award.type === 'season' ? seasonTitles.find((season) => award.id === `season-${currentPlayer.id}-${season.id}`) : undefined;
+      const won =
+        award.type === 'season'
+          ? seasonTitles.find((season) => award.id === `season-${currentPlayer.id}-${season.id}`)
+          : award.type === 'highroller'
+            ? seasons.find((season) => award.id === `highroller-${currentPlayer.id}-${season.id}`)
+            : undefined;
       const wonPhoto = won && cards.find((card) => card.playerId === currentPlayer.id && card.seasonId === won.id && card.photoId && card.photoId !== 'none')?.photoId;
       void poolService
         .grantSpecial({
@@ -781,14 +795,14 @@ export default function App() {
     // players, at the rating they finished on, with that season's numbers.
     const bought = packs.find((pack) => pack.id === packId);
     const oldSeason = bought?.seasonId && bought.seasonId !== currentSeason.id ? seasons.find((entry) => entry.id === bought.seasonId) : undefined;
-    let playerIds = players.map((player) => player.id);
+    let playerIds = bought?.subjectId ? [bought.subjectId] : players.map((player) => player.id);
     let stats = cardStatsById;
     if (oldSeason) {
       const games = matchesInSeason(matches, oldSeason);
       const finished = new Map(oldSeason.standings.map((row) => [row.playerId, row.elo]));
       const played = new Set(games.flatMap((match) => [match.playerAId, match.playerBId]));
       const roster = players.filter((player) => played.has(player.id) || finished.has(player.id));
-      if (roster.length > 0) playerIds = roster.map((player) => player.id);
+      if (roster.length > 0 && !bought?.subjectId) playerIds = roster.map((player) => player.id);
       stats = Object.fromEntries(roster.map((player) => [player.id, cardStats({ ...player, elo: finished.get(player.id) ?? player.elo }, games, challenges)]));
     }
     const opened = await poolService.openPack({
@@ -812,10 +826,12 @@ export default function App() {
     return opened;
   };
 
-  const handleBuyPack = async (tier: ShopTier, seasonId: string) => {
+  const handleBuyPack = async (tier: ShopTier, seasonId: string, subjectId?: string) => {
     if (!currentPlayer) return;
     const season = seasons.find((entry) => entry.id === seasonId) ?? currentSeason;
+    const subject = subjectId ? players.find((player) => player.id === subjectId) : undefined;
     await poolService.buyPack({
+      subject: subject ? { id: subject.id, name: subject.name.split(' ')[0] } : undefined,
       ownerId: currentPlayer.id,
       tier,
       seasonId: season.id,
@@ -824,6 +840,42 @@ export default function App() {
       knownSpent: collectors.find((entry) => entry.id === currentPlayer.id)?.spentChips ?? 0,
     });
   };
+
+  const handleCashInSpares = async (cardIds: string[]) => {
+    if (!currentPlayer) return 0;
+    return poolService.cashInCards(cardIds, currentPlayer.id);
+  };
+
+  const handleUpgrade = async (cardIds: string[]) => {
+    if (!currentPlayer) return null;
+    return poolService.upgradeCards({
+      ownerId: currentPlayer.id,
+      cardIds,
+      playerIds: players.map((player) => player.id),
+      stats: cardStatsById,
+      season: currentSeason.name,
+      seasonId: currentSeason.id,
+      photos: photoShots,
+    });
+  };
+
+  // A full set of one player this season, common to legendary, pays once.
+  useEffect(() => {
+    if (!currentPlayer || isLoading || cardsLoading) return;
+    const mine = new Set(
+      cards.filter((card) => card.ownerId === currentPlayer.id && card.type === 'player' && card.seasonId === currentSeason.id).map((card) => `${card.playerId}|${card.rarity}`)
+    );
+    for (const player of players) {
+      if (!SET_RARITIES.every((rarity) => mine.has(`${player.id}|${rarity}`))) continue;
+      const packId = `${currentPlayer.id}_reward_set-${currentSeason.id}-${player.id}`.replace(/[^A-Za-z0-9_-]/g, '-');
+      if (packs.some((pack) => pack.id === packId) || paidOut.current.has(packId)) continue;
+      paidOut.current.add(packId);
+      void poolService
+        .claimSetReward(currentPlayer.id, currentSeason.id, player.id, `Full set of ${player.name.split(' ')[0]}, +${SET_REWARD_COINS} coins`)
+        .catch((error) => console.warn('Set reward not given:', error));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer?.id, isLoading, cardsLoading, cards.length, packs.length, currentSeason.id]);
 
   const handleCashIn = async (cardId: string) => {
     if (!currentPlayer) return 0;
@@ -1639,6 +1691,7 @@ export default function App() {
           {activeTab === 'arena' && (
             <div className="anim-fade">
               <ArenaView
+                weekly={weekProgress(currentPlayer.id, mondayOf(clock).getTime(), matches, challenges)}
                 players={players}
                 challenges={challenges}
                 currentPlayer={currentPlayer}
@@ -1709,6 +1762,9 @@ export default function App() {
                 coins={chips.records.get(currentPlayer.id)?.chips ?? 0}
                 closedSeasons={seasons.filter((entry) => entry.endedAt !== null).map((entry) => ({ id: entry.id, name: entry.name }))}
                 onBuyPack={handleBuyPack}
+                dealPlayer={players.find((player) => player.id === dailyDealPlayer(players.map((entry) => entry.id), dayKeyOf(clock))) ?? null}
+                onCashInSpares={handleCashInSpares}
+                onUpgrade={handleUpgrade}
                 onCashIn={handleCashIn}
                 onOfferTrade={handleOfferTrade}
                 onRespondTrade={handleRespondTrade}
@@ -1752,7 +1808,7 @@ export default function App() {
         <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge}
           cupBadge={cupBadge}
           collectionBadge={
-            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && (pack.kind === 'reward' || pack.kind === 'bought' || pack.week === cardWeek)) ||
+            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt) ||
             trades.some((trade) => trade.toId === currentPlayer.id && trade.status === 'pending')
           }
         />
@@ -1799,7 +1855,19 @@ export default function App() {
         <MatchSuccessModal
           result={matchResult}
           winner={matchResult ? players.find((player) => player.id === matchResult.match.winnerId) ?? null : null}
-          extraRows={matchResult?.unlockRows}
+          extraRows={
+            matchResult
+              ? [
+                  ...(matchResult.unlockRows ?? []),
+                  ...((): Array<[string, React.ReactNode]> => {
+                    const paid = matchCoinsFor(matchResult.match, matches);
+                    if (!paid.winner) return [];
+                    const name = (id: string) => players.find((player) => player.id === id)?.name.split(' ')[0] ?? 'Someone';
+                    return [['Coins', `${name(matchResult.match.winnerId)} +${paid.winner}, ${name(matchResult.match.loserId)} +${paid.loser}.`]];
+                  })(),
+                ]
+              : undefined
+          }
           onClose={() => setMatchResult(null)}
           onViewLeaderboard={() => {
             setMatchResult(null);

@@ -68,8 +68,12 @@ import {
   Pack,
   PackKind,
   Rarity,
+  SET_REWARD_COINS,
   SHOP_LABEL,
   SHOP_PRICE,
+  UPGRADE_COST,
+  nextRarity,
+  seeded,
   SPECIAL_RARITY,
   ShopTier,
   SpecialAward,
@@ -1732,6 +1736,7 @@ const toPack = (id: string, data: Record<string, unknown>): Pack => ({
   seasonId: data.seasonId ? String(data.seasonId) : undefined,
   price: data.price ? Number(data.price) : undefined,
   tier: data.tier ? (data.tier as ShopTier) : undefined,
+  subjectId: data.subjectId ? String(data.subjectId) : undefined,
 });
 
 const toCollector = (id: string, data: Record<string, unknown> | undefined): Collector => ({
@@ -1740,6 +1745,7 @@ const toCollector = (id: string, data: Record<string, unknown> | undefined): Col
   pity: Number(data?.pity ?? 0),
   duplicateChips: Number(data?.duplicateChips ?? 0),
   spentChips: Number(data?.spentChips ?? 0),
+  rewardChips: Number(data?.rewardChips ?? 0),
   opened: Number(data?.opened ?? 0),
 });
 
@@ -1842,8 +1848,7 @@ export async function openPack(params: {
     const pack = toPack(packDoc.id, packDoc.data());
     if (pack.ownerId !== params.ownerId) throw new Error('Not your pack.');
     if (pack.openedAt) throw new Error('Already opened.');
-    // Weekly, earned and champion packs are for their week; reward and bought packs keep.
-    if (pack.kind !== 'reward' && pack.kind !== 'bought' && pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
+    // Packs keep until opened: the weekly limit is on getting them, not on opening them.
     const collectorDoc = await transaction.get(collectorRef);
     const collector = toCollector(params.ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
     // One mythic per player per season. Only a pack that rolled one reads the
@@ -1910,6 +1915,8 @@ export async function buyPack(params: {
   seasonName: string;
   balance: number;
   knownSpent: number;
+  /** A player pack: the player on all three cards. */
+  subject?: { id: string; name: string };
 }): Promise<Pack> {
   const price = SHOP_PRICE[params.tier];
   if (params.balance < price) throw new Error(`That pack is ${price} coins. You have ${Math.max(0, params.balance)}.`);
@@ -1925,7 +1932,7 @@ export async function buyPack(params: {
       ownerId: params.ownerId,
       kind: 'bought',
       week: weekKeyOf(now),
-      reason: `${SHOP_LABEL[params.tier]}, ${params.seasonName}`,
+      reason: params.subject ? `Three cards of ${params.subject.name}, ${params.seasonName}` : `${SHOP_LABEL[params.tier]}, ${params.seasonName}`,
       ...(params.tier === 'premium' ? { minRarity: 'epic' as Rarity } : {}),
       createdAt: now,
       openedAt: null,
@@ -1934,6 +1941,7 @@ export async function buyPack(params: {
       seasonId: params.seasonId,
       price,
       tier: params.tier,
+      ...(params.subject ? { subjectId: params.subject.id } : {}),
     };
     const { id, ...data } = pack;
     transaction.set(packRef, data);
@@ -2000,6 +2008,104 @@ export async function cashInCard(cardId: string, ownerId: string): Promise<numbe
     transaction.delete(ref);
     transaction.set(collectorRef, { pity: collector.pity, opened: collector.opened, duplicateChips: collector.duplicateChips + chips }, { merge: true });
     return chips;
+  });
+}
+
+/** Cashes in many cards at once, the spare copies. Mythics never. */
+export async function cashInCards(cardIds: string[], ownerId: string): Promise<number> {
+  const collectorRef = doc(collectorsCollection, ownerId);
+  return runTransaction(db, async (transaction) => {
+    const docs = await Promise.all(cardIds.map((id) => transaction.get(doc(cardsCollection, id))));
+    const collectorDoc = await transaction.get(collectorRef);
+    let coins = 0;
+    for (const entry of docs) {
+      if (!entry.exists()) continue;
+      const card = toCard(entry.id, entry.data());
+      if (card.ownerId !== ownerId || card.rarity === 'mythic') continue;
+      coins += DUPLICATE_CHIPS[card.rarity];
+      transaction.delete(entry.ref);
+    }
+    const before = Number(collectorDoc.exists() ? collectorDoc.data().duplicateChips ?? 0 : 0);
+    transaction.set(collectorRef, { duplicateChips: before + coins }, { merge: true });
+    return coins;
+  });
+}
+
+/**
+ * Turns three spare cards of one rarity into one card a step up, of a random
+ * player in the given season. The three are gone; the new one is printed with
+ * the next serial, like a pulled card.
+ */
+export async function upgradeCards(params: {
+  ownerId: string;
+  cardIds: string[];
+  playerIds: string[];
+  stats: Record<string, CardStats>;
+  season: string;
+  seasonId: string;
+  photos: Record<string, { id: string; data?: string }>;
+}): Promise<Card> {
+  if (params.cardIds.length !== UPGRADE_COST) throw new Error(`It takes ${UPGRADE_COST} cards.`);
+  return runTransaction(db, async (transaction) => {
+    const docs = await Promise.all(params.cardIds.map((id) => transaction.get(doc(cardsCollection, id))));
+    const cards = docs.map((entry) => {
+      if (!entry.exists()) throw new Error('One of those cards is gone.');
+      return toCard(entry.id, entry.data());
+    });
+    if (cards.some((card) => card.ownerId !== params.ownerId)) throw new Error('Not your cards.');
+    const rarity = nextRarity(cards[0].rarity);
+    if (!rarity || cards.some((card) => card.rarity !== cards[0].rarity)) throw new Error('Pick three of one rarity, below legendary.');
+    const ids = [...params.playerIds].sort();
+    const playerId = ids[Math.floor(seeded(`upgrade-${params.cardIds.join('-')}`)() * ids.length)];
+    const key = printKey(params.seasonId, { type: 'player', playerId, rarity });
+    const printRef = doc(printsCollection, key);
+    const print = await transaction.get(printRef);
+    const serial = Number(print.exists() ? print.data().count ?? 0 : 0) + 1;
+    const ref = doc(cardsCollection);
+    const card: Card = {
+      id: ref.id,
+      ownerId: params.ownerId,
+      playerId,
+      type: 'player',
+      rarity,
+      stats: params.stats[playerId] ?? { ovr: 70, WIN: 50, CLU: 50, FRM: 50, BRK: 50, CAL: 50, GRT: 50 },
+      serial,
+      season: params.season,
+      seasonId: params.seasonId,
+      photoId: params.photos[playerId]?.id ?? 'none',
+      source: 'craft',
+      createdAt: Date.now(),
+    };
+    for (const old of docs) transaction.delete(old.ref);
+    const { id, otherId, note, photo, ...data } = card;
+    transaction.set(ref, data);
+    if (params.photos[playerId]?.data) transaction.set(doc(photosCollection, params.photos[playerId].id), { data: params.photos[playerId].data });
+    transaction.set(printRef, { count: serial });
+    return card;
+  });
+}
+
+/** A completed player set pays coins and a reward pack, once per player per season. */
+export async function claimSetReward(ownerId: string, seasonId: string, playerId: string, label: string): Promise<boolean> {
+  const packRef = doc(packsCollection, `${ownerId}_reward_set-${seasonId}-${playerId}`.replace(/[^A-Za-z0-9_-]/g, '-'));
+  const collectorRef = doc(collectorsCollection, ownerId);
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(packRef);
+    if (existing.exists()) return false;
+    const collectorDoc = await transaction.get(collectorRef);
+    const before = Number(collectorDoc.exists() ? collectorDoc.data().rewardChips ?? 0 : 0);
+    transaction.set(packRef, {
+      ownerId,
+      week: weekKeyOf(Date.now()),
+      kind: 'reward' satisfies PackKind,
+      reason: label,
+      createdAt: Date.now(),
+      openedAt: null,
+      cardIds: [],
+      duplicateChips: 0,
+    });
+    transaction.set(collectorRef, { rewardChips: before + SET_REWARD_COINS }, { merge: true });
+    return true;
   });
 }
 

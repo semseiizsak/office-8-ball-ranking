@@ -26,6 +26,7 @@ const THEME: Record<ThemedType, { c: string; e: string; pos: string; flag: strin
   underdog: { c: '#1F4FA8', e: '🙈', pos: 'UDG', flag: 'Underdog' },
   sniper: { c: '#0B7A3E', e: '🎯', pos: 'SNP', flag: 'Hot hand' },
   sweep: { c: '#FFFFFF', e: '🧹', pos: 'SWP', flag: 'Clean sweep' },
+  highroller: { c: '#F2B705', e: '🪙', pos: 'HRL', flag: 'High roller' },
 };
 const themed = (type: CardType): type is ThemedType => type in THEME;
 const SPECIAL_POSITION: Record<Exclude<CardType, 'player'>, string> = {

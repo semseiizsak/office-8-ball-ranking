@@ -37,7 +37,7 @@ export const CARDS_PER_PACK = 3;
 export const LEGENDARY_PITY = 30;
 
 /** Themed cards: only ever given for one special achievement each. */
-export type ThemedType = 'giant' | 'onfire' | 'ironman' | 'grinder' | 'dynasty' | 'oracle' | 'jackpot' | 'kingslayer' | 'underdog' | 'sniper' | 'sweep';
+export type ThemedType = 'giant' | 'onfire' | 'ironman' | 'grinder' | 'dynasty' | 'oracle' | 'jackpot' | 'kingslayer' | 'underdog' | 'sniper' | 'sweep' | 'highroller';
 export type CardType = 'player' | 'crown' | 'cup' | 'season' | 'totw' | 'clown' | 'moment' | 'rivalry' | ThemedType;
 
 /** The fixed rarity of each special edition. */
@@ -60,6 +60,7 @@ export const SPECIAL_RARITY: Record<Exclude<CardType, 'player'>, Rarity> = {
   underdog: 'rare',
   sniper: 'rare',
   sweep: 'epic',
+  highroller: 'legendary',
 };
 
 export const TYPE_LABEL: Record<CardType, string> = {
@@ -82,6 +83,7 @@ export const TYPE_LABEL: Record<CardType, string> = {
   underdog: 'Underdog',
   sniper: 'Hot hand',
   sweep: 'Clean sweep',
+  highroller: 'High roller',
 };
 
 export interface CardStats {
@@ -116,7 +118,7 @@ export interface Card {
   photoId?: string;
   /** The photo itself, filled in on the client from the photo store. */
   photo?: string;
-  source: 'pack' | 'award' | 'trade';
+  source: 'pack' | 'award' | 'trade' | 'craft';
   packId?: string;
   createdAt: number;
 }
@@ -128,9 +130,23 @@ export type PackKind = 'weekly' | 'earned' | 'champion' | 'reward' | 'bought';
  * (about 32 coins on average), so buying is for collecting, never for profit,
  * and a premium pack takes a few weeks of good calls to save up for.
  */
-export type ShopTier = 'standard' | 'premium' | 'retro';
-export const SHOP_PRICE: Record<ShopTier, number> = { standard: 400, premium: 1200, retro: 500 };
-export const SHOP_LABEL: Record<ShopTier, string> = { standard: 'Season pack', premium: 'Premium pack', retro: 'Retro pack' };
+export type ShopTier = 'standard' | 'premium' | 'retro' | 'player';
+export const SHOP_PRICE: Record<ShopTier, number> = { standard: 400, premium: 1200, retro: 500, player: 600 };
+export const SHOP_LABEL: Record<ShopTier, string> = { standard: 'Season pack', premium: 'Premium pack', retro: 'Retro pack', player: 'Player pack' };
+
+/** The day's player pack: one player for everyone, drawn by the day. All three cards are them. */
+export const dailyDealPlayer = (playerIds: string[], dayKey: string) => {
+  const ids = [...playerIds].sort();
+  return ids.length ? ids[Math.floor(seeded(`deal-${dayKey}`)() * ids.length)] : null;
+};
+
+/** A full set of one player in a season, common to legendary, pays once. */
+export const SET_REWARD_COINS = 250;
+export const SET_RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+/** Three spares of one rarity upgrade to one card a step up; a mythic is never made. */
+export const UPGRADE_COST = 3;
+export const nextRarity = (rarity: Rarity): Rarity | null =>
+  rarity === 'legendary' || rarity === 'mythic' ? null : RARITIES[RARITIES.indexOf(rarity) + 1];
 
 export interface Pack {
   id: string;
@@ -151,6 +167,8 @@ export interface Pack {
   seasonId?: string;
   price?: number;
   tier?: ShopTier;
+  /** A player pack: the one player all three cards show. */
+  subjectId?: string;
 }
 
 export interface Collector {
@@ -163,6 +181,8 @@ export interface Collector {
   duplicateChips: number;
   /** Coins spent in the pack shop, taken off their stack. */
   spentChips: number;
+  /** Coins from rewards such as a completed player set. */
+  rewardChips: number;
   opened: number;
 }
 
@@ -355,6 +375,8 @@ export function specialAwards(params: {
   /** Cup cards say which week of the season they were won in. */
   seasonStartedAt?: number;
   weeklyAwards: Array<{ week: string; key: string }>;
+  /** Closed seasons this player finished top three in coins. */
+  highRollerSeasons?: Array<{ seasonId: string; name: string; rank: number }>;
 }): SpecialAward[] {
   const { playerId } = params;
   const out: SpecialAward[] = [];
@@ -363,6 +385,9 @@ export function specialAwards(params: {
     out.push({ id: `crown-${playerId}-${params.crownSince}`, type: 'crown', playerId, note: `Took the crown ${date(params.crownSince)}` });
   }
   for (const title of params.seasonTitles ?? []) out.push({ id: `season-${playerId}-${title.seasonId}`, type: 'season', playerId, note: title.name });
+  for (const roller of params.highRollerSeasons ?? []) {
+    out.push({ id: `highroller-${playerId}-${roller.seasonId}`, type: 'highroller', playerId, note: `${roller.name}, number ${roller.rank} in coins` });
+  }
   for (const cup of params.cupTitles) {
     const n = params.seasonStartedAt ? Math.round((mondayOf(new Date(`${cup.week}T12:00:00`).getTime()).getTime() - mondayOf(params.seasonStartedAt).getTime()) / (7 * 86_400_000)) + 1 : 0;
     out.push({ id: `cup-${playerId}-${cup.week}`, type: 'cup', playerId, note: n >= 1 ? `Week ${n}` : `Weekly cup, week of ${cup.week}` });

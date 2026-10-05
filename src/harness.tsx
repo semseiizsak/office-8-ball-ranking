@@ -486,8 +486,8 @@ const Harness: React.FC = () => {
         <main className="flex-1 overflow-x-hidden px-3 pt-3">
           {tab === 'collection' ? (
             <CollectionView seasons={[{ id: 'harness', name: 'Season 2' }]} currentSeasonId="harness" players={cardPlayers} currentPlayer={cardPlayers[2]} cards={cardList} packs={packList}
-              coins={1340} closedSeasons={[{ id: 's0', name: 'Season 0' }]} onBuyPack={async () => undefined}
-              collectors={[{ id: 'p2', counts: {}, pity: 12, duplicateChips: 45, spentChips: 0, opened: 18 }]} trades={tradeList} matches={seasonMatches} now={now} earned={null}
+              coins={1340} closedSeasons={[{ id: 's0', name: 'Season 0' }]} onBuyPack={async () => undefined} dealPlayer={cardPlayers[1]} onCashInSpares={async () => 0} onUpgrade={async () => null}
+              collectors={[{ id: 'p2', counts: {}, pity: 12, duplicateChips: 45, spentChips: 0, rewardChips: 0, opened: 18 }]} trades={tradeList} matches={seasonMatches} now={now} earned={null}
               onOpenPack={async (packId) => {
                 // Canned pull with a legendary in it, after a network-ish wait.
                 await new Promise((resolve) => setTimeout(resolve, 400));
