@@ -63,6 +63,8 @@ export default function KioskApp() {
   const [isIdle, setIsIdle] = useState(false);
   /** This week's cup, followed live only while its sign-ups are open (one document). */
   const [cup, setCup] = useState<Tournament | null>(null);
+  /** Every weekly cup, for the idle screen: read when it comes on, a handful of documents. */
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [showCupSignup, setShowCupSignup] = useState(false);
   const idleTimerRef = useRef<number | null>(null);
 
@@ -224,7 +226,9 @@ export default function KioskApp() {
     if (liveChallenge) setIsIdle(false);
   }, [liveChallenge]);
   // ?screensaver=1 keeps the screensaver locked on for previewing.
-  const forceScreensaver = useMemo(() => new URLSearchParams(window.location.search).get('screensaver') === '1', []);
+  const previewParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const forceScreensaver = previewParams.get('screensaver') === '1';
+  const previewPage = previewParams.has('page') ? Number(previewParams.get('page')) : undefined;
 
   // Monday 8 to 12 the cup is open: the wall follows that one document and,
   // when left alone, shows the sign-up sheet instead of the screensaver.
@@ -248,6 +252,10 @@ export default function KioskApp() {
     }
   }, [isIdle, cupOpen, liveChallenge]);
   const showScreensaver = isIdle && !liveChallenge && !cupOpen;
+  useEffect(() => {
+    if (!showScreensaver && !forceScreensaver) return;
+    poolService.getTournaments().then(setTournaments).catch((error) => console.warn('Cups not loaded:', error));
+  }, [showScreensaver, forceScreensaver]);
 
   const handleCupJoin = async (playerId: string) => {
     setCup(await poolService.joinTournament(cupWindow.week, playerId));
@@ -379,9 +387,13 @@ export default function KioskApp() {
     return (
       <KioskScreensaver
         players={players}
-        matches={seasonMatches}
-        league={league}
+        matches={matches}
+        seasonMatches={seasonMatches}
+        season={currentSeason}
+        tournaments={tournaments}
+        now={clock}
         subscribeToChat={poolService.subscribeToLobby}
+        startPage={previewPage}
         onDismiss={() => setIsIdle(false)}
       />
     );
@@ -391,8 +403,11 @@ export default function KioskApp() {
     return (
       <KioskScreensaver
         players={players}
-        matches={seasonMatches}
-        league={league}
+        matches={matches}
+        seasonMatches={seasonMatches}
+        season={currentSeason}
+        tournaments={tournaments}
+        now={clock}
         subscribeToChat={poolService.subscribeToLobby}
         onDismiss={() => setIsIdle(false)}
       />

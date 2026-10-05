@@ -456,6 +456,12 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
 .po-big { animation: po-big 700ms var(--ease) 200ms both; }
 .po-burst { position: absolute; left: 50%; top: 50%; width: 640px; height: 640px; margin: -320px 0 0 -320px; border-radius: 50%; pointer-events: none; background: conic-gradient(from 0deg, rgba(242,183,5,0), rgba(242,183,5,.35), rgba(242,183,5,0) 12%, rgba(242,183,5,.3) 25%, rgba(242,183,5,0) 37%, rgba(242,183,5,.3) 50%, rgba(242,183,5,0) 62%, rgba(242,183,5,.3) 75%, rgba(242,183,5,0) 87%); animation: pc-spin 12s linear infinite, anim-fade 600ms var(--ease) both; }
 
+/* Idle kiosk: banner cards slide in from the right, the page timer runs down along the bottom. */
+@keyframes idle-card { from { opacity: 0; transform: translateX(40px); } }
+.idle-card { animation: idle-card var(--slow) var(--ease) both; }
+@keyframes idle-progress { from { transform: scaleX(0); } }
+.idle-progress { animation: idle-progress 60s linear both; }
+
 /* Kiosk cup sign-up: balls drifting round the edges, the trophy rocking, a fresh entrant lifting into place. */
 @keyframes cup-drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(14px, -22px); } }
 .cup-drift { animation: cup-drift 6s var(--ease) infinite; }

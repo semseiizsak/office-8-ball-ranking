@@ -1,60 +1,55 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Challenge, LobbyMessage, MatchRecord, Player } from '../types';
-import { LeagueInsights } from '../utils/league';
+import React, { useEffect, useState } from 'react';
+import { LobbyMessage, MatchRecord, Player, Season } from '../types';
+import { Tournament } from '../utils/tournament';
 import { KioskChatFeed } from './LobbyChat';
-import { BallClashScene } from './screensaver/BallClashScene';
-import { StatSpotlightScene } from './screensaver/StatSpotlightScene';
-import { BowlingScene } from './screensaver/BowlingScene';
-import { LeaderboardSpotlightScene } from './screensaver/LeaderboardSpotlightScene';
-import { FunFactScene } from './screensaver/FunFactScene';
-import { BallFloodScene } from './screensaver/BallFloodScene';
-import { BallBounceScene } from './screensaver/BallBounceScene';
-import { LuckyNumberScene } from './screensaver/LuckyNumberScene';
+import { IdleBanner } from './screensaver/IdleBanner';
+import { CupStandingsPage, FormPage, RecentResultsPage, SeasonRacePage } from './screensaver/IdlePages';
 
-/** Seconds each screensaver scene stays before auto-advancing. */
-const SCENE_SECONDS = 7;
+/** How long the chat stays up before a full-screen page takes a turn. */
+const CHAT_SECONDS = 120;
+/** How long each full-screen page stays. */
+const PAGE_SECONDS = 60;
+const PAGE_COUNT = 4;
 
 /**
- * Nobody stands at a wall display, so an idle kiosk shouldn't just sit on a
- * static ladder all day. A loop of small, goofy scenes — reusing the same
- * clashes, bursts and entrances the rest of the app already animates with —
- * until someone taps the screen and it's back to work. The office chat runs
- * underneath, so the wall still shows what the room is saying.
+ * What the wall tablet shows when nobody has touched it for a while. Mostly
+ * the office chat, big enough to read across the room, under a strip of
+ * rotating news about the league. Every two minutes one full-screen page
+ * takes over for a minute: the cup, the season race, form, the latest
+ * results, in turn. Any tap goes back to starting a game.
  */
 export const KioskScreensaver: React.FC<{
   players: Player[];
+  /** Every match, for the cups. */
   matches: MatchRecord[];
-  league: LeagueInsights;
+  seasonMatches: MatchRecord[];
+  season: Season;
+  tournaments: Tournament[];
+  now: number;
   subscribeToChat: (onChange: (messages: LobbyMessage[]) => void) => () => void;
+  /** Open straight on one page, for previewing (?screensaver=1&page=0..3). */
+  startPage?: number;
   onDismiss: () => void;
-}> = ({ players, matches, league, subscribeToChat, onDismiss }) => {
-  // Picked once per idle session, not re-rolled every scene, so one idle
-  // stretch tells one little "story" instead of flickering between players.
-  const [p1, p2] = useMemo(() => {
-    const shuffled = [...players].sort(() => Math.random() - 0.5);
-    return [shuffled[0], shuffled[1]];
-  }, [players]);
-  const spotlight = useMemo(() => players[Math.floor(Math.random() * Math.max(1, players.length))], [players]);
-
-  // Mostly spectacle, a couple of calm beats for pacing — leaning hard into
-  // "overkill" per the brief, including a few scenes that are pure, unrelated
-  // nonsense in the honored bowling-alley-screensaver tradition.
-  const scenes = [
-    <BallClashScene key="clash" left={p1} right={p2} />,
-    <StatSpotlightScene key="stat" player={spotlight} />,
-    <BallFloodScene key="flood" />,
-    <BowlingScene key="bowl" player={p2} />,
-    <LuckyNumberScene key="lucky" />,
-    <LeaderboardSpotlightScene key="ladder" players={players} league={league} />,
-    <BallBounceScene key="bounce" />,
-    <FunFactScene key="fact" players={players} matches={matches} league={league} />,
-  ];
-
-  const [page, setPage] = useState(0);
+}> = ({ players, matches, seasonMatches, season, tournaments, now, subscribeToChat, startPage, onDismiss }) => {
+  const [mode, setMode] = useState<'chat' | 'page'>(startPage === undefined ? 'chat' : 'page');
+  const [pageIndex, setPageIndex] = useState(startPage ?? 0);
   useEffect(() => {
-    const timer = window.setTimeout(() => setPage((current) => (current + 1) % scenes.length), SCENE_SECONDS * 1000);
+    const timer = window.setTimeout(
+      () => {
+        if (mode === 'page') setPageIndex((index) => (index + 1) % PAGE_COUNT);
+        setMode(mode === 'chat' ? 'page' : 'chat');
+      },
+      (mode === 'chat' ? CHAT_SECONDS : PAGE_SECONDS) * 1000
+    );
     return () => window.clearTimeout(timer);
-  });
+  }, [mode]);
+
+  const page = [
+    <CupStandingsPage key="cup" players={players} matches={matches} tournaments={tournaments} now={now} />,
+    <SeasonRacePage key="race" players={players} seasonMatches={seasonMatches} season={season} now={now} />,
+    <FormPage key="form" players={players} seasonMatches={seasonMatches} now={now} />,
+    <RecentResultsPage key="results" players={players} matches={matches} now={now} />,
+  ][pageIndex];
 
   return (
     <div
@@ -63,16 +58,29 @@ export const KioskScreensaver: React.FC<{
       aria-label="Screensaver: tap to start a game"
       onClick={onDismiss}
       onKeyDown={onDismiss}
-      className="anim-fade fixed inset-0 z-[70] flex cursor-pointer flex-col overflow-hidden bg-bg text-white"
+      className="anim-fade fixed inset-0 z-[70] flex cursor-pointer flex-col overflow-hidden bg-bg px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-[calc(var(--safe-top)+1.25rem)] text-white"
     >
-      <div className="relative flex h-[50%] flex-none flex-col overflow-hidden">{scenes[page]}</div>
-      <div className="flex min-h-0 flex-1 flex-col rounded-t-[32px] bg-card px-6 pb-[calc(var(--safe-bottom)+1.25rem)] pt-6">
-        <KioskChatFeed subscribe={subscribeToChat} players={players} />
-        <span className="mt-5 flex h-[60px] w-full flex-none items-center justify-center gap-2.5 rounded-full bg-live text-base font-extrabold uppercase tracking-[0.06em]">
-          <span className="live-dot h-[10px] w-[10px]" />
-          Tap anywhere to start a game
-        </span>
-      </div>
+      {mode === 'chat' ? (
+        <div key="chat" className="anim-fade flex min-h-0 flex-1 flex-col">
+          <div className="h-[132px] flex-none">
+            <IdleBanner players={players} matches={matches} seasonMatches={seasonMatches} season={season} tournaments={tournaments} now={now} />
+          </div>
+          <div className="mt-6 flex min-h-0 flex-1 flex-col">
+            <KioskChatFeed subscribe={subscribeToChat} players={players} />
+          </div>
+        </div>
+      ) : (
+        <div key={`page-${pageIndex}`} className="flex min-h-0 flex-1 flex-col">
+          {page}
+          <span className="mt-4 block h-1.5 w-full flex-none overflow-hidden rounded-full bg-surface-alt">
+            <span className="idle-progress block h-full w-full origin-left rounded-full bg-white" style={{ animationDuration: `${PAGE_SECONDS}s` }} />
+          </span>
+        </div>
+      )}
+      <span className="mt-5 flex h-[60px] w-full flex-none items-center justify-center gap-2.5 rounded-full bg-live text-base font-extrabold uppercase tracking-[0.06em]">
+        <span className="live-dot h-[10px] w-[10px]" />
+        Tap anywhere to start a game
+      </span>
     </div>
   );
 };

@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MatchRecord, Player, Season } from '../types';
 import { matchesInSeason } from '../utils/league';
-import { ballColor, playerBall } from '../utils/balls';
 import { BallBurst, CountUp, PlayerAvatar } from './ui';
+import { SeasonRaceChart } from './SeasonRaceChart';
 
 const first = (name: string) => name.split(' ')[0];
 const PAGE_SECONDS = [10, 7, 8, 9];
@@ -41,77 +41,7 @@ export const SeasonWrapScene: React.FC<{
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  // Every player's rating after each match of the season, starting where they started.
-  const race = useMemo(() => {
-    const ids = [...new Set(games.flatMap((m) => [m.playerAId, m.playerBId]))];
-    const now = new Map(ids.map((id) => [id, season.startingElo[id] ?? 1000]));
-    const series = new Map(ids.map((id) => [id, [now.get(id)!]]));
-    for (const m of games) {
-      // A record without the ratings after keeps the line where it was.
-      if (m.playerAEloAfter) now.set(m.playerAId, m.playerAEloAfter);
-      if (m.playerBEloAfter) now.set(m.playerBId, m.playerBEloAfter);
-      for (const id of ids) series.get(id)!.push(now.get(id)!);
-    }
-    return { ids, series };
-  }, [games, season.startingElo]);
-
-  const chart = () => {
-    const W = 340, H = 300, L = 4, R = 58, T = 10, B = 10;
-    const all = [...race.series.values()].flat();
-    const lo = Math.min(...all) - 10;
-    const hi = Math.max(...all) + 10;
-    const steps = Math.max(1, games.length);
-    const x = (i: number) => L + (i * (W - L - R)) / steps;
-    const y = (v: number) => T + ((hi - v) * (H - T - B)) / (hi - lo || 1);
-    const leader = standings[0]?.playerId;
-    // End labels, nudged apart so no two names sit on top of each other.
-    const ends = race.ids
-      .map((id) => ({ id, v: race.series.get(id)!.at(-1)! }))
-      .sort((a, b) => b.v - a.v)
-      .map((end) => ({ ...end, ty: y(end.v) }));
-    for (let i = 1; i < ends.length; i++) if (ends[i].ty - ends[i - 1].ty < 13) ends[i].ty = ends[i - 1].ty + 13;
-    return (
-      <svg viewBox={`0 0 ${W} ${Math.max(H, (ends.at(-1)?.ty ?? 0) + 12)}`} className="block h-auto w-full overflow-visible" role="img" aria-label="Every rating across the season">
-        {race.ids.map((id, index) => {
-          const values = race.series.get(id)!;
-          const player = byId.get(id);
-          const colour = player ? ballColor(playerBall(player)).c : '#fff';
-          const top = id === leader;
-          const mine = id === currentPlayer.id;
-          const d = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
-          return (
-            <path
-              key={id}
-              d={d}
-              fill="none"
-              stroke={top ? '#F2B705' : colour}
-              strokeWidth={top ? 3.2 : mine ? 2.6 : 1.6}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              opacity={top || mine ? 1 : 0.8}
-              pathLength={1}
-              className="draw-line"
-              style={{ animationDuration: '2200ms', animationDelay: `${300 + index * 90}ms` }}
-            />
-          );
-        })}
-        {ends.map((end, index) => (
-          <text
-            key={end.id}
-            x={W - R + 6}
-            y={end.ty + 4}
-            fill={end.id === leader ? '#F2B705' : end.id === currentPlayer.id ? '#fff' : 'rgba(255,255,255,.65)'}
-            fontSize="10.5"
-            fontWeight="800"
-            className="anim-fade"
-            style={{ animationDelay: `${2200 + index * 60}ms` }}
-          >
-            {first(byId.get(end.id)?.name ?? '?')} {end.v}
-          </text>
-        ))}
-      </svg>
-    );
-  };
+  const racers = useMemo(() => new Set(games.flatMap((m) => [m.playerAId, m.playerBId])).size, [games]);
 
   // The viewer's own season.
   const mine = useMemo(() => {
@@ -145,9 +75,11 @@ export const SeasonWrapScene: React.FC<{
     <span key="race" className="grid w-full max-w-md gap-4">
       <h2 className="wa-in text-[40px] leading-[1.05]" style={{ ['--wa' as string]: 'wa-slide' }}>The race</h2>
       <span className="wa-in wa-d1 text-sm font-semibold text-white/70">
-        {season.name}. {games.length} matches, {race.ids.length} players. Gold is the champion.
+        {season.name}. {games.length} matches, {racers} players. Gold is the champion.
       </span>
-      <span className="rounded-3xl bg-card p-3">{games.length > 0 ? chart() : <span className="text-sm text-white/55">No matches this season.</span>}</span>
+      <span className="rounded-3xl bg-card p-3">{games.length > 0 ? (
+          <SeasonRaceChart games={games} startingElo={season.startingElo} players={players} leaderId={standings[0]?.playerId} highlightId={currentPlayer.id} />
+        ) : <span className="text-sm text-white/55">No matches this season.</span>}</span>
     </span>,
     <span key="podium" className="relative grid w-full max-w-sm gap-6">
       <BallBurst />
