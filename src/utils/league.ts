@@ -540,7 +540,7 @@ export function deriveLeagueInsights(
       'the-oracle',
       'The Oracle',
       '🔮',
-      `Most office chips won calling matches, over at least ${NERVE_MIN_CALLS} bets.`,
+      `Most office coins won calling matches, over at least ${NERVE_MIN_CALLS} bets.`,
       score((player) => {
         const record = chips.records.get(player.id);
         const eligible = !!record && record.bets >= NERVE_MIN_CALLS;

@@ -109,7 +109,7 @@ export const WeeklyAwardsScene: React.FC<{ week: WeekAwards; players: Player[]; 
           ['Matches', week.matches],
           ['Players', week.stats.players],
           ['Calls', week.stats.calls],
-          ['Chips staked', week.stats.staked],
+          ['Coins staked', week.stats.staked],
           ['Upsets', week.stats.upsets],
           ['Awards', week.awards.length],
         ];

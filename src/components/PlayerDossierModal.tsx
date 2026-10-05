@@ -391,18 +391,18 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
         <div className="flex justify-between text-sm font-black tabular-nums"><span>{wonMatches.length}</span><span>{lostMatches.length}</span></div>
       </div>
 
-      <Section title="Betting" aside="Chips on other matches">
+      <Section title="Betting" aside="Coins on other matches">
         {nerve && nerve.total > 0 ? (
           <div className="grid grid-cols-3 gap-0.5 overflow-hidden rounded-2xl bg-card">
-            <Tile value={context.chips.chips} label="Chips won" />
+            <Tile value={context.chips.chips} label="Coins won" />
             <Tile value={context.chips.bets} label="Bets" />
             <Tile value={Math.round((nerve.correct / nerve.total) * 100)} label="Hit rate" post="%" />
             <Tile value={context.chips.biggest} label="Biggest win" />
             <Tile value={context.chips.jackpots} label="Jackpots" />
-            <Tile value={context.chips.lost} label="Chips lost" />
+            <Tile value={context.chips.lost} label="Coins lost" />
           </div>
         ) : (
-          <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">No bets yet. Put some chips on a match in the arena and the numbers start here.</p>
+          <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">No bets yet. Put some coins on a match in the arena and the numbers start here.</p>
         )}
       </Section>
     </>

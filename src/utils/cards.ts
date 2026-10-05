@@ -121,7 +121,16 @@ export interface Card {
   createdAt: number;
 }
 
-export type PackKind = 'weekly' | 'earned' | 'champion' | 'reward';
+export type PackKind = 'weekly' | 'earned' | 'champion' | 'reward' | 'bought';
+
+/**
+ * The pack shop, paid in coins. Priced well above what a pack cashes in for
+ * (about 32 coins on average), so buying is for collecting, never for profit,
+ * and a premium pack takes a few weeks of good calls to save up for.
+ */
+export type ShopTier = 'standard' | 'premium' | 'retro';
+export const SHOP_PRICE: Record<ShopTier, number> = { standard: 400, premium: 1200, retro: 500 };
+export const SHOP_LABEL: Record<ShopTier, string> = { standard: 'Season pack', premium: 'Premium pack', retro: 'Retro pack' };
 
 export interface Pack {
   id: string;
@@ -138,6 +147,10 @@ export interface Pack {
   cardIds: string[];
   /** Duplicates turned into chips when it was opened. */
   duplicateChips: number;
+  /** A bought pack: the season its cards are printed in, what it cost and which shelf. */
+  seasonId?: string;
+  price?: number;
+  tier?: ShopTier;
 }
 
 export interface Collector {
@@ -148,6 +161,8 @@ export interface Collector {
   pity: number;
   /** Chips from duplicates, added to their stack. */
   duplicateChips: number;
+  /** Coins spent in the pack shop, taken off their stack. */
+  spentChips: number;
   opened: number;
 }
 

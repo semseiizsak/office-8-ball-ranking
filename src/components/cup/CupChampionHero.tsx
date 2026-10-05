@@ -83,7 +83,7 @@ export const CupChampionHero: React.FC<{
         {name}
       </b>
       <span className="relative font-display text-xl font-extrabold tabular-nums">
-        +<CountUp to={CHAMPION_CHIPS} delay={t(1100)} /> chips
+        +<CountUp to={CHAMPION_CHIPS} delay={t(1100)} /> coins
       </span>
       <span className="relative text-[13px] font-bold">{titles <= 1 ? 'First title' : `Title number ${titles}`}</span>
       {isMe && (

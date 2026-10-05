@@ -151,7 +151,7 @@ export const CupView: React.FC<{
 
         {phase === 'unfinished' && (
           <div className="cup-in rounded-3xl bg-card p-4 text-sm font-semibold text-white/70" style={cupIn('rise-in', 640, 360)}>
-            No chips this week. Next cup opens {weekday(nextOpen)} {hm(nextOpen)}.
+            No coins this week. Next cup opens {weekday(nextOpen)} {hm(nextOpen)}.
           </div>
         )}
 

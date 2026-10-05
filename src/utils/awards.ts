@@ -154,7 +154,7 @@ export function weekAwards(
   if (crowd) add({ key: 'crowd', e: '📣', title: 'Crowd favourite', playerId: crowd[0], line: `${plural(crowd[1], 'call')} backed them this week` });
 
   const oracle = top(profit);
-  if (oracle) add({ key: 'oracle', e: '🔮', title: 'Oracle', playerId: oracle[0], line: `+${oracle[1]} chips from calls` });
+  if (oracle) add({ key: 'oracle', e: '🔮', title: 'Oracle', playerId: oracle[0], line: `+${oracle[1]} coins from calls` });
 
   // The ones people will actually bring up.
   const faller = top(new Map([...net].map(([id, value]) => [id, -value])));
@@ -196,7 +196,7 @@ export function weekAwards(
   if (hottest) add({ key: 'onfire', e: '🔥', title: 'On fire', playerId: hottest[0], line: `${hottest[1]} wins in a row` });
 
   const burn = top(new Map([...profit].map(([id, value]) => [id, -value])), 25);
-  if (burn) add({ key: 'burner', e: '🔥', title: 'Chip burner', playerId: burn[0], line: `${burn[1]} chips gone on bad calls` }, true);
+  if (burn) add({ key: 'burner', e: '🔥', title: 'Coin burner', playerId: burn[0], line: `${burn[1]} coins gone on bad calls` }, true);
   if (matches.length >= 3) {
     const early = [...matches].sort((a, b) => minutesOfDay(a.timestamp) - minutesOfDay(b.timestamp))[0];
     const late = [...matches].sort((a, b) => minutesOfDay(b.timestamp) - minutesOfDay(a.timestamp))[0];

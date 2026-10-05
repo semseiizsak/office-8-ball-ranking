@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { MatchRecord, Player } from '../../types';
-import { Card, CardType, Collector, DUPLICATE_CHIPS, LEGENDARY_PITY, Pack, RARITIES, Rarity, TYPE_LABEL, Trade, albumSize, designKey, weekKeyOf, winsThisWeek } from '../../utils/cards';
-import { PlayerAvatar, Sheet } from '../ui';
+import { Card, CardType, Collector, DUPLICATE_CHIPS, LEGENDARY_PITY, Pack, RARITIES, Rarity, SHOP_LABEL, SHOP_PRICE, ShopTier, TYPE_LABEL, Trade, albumSize, designKey, weekKeyOf, winsThisWeek } from '../../utils/cards';
+import { Coin, PlayerAvatar, Sheet } from '../ui';
 import { PlayerCard } from './PlayerCard';
 import { PackOpening } from './PackOpening';
 import { TradeBuilder } from './TradeBuilder';
@@ -18,6 +18,11 @@ interface CollectionViewProps {
   /** Why this week's earned pack was earned, or null while it is not. */
   earned: { reason: string } | null;
   onOpenPack: (packId: string) => Promise<Card[]>;
+  /** The viewer's coin stack, what the shop takes from. */
+  coins: number;
+  /** Seasons that have closed: each has its own retro pack in the shop. */
+  closedSeasons: Array<{ id: string; name: string }>;
+  onBuyPack: (tier: ShopTier, seasonId: string) => Promise<void>;
   onCashIn: (cardId: string) => Promise<number>;
   onOfferTrade: (toId: string, give: string[], want: string[], note?: string) => Promise<void>;
   onRespondTrade: (tradeId: string, answer: 'accept' | 'decline' | 'cancel') => Promise<void>;
@@ -48,6 +53,9 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   now,
   earned,
   onOpenPack,
+  coins,
+  closedSeasons,
+  onBuyPack,
   onCashIn,
   onOfferTrade,
   onRespondTrade,
@@ -67,6 +75,10 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const [tradeError, setTradeError] = useState<Record<string, string>>({});
   const [builder, setBuilder] = useState<{ toId?: string; give?: string[]; want?: string[]; gift?: boolean } | null>(null);
   const [opening, setOpening] = useState<Pack | null>(null);
+  /** The shop offer waiting for a second tap, and any error from buying. */
+  const [confirmBuy, setConfirmBuy] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [buyError, setBuyError] = useState('');
 
   const me = currentPlayer.id;
   const mine = cards.filter((card) => card.ownerId === me);
@@ -76,8 +88,31 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
   const total = albumSize(players.length);
   const collector = collectors.find((entry) => entry.id === me);
   const week = weekKeyOf(now);
-  // Reward packs keep until opened; the others only last their week.
-  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt && (pack.kind === 'reward' || pack.week === week));
+  // Reward and bought packs keep until opened; the others only last their week.
+  const openable = packs.filter((pack) => pack.ownerId === me && !pack.openedAt && (pack.kind === 'reward' || pack.kind === 'bought' || pack.week === week));
+  const currentSeasonName = seasons.find((entry) => entry.id === currentSeasonId)?.name ?? 'this season';
+  const offers: Array<{ key: string; tier: ShopTier; seasonId: string; name: string; line: string }> = [
+    { key: 'standard', tier: 'standard', seasonId: currentSeasonId, name: SHOP_LABEL.standard, line: `Three cards from ${currentSeasonName}.` },
+    { key: 'premium', tier: 'premium', seasonId: currentSeasonId, name: SHOP_LABEL.premium, line: `Three cards from ${currentSeasonName}, one of them epic or better.` },
+    ...closedSeasons.map((season) => ({ key: `retro-${season.id}`, tier: 'retro' as ShopTier, seasonId: season.id, name: `${SHOP_LABEL.retro}, ${season.name}`, line: `Three cards from the ${season.name} set, at the ratings it closed on.` })),
+  ];
+  const buy = async (offer: (typeof offers)[number]) => {
+    if (confirmBuy !== offer.key) {
+      setConfirmBuy(offer.key);
+      setBuyError('');
+      return;
+    }
+    setBuying(true);
+    setBuyError('');
+    try {
+      await onBuyPack(offer.tier, offer.seasonId);
+      setConfirmBuy(null);
+    } catch (reason) {
+      setBuyError(reason instanceof Error ? reason.message : 'Could not buy it.');
+    } finally {
+      setBuying(false);
+    }
+  };
   const earnedPack = packs.some((pack) => pack.ownerId === me && pack.week === week && pack.kind === 'earned');
   const wins = Math.min(5, winsThisWeek(me, matches, now));
   const isMine = viewId === me;
@@ -192,7 +227,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             <span className="text-2xl font-black leading-none tabular-nums">{mine.length}</span>
           </div>
           <div className="grid gap-1 rounded-xl bg-surface p-3">
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Chips cashed in</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Coins cashed in</span>
             <span className="text-2xl font-black leading-none tabular-nums">{collector?.duplicateChips ?? 0}</span>
           </div>
         </div>
@@ -200,11 +235,11 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
 
       {openable.map((pack) => (
         <section key={pack.id} className="grid grid-cols-[96px_1fr] items-center gap-4 rounded-3xl bg-card p-4 shadow-[inset_0_0_0_1.5px_#F2B705]">
-          <div className={`pk ${pack.kind} h-[132px] w-[96px]`}>
-            <span className="relative z-10 font-display text-[40px] font-extrabold text-bg">8</span>
+          <div className={`pk ${pack.kind} ${pack.tier ?? ''} h-[132px] w-[96px]`}>
+            <span className={`relative z-10 font-display text-[40px] font-extrabold ${pack.tier === 'premium' || pack.tier === 'retro' || pack.kind === 'champion' ? 'text-white' : 'text-bg'}`}>8</span>
           </div>
           <div className="grid min-w-0 content-center gap-2">
-            <h2 className="text-xl">{pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
+            <h2 className="text-xl">{pack.kind === 'bought' ? SHOP_LABEL[pack.tier ?? 'standard'] : pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
             <p className="text-sm font-semibold text-white/70">{pack.reason ?? 'Three cards. Open it this week or it is gone.'}</p>
             <button type="button" onClick={() => setOpening(pack)} className={`${button} w-fit bg-white text-bg`}>
               Open
@@ -212,6 +247,49 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
           </div>
         </section>
       ))}
+
+      {isMine && (
+        <section className="grid gap-3 rounded-3xl bg-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg">Pack shop</h2>
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-alt px-3 py-1.5 text-sm font-black tabular-nums">
+              <Coin size={18} />
+              {coins}
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-white/70">Spend the coins you win calling matches. Bought packs keep until you open them.</p>
+          {offers.map((offer) => {
+            const price = SHOP_PRICE[offer.tier];
+            const short = price - coins;
+            const armed = confirmBuy === offer.key;
+            return (
+              <div key={offer.key} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 rounded-2xl bg-surface p-3">
+                <div className={`pk bought ${offer.tier} h-[66px] w-[48px]`}>
+                  <span className={`relative z-10 font-display text-xl font-extrabold ${offer.tier === 'standard' ? 'text-bg' : 'text-white'}`}>8</span>
+                </div>
+                <div className="grid min-w-0 gap-0.5">
+                  <span className="truncate text-sm font-extrabold">{offer.name}</span>
+                  <span className="text-xs font-semibold text-white/55">{offer.line}</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={short > 0 || buying}
+                  onClick={() => void buy(offer)}
+                  className={`${button} flex items-center gap-1.5 ${armed ? 'bg-felt text-white' : short > 0 ? 'bg-surface-alt text-white/40' : 'bg-white text-bg'}`}
+                >
+                  {armed ? (buying ? 'Buying' : 'Confirm') : (
+                    <>
+                      <Coin size={16} />
+                      {price}
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+          {buyError && <p role="alert" className="rounded-xl bg-live p-2.5 text-sm font-semibold text-white">{buyError}</p>}
+        </section>
+      )}
 
       <section className="grid gap-2.5 rounded-3xl bg-card p-4">
         <div className="flex items-center justify-between gap-3">
@@ -386,7 +464,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
                 (confirmCash ? (
                   <div className="grid gap-2 rounded-2xl bg-surface p-3">
                     <p className="text-sm font-semibold">
-                      Cash it in for {DUPLICATE_CHIPS[openCard.rarity]} chips? The card is gone for good.
+                      Cash it in for {DUPLICATE_CHIPS[openCard.rarity]} coins? The card is gone for good.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => setConfirmCash(false)} className={`${button} bg-surface-alt text-white`}>
@@ -399,7 +477,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
                   </div>
                 ) : (
                   <button type="button" onClick={() => setConfirmCash(true)} className={`${button} bg-surface-alt text-white`}>
-                    Cash in for {DUPLICATE_CHIPS[openCard.rarity]} chips
+                    Cash in for {DUPLICATE_CHIPS[openCard.rarity]} coins
                   </button>
                 ))}
               <div className="grid gap-2">

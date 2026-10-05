@@ -14,7 +14,7 @@ const useLobby = (subscribe: LobbySubscribe) => {
   return messages;
 };
 
-const MessageLine: React.FC<{ message: LobbyMessage; author?: Player; big?: boolean }> = ({ message, author, big }) => {
+export const MessageLine: React.FC<{ message: LobbyMessage; author?: Player; big?: boolean }> = ({ message, author, big }) => {
   if (message.kind === 'system') {
     return (
       <p className={`card-drop self-center justify-self-center rounded-full bg-surface-alt px-3 py-1 text-center font-semibold text-white/70 ${big ? 'text-lg' : 'text-xs'}`}>

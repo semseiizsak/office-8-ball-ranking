@@ -5,6 +5,7 @@ import { VOTE_WINDOW_MS } from '../utils/league';
 import { Ball, CallSplit } from './ui';
 import { VoterStack } from './ArenaView';
 import { FightPosterHero } from './FightPoster';
+import { MessageLine } from './LobbyChat';
 
 const elapsed = (startedAt: number, now: number): string => {
   const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
@@ -221,21 +222,22 @@ export const KioskLiveMatch: React.FC<{
             </div>
           </div>
 
-          <div
-            ref={chatScrollRef}
-            aria-live="polite"
-            className="no-scrollbar mx-4 grid max-h-[260px] min-h-[120px] content-start gap-1.5 overflow-y-auto rounded-xl bg-elev p-3 text-[13px] leading-snug"
-          >
-            {chatMessages.length === 0 ? (
-              <p className="self-center text-center text-xs text-white/55">Nobody's said anything yet.</p>
-            ) : (
-              chatMessages.map((message) => (
-                <p key={message.id} className="card-drop [overflow-wrap:anywhere]">
-                  <b className="font-extrabold">{message.authorName.split(' ')[0]}</b> {message.text}
-                </p>
-              ))
-            )}
-          </div>
+          {/* The match chat at the same size as the idle wall: newest at the bottom, older lines drop off the top. */}
+          <section aria-live="polite" className="mx-4 flex min-h-[320px] flex-1 flex-col rounded-[28px] bg-card px-5 pb-5 pt-4">
+            <span className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">
+              <span className="live-dot h-[9px] w-[9px]" />
+              Match chat
+            </span>
+            <div ref={chatScrollRef} className="mt-4 flex min-h-0 flex-1 flex-col justify-end gap-5 overflow-hidden">
+              {chatMessages.length === 0 ? (
+                <p className="self-center pb-[4vh] text-2xl font-semibold text-white/55">Nobody's said anything yet.</p>
+              ) : (
+                chatMessages.slice(-12).map((message) => (
+                  <MessageLine key={message.id} message={{ ...message, kind: 'user' }} author={players.find((player) => player.id === message.authorId)} big />
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </div>

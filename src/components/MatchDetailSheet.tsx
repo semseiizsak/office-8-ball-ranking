@@ -343,7 +343,7 @@ export const MatchDetailSheet: React.FC<MatchDetailProps> = (props) => {
                 })}
               </div>
             </div>,
-            `${challenge.predictions.reduce((sum, p) => sum + stakeOf(p), 0)} chips in the pot`
+            `${challenge.predictions.reduce((sum, p) => sum + stakeOf(p), 0)} coins in the pot`
           )}
 
         {challenge &&

@@ -88,7 +88,7 @@ export const CupCountdown: React.FC<{ to: number; caption: string; delay: number
 export const CupStakeBanner: React.FC<{ delay: number }> = ({ delay }) => (
   <div
     role="img"
-    aria-label={`${CHAMPION_CHIPS} chips to the champion, ${FINALIST_CHIPS} to the runner up`}
+    aria-label={`${CHAMPION_CHIPS} coins to the champion, ${FINALIST_CHIPS} to the runner up`}
     className="cup-in relative flex h-12 items-center justify-between overflow-hidden rounded-full bg-crown px-5 text-bg"
     style={cupIn('rise-in', delay, 360)}
   >

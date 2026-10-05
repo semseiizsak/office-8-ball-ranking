@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Player } from '../../types';
-import { Card, Pack, RARITIES } from '../../utils/cards';
+import { Card, Pack, RARITIES, SHOP_LABEL } from '../../utils/cards';
 import { BallBurst } from '../ui';
 import { PlayerCard, RARITY_GLOW } from './PlayerCard';
 
@@ -10,7 +10,9 @@ type Phase = 'sealed' | 'ripping' | 'stack' | 'summary' | 'error';
 const rank = (card: Card) => RARITIES.indexOf(card.rarity);
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const packName = (pack: Pack) =>
-  pack.kind === 'reward'
+  pack.kind === 'bought'
+    ? SHOP_LABEL[pack.tier ?? 'standard']
+    : pack.kind === 'reward'
     ? pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack'
     : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack';
 
@@ -162,11 +164,11 @@ export const PackOpening: React.FC<{
           >
             {/* The strip that tears off: it peels up from the left as you drag. */}
             <div
-              className={`po2-strip ${pack.kind} ${phase === 'ripping' && motion ? 'po2-strip-off' : ''}`}
+              className={`po2-strip ${pack.kind} ${pack.tier ?? ''} ${phase === 'ripping' && motion ? 'po2-strip-off' : ''}`}
               style={{ clipPath: `inset(0 ${100 - Math.max(tear, 0.001) * 100}% 0 0)`, transform: `rotate(${-tear * 7}deg) translateY(${-tear * 10}px)` }}
             />
-            <div className={`po2-strip ${pack.kind} po2-strip-rest`} style={{ clipPath: `inset(0 0 0 ${tear * 100}%)` }} />
-            <div className={`po2-pack ${pack.kind}`}>
+            <div className={`po2-strip ${pack.kind} ${pack.tier ?? ''} po2-strip-rest`} style={{ clipPath: `inset(0 0 0 ${tear * 100}%)` }} />
+            <div className={`po2-pack ${pack.kind} ${pack.tier ?? ''}`}>
               <span className="po2-sheen" />
               <span className="po2-emblem">
                 <span className="po2-ball">8</span>

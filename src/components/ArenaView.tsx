@@ -7,7 +7,7 @@ import { stakeOf, BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } fr
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
-import { Ball, CallSplit, PlayerAvatar } from './ui';
+import { Ball, CallSplit, Coin, PlayerAvatar } from './ui';
 
 /** Quick, disposable calls-outs on a live match — nothing to say, just noise. */
 const CHEER_EMOJI = ['🔥', '🎱', '😱', '👏', '💀', '😭'];
@@ -180,7 +180,7 @@ const CallControls: React.FC<{
     const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
     return (
       <p className="text-[13px] text-white/70">
-        You put <b className="text-white">{stakeOf(myCall)} chips</b> on <b className="text-white">{first(pickedName)}</b>
+        You put <b className="text-white">{stakeOf(myCall)} coins</b> on <b className="text-white">{first(pickedName)}</b>
         {myCall.ball ? `, on ${myCall.ball} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );
@@ -203,7 +203,8 @@ const CallControls: React.FC<{
       </div>
       <div className="grid grid-cols-4 gap-1.5">
         {STAKES.map((value) => (
-          <button key={value} type="button" aria-pressed={stake === value} disabled={value > left} onClick={() => setStake(value)} className={pill(stake === value, value > left)}>
+          <button key={value} type="button" aria-pressed={stake === value} disabled={value > left} onClick={() => setStake(value)} className={`${pill(stake === value, value > left)} inline-flex items-center justify-center gap-1.5`}>
+            <Coin size={14} />
             {value}
           </button>
         ))}
@@ -233,7 +234,7 @@ const CallControls: React.FC<{
           </button>
         ))}
       </div>
-      {left < 10 && <p className="text-center text-xs font-semibold text-white/55">No chips left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>}
+      {left < 10 && <p className="text-center text-xs font-semibold text-white/55">No coins left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>}
     </div>
   );
 };
@@ -409,7 +410,7 @@ export const LiveMatchScreen: React.FC<{
                 👑 {challenge.stakes.crownBounty} bounty riding
               </span>
             )}
-            {pot > 0 && <span className="justify-self-center text-xs font-semibold tabular-nums text-white/70">🪙 {pot} chips in the pot</span>}
+            {pot > 0 && <span className="justify-self-center text-xs font-semibold tabular-nums text-white/70"><Coin size={14} /> {pot} coins in the pot</span>}
             {onPoster && (
               <button type="button" onClick={onPoster} className="press h-9 justify-self-center rounded-full bg-surface-alt px-4 text-[11px] font-extrabold uppercase tracking-[0.08em]">
                 🥊 Fight poster
@@ -669,7 +670,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
         )}
 
         {(chips.pools.get(challenge.id) ?? 0) > 0 && (
-          <span className="text-xs font-semibold tabular-nums text-white/55">🪙 {chips.pools.get(challenge.id)} chips in the pot</span>
+          <span className="text-xs font-semibold tabular-nums text-white/55"><Coin size={14} /> {chips.pools.get(challenge.id)} coins in the pot</span>
         )}
 
         {challenge.status === 'pending' && (
@@ -764,8 +765,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                   <b className="truncate text-sm">You and {first(daily.opponent.name)}</b>
                   <span className="text-xs font-semibold text-white/55">
                     {daily.played
-                      ? daily.won ? `Done. You won it, +${DAILY_PLAY_BONUS + DAILY_WIN_BONUS} chips.` : `Done. +${DAILY_PLAY_BONUS} chips for turning up.`
-                      : `+${DAILY_PLAY_BONUS} chips each for playing, +${DAILY_WIN_BONUS} more to the winner.`}
+                      ? daily.won ? `Done. You won it, +${DAILY_PLAY_BONUS + DAILY_WIN_BONUS} coins.` : `Done. +${DAILY_PLAY_BONUS} coins for turning up.`
+                      : `+${DAILY_PLAY_BONUS} coins each for playing, +${DAILY_WIN_BONUS} more to the winner.`}
                   </span>
                 </span>
                 {daily.played && <span aria-label="Done" className="grid h-9 w-9 flex-none place-items-center rounded-full bg-felt text-sm font-black">✓</span>}
@@ -791,11 +792,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
           <span className="text-xs font-semibold text-white/70">Call the winner and their balls to take it.</span>
         </span>
         <span className="flex flex-none items-center gap-2">
-          <Ball n={8} size={28} />
+          <Coin size={28} />
           <span className="font-display text-[28px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
         </span>
       </div>
-      <span className="-mt-1 px-1 text-xs font-semibold text-white/55">You have {chipsLeft} of {DAILY_CHIPS} chips left to play today.</span>
+      <span className="-mt-1 px-1 text-xs font-semibold text-white/55">You have {chipsLeft} of {DAILY_CHIPS} coins left to play today.</span>
 
       {forMe.length > 0 && (
         <section className="mt-2 grid gap-2">
@@ -910,10 +911,10 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
       )}
 
       <section className="mt-2 grid gap-2">
-        {sectionHead('Richest', 'Chips won calling')}
+        {sectionHead('Richest', 'Coins won calling')}
         {richest.length === 0 ? (
           <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">
-            Nobody has won a chip yet. Everyone gets {DAILY_CHIPS} a day to put on matches. Back the underdog when nobody else does and the
+            Nobody has won a coin yet. Everyone gets {DAILY_CHIPS} a day to put on matches. Back the underdog when nobody else does and the
             whole pot is yours. {NERVE_MIN_CALLS} bets earns you a shot at 🔮 The Oracle.
           </p>
         ) : (
@@ -936,7 +937,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
                     {entry.record.wins} of {entry.record.bets} bets won{entry.record.jackpots ? `, ${entry.record.jackpots} jackpot${entry.record.jackpots === 1 ? '' : 's'}` : ''}
                   </span>
                 </span>
-                <span className="text-[17px] font-black tabular-nums">{entry.record.chips}</span>
+                <span className="flex items-center gap-1.5 text-[17px] font-black tabular-nums"><Coin size={16} />{entry.record.chips}</span>
               </button>
             ))}
           </div>

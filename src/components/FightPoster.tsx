@@ -4,7 +4,7 @@ import { CrownState, computeRivalry } from '../utils/league';
 import { previewStakes } from '../utils/stakes';
 import { ballColor, playerBall } from '../utils/balls';
 import { shamed } from '../utils/shame';
-import { CallSplit, PlayerAvatar, SponsorPatch } from './ui';
+import { CallSplit, Coin, PlayerAvatar, SponsorPatch } from './ui';
 import { sponsorOf } from '../utils/sponsors';
 import { gsap, useGSAP, prefersReducedMotion } from '../utils/gsap';
 
@@ -173,7 +173,7 @@ export const FightPoster: React.FC<{
           <div className="grid gap-1.5 rounded-[10px] bg-elev px-3 py-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-white/55">The office calls it</span>
-              {pot > 0 && <span className="text-xs font-bold tabular-nums">🪙 {pot} in the pot</span>}
+              {pot > 0 && <span className="text-xs font-bold tabular-nums"><Coin size={14} /> {pot} in the pot</span>}
             </div>
             <CallSplit left={{ player: a, count: forA }} right={{ player: b, count: forB }} />
           </div>

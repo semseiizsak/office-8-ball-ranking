@@ -68,7 +68,10 @@ import {
   Pack,
   PackKind,
   Rarity,
+  SHOP_LABEL,
+  SHOP_PRICE,
   SPECIAL_RARITY,
+  ShopTier,
   SpecialAward,
   Trade,
   TradeStatus,
@@ -1246,7 +1249,7 @@ export async function addPrediction(params: {
   if (cost > 0) {
     const all = await getDocs(challengesCollection);
     const spent = spentOnDay(all.docs.map((entry) => toChallenge(entry.id, entry.data(), Date.now())), params.predictorId, Date.now());
-    if (spent + cost > DAILY_CHIPS) throw new Error(`Only ${Math.max(0, DAILY_CHIPS - spent)} chips left today.`);
+    if (spent + cost > DAILY_CHIPS) throw new Error(`Only ${Math.max(0, DAILY_CHIPS - spent)} coins left today.`);
   }
   await updateDoc(challengeRef, {
     [`predictions.${params.predictorId}`]: {
@@ -1726,6 +1729,9 @@ const toPack = (id: string, data: Record<string, unknown>): Pack => ({
   openedAt: data.openedAt ? Number(data.openedAt) : null,
   cardIds: Array.isArray(data.cardIds) ? (data.cardIds as string[]).map(String) : [],
   duplicateChips: Number(data.duplicateChips ?? 0),
+  seasonId: data.seasonId ? String(data.seasonId) : undefined,
+  price: data.price ? Number(data.price) : undefined,
+  tier: data.tier ? (data.tier as ShopTier) : undefined,
 });
 
 const toCollector = (id: string, data: Record<string, unknown> | undefined): Collector => ({
@@ -1733,6 +1739,7 @@ const toCollector = (id: string, data: Record<string, unknown> | undefined): Col
   counts: {},
   pity: Number(data?.pity ?? 0),
   duplicateChips: Number(data?.duplicateChips ?? 0),
+  spentChips: Number(data?.spentChips ?? 0),
   opened: Number(data?.opened ?? 0),
 });
 
@@ -1835,8 +1842,8 @@ export async function openPack(params: {
     const pack = toPack(packDoc.id, packDoc.data());
     if (pack.ownerId !== params.ownerId) throw new Error('Not your pack.');
     if (pack.openedAt) throw new Error('Already opened.');
-    // Weekly, earned and champion packs are for their week; reward packs keep.
-    if (pack.kind !== 'reward' && pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
+    // Weekly, earned and champion packs are for their week; reward and bought packs keep.
+    if (pack.kind !== 'reward' && pack.kind !== 'bought' && pack.week !== weekKeyOf(Date.now())) throw new Error('This pack has expired.');
     const collectorDoc = await transaction.get(collectorRef);
     const collector = toCollector(params.ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
     // One mythic per player per season. Only a pack that rolled one reads the
@@ -1888,6 +1895,50 @@ export async function openPack(params: {
     transaction.set(collectorRef, { pity: legendary ? 0 : collector.pity + 1, opened: collector.opened + 1, duplicateChips: collector.duplicateChips }, { merge: true });
     transaction.update(packRef, { openedAt: now, cardIds: cards.map((card) => card.id) });
     return cards;
+  });
+}
+
+/**
+ * Buys a pack from the shop. The balance is rebuilt on the client from every
+ * call, so the client says what it believes was spent so far: if another
+ * purchase landed in between, this one stops instead of spending twice.
+ */
+export async function buyPack(params: {
+  ownerId: string;
+  tier: ShopTier;
+  seasonId: string;
+  seasonName: string;
+  balance: number;
+  knownSpent: number;
+}): Promise<Pack> {
+  const price = SHOP_PRICE[params.tier];
+  if (params.balance < price) throw new Error(`That pack is ${price} coins. You have ${Math.max(0, params.balance)}.`);
+  const collectorRef = doc(collectorsCollection, params.ownerId);
+  const packRef = doc(packsCollection, `${params.ownerId}_bought_${Date.now()}`);
+  return runTransaction(db, async (transaction) => {
+    const collectorDoc = await transaction.get(collectorRef);
+    const spent = Number(collectorDoc.exists() ? collectorDoc.data().spentChips ?? 0 : 0);
+    if (spent !== params.knownSpent) throw new Error('Your coins just changed. Try again.');
+    const now = Date.now();
+    const pack: Pack = {
+      id: packRef.id,
+      ownerId: params.ownerId,
+      kind: 'bought',
+      week: weekKeyOf(now),
+      reason: `${SHOP_LABEL[params.tier]}, ${params.seasonName}`,
+      ...(params.tier === 'premium' ? { minRarity: 'epic' as Rarity } : {}),
+      createdAt: now,
+      openedAt: null,
+      cardIds: [],
+      duplicateChips: 0,
+      seasonId: params.seasonId,
+      price,
+      tier: params.tier,
+    };
+    const { id, ...data } = pack;
+    transaction.set(packRef, data);
+    transaction.set(collectorRef, { spentChips: spent + price }, { merge: true });
+    return pack;
   });
 }
 

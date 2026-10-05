@@ -51,6 +51,15 @@ export const PlayerAvatar: React.FC<{
   );
 };
 
+/** The office coin: solid gold with a stamped rim, sized to sit inline with text. */
+export const Coin: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={`inline-block flex-none align-[-0.15em] ${className}`}>
+    <circle cx="12" cy="12" r="11" fill="#F2B705" />
+    <circle cx="12" cy="12" r="7.6" fill="none" stroke="#0A0A0A" strokeWidth="1.4" />
+    <path d="M14.6 9.6a3.4 3.4 0 1 0 0 4.8" fill="none" stroke="#0A0A0A" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
 /** Fifteen balls breaking outward from the middle, for the moments worth celebrating. */
 export const BallBurst: React.FC = () => {
   const balls = useMemo(

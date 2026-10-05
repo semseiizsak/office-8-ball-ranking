@@ -88,7 +88,7 @@ export function earnedNotifications(params: {
         'prediction_result',
         right ? 'You called it' : 'Wrong call',
         `${winnerFirst} beat ${loserFirst}.` +
-          (stakeOf(prediction) ? (right ? ' Your chips came in.' : ` ${stakeOf(prediction)} chips gone.`) : '')
+          (stakeOf(prediction) ? (right ? ' Your coins came in.' : ` ${stakeOf(prediction)} coins gone.`) : '')
       );
     }
   }

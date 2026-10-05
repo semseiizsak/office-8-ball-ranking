@@ -39,7 +39,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, leftToday } from './utils/chips';
-import { Card, Collector, Pack, PackKind, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
+import { Card, Collector, Pack, PackKind, ShopTier, Trade, cardStats, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
 import {
@@ -197,6 +197,7 @@ export default function App() {
     for (const [id, record] of cupRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const grant of GRANTS) for (const player of players) addBonus(merged, player.id, grant.amount);
     for (const collector of collectors) if (collector.duplicateChips) addBonus(merged, collector.id, collector.duplicateChips);
+    for (const collector of collectors) if (collector.spentChips) addBonus(merged, collector.id, -collector.spentChips);
     return merged;
   }, [league.chips, dailyRecords, cupRecords, players, collectors]);
 
@@ -741,13 +742,27 @@ export default function App() {
 
   const handleOpenPack = async (packId: string): Promise<Card[]> => {
     if (!currentPlayer) return [];
+    // A pack bought from an older season prints that season's set: its
+    // players, at the rating they finished on, with that season's numbers.
+    const bought = packs.find((pack) => pack.id === packId);
+    const oldSeason = bought?.seasonId && bought.seasonId !== currentSeason.id ? seasons.find((entry) => entry.id === bought.seasonId) : undefined;
+    let playerIds = players.map((player) => player.id);
+    let stats = cardStatsById;
+    if (oldSeason) {
+      const games = matchesInSeason(matches, oldSeason);
+      const finished = new Map(oldSeason.standings.map((row) => [row.playerId, row.elo]));
+      const played = new Set(games.flatMap((match) => [match.playerAId, match.playerBId]));
+      const roster = players.filter((player) => played.has(player.id) || finished.has(player.id));
+      if (roster.length > 0) playerIds = roster.map((player) => player.id);
+      stats = Object.fromEntries(roster.map((player) => [player.id, cardStats({ ...player, elo: finished.get(player.id) ?? player.elo }, games, challenges)]));
+    }
     const opened = await poolService.openPack({
       packId,
       ownerId: currentPlayer.id,
-      playerIds: players.map((player) => player.id),
-      stats: cardStatsById,
-      season: currentSeason.name,
-      seasonId: currentSeason.id,
+      playerIds,
+      stats,
+      season: oldSeason?.name ?? currentSeason.name,
+      seasonId: oldSeason?.id ?? currentSeason.id,
       photos: photoShots,
     });
     // A legendary or mythic stops the room.
@@ -760,6 +775,19 @@ export default function App() {
       });
     }
     return opened;
+  };
+
+  const handleBuyPack = async (tier: ShopTier, seasonId: string) => {
+    if (!currentPlayer) return;
+    const season = seasons.find((entry) => entry.id === seasonId) ?? currentSeason;
+    await poolService.buyPack({
+      ownerId: currentPlayer.id,
+      tier,
+      seasonId: season.id,
+      seasonName: season.name,
+      balance: chips.records.get(currentPlayer.id)?.chips ?? 0,
+      knownSpent: collectors.find((entry) => entry.id === currentPlayer.id)?.spentChips ?? 0,
+    });
   };
 
   const handleCashIn = async (cardId: string) => {
@@ -997,7 +1025,7 @@ export default function App() {
           void notifyMany(result.players.map((player) => player.id).filter((id) => id !== currentPlayer?.id), {
             type: 'tournament',
             title: `🏆 ${winner.name.split(' ')[0]} wins the weekly cup`,
-            body: 'Trophy in the cabinet and chips in the stack.',
+            body: 'Trophy in the cabinet and coins in the stack.',
           });
         }
       }
@@ -1623,6 +1651,9 @@ export default function App() {
                 now={clock}
                 earned={earned}
                 onOpenPack={handleOpenPack}
+                coins={chips.records.get(currentPlayer.id)?.chips ?? 0}
+                closedSeasons={seasons.filter((entry) => entry.endedAt !== null).map((entry) => ({ id: entry.id, name: entry.name }))}
+                onBuyPack={handleBuyPack}
                 onCashIn={handleCashIn}
                 onOfferTrade={handleOfferTrade}
                 onRespondTrade={handleRespondTrade}
@@ -1666,7 +1697,7 @@ export default function App() {
         <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} arenaBadge={arenaBadge}
           cupBadge={cupBadge}
           collectionBadge={
-            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && (pack.kind === 'reward' || pack.week === cardWeek)) ||
+            packs.some((pack) => pack.ownerId === currentPlayer.id && !pack.openedAt && (pack.kind === 'reward' || pack.kind === 'bought' || pack.week === cardWeek)) ||
             trades.some((trade) => trade.toId === currentPlayer.id && trade.status === 'pending')
           }
         />
