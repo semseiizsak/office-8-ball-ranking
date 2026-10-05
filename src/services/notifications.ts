@@ -143,8 +143,9 @@ export async function markInboxRead(ids: string[]): Promise<void> {
 export async function sendEarnedNotifications(items: EarnedNotification[], matchId: string): Promise<void> {
   if (items.length === 0) return;
   const batch = writeBatch(db);
-  for (const item of items) {
-    batch.set(doc(collection(db, 'notifications')), {
+  const refs = items.map(() => doc(collection(db, 'notifications')));
+  items.forEach((item, index) => {
+    batch.set(refs[index], {
       type: item.type,
       recipientPlayerId: item.recipientPlayerId,
       title: item.title,
@@ -153,11 +154,33 @@ export async function sendEarnedNotifications(items: EarnedNotification[], match
       createdAt: serverTimestamp(),
       read: false,
     });
-  }
+  });
   await batch.commit();
+  items.forEach((item, index) =>
+    triggerPush([item.recipientPlayerId], { title: item.title, body: item.body, type: item.type, notificationId: refs[index].id })
+  );
 }
 
-/** Writes one addressed notification. Cloud Functions relays it to devices. */
+/**
+ * Best-effort call to the Vercel function (api/send-push.ts) that relays this
+ * to devices via FCM. Runs on Vercel rather than a Firebase Cloud Function so
+ * real background push works without ever needing the Blaze plan. Never
+ * blocks or throws — the Firestore write is what actually matters for the
+ * in-app inbox, which works the same whether or not this succeeds.
+ */
+function triggerPush(
+  recipientPlayerIds: string[],
+  payload: { title: string; body: string; type: LeagueNotificationType; notificationId: string }
+): void {
+  if (recipientPlayerIds.length === 0) return;
+  fetch('/api/send-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientPlayerIds, ...payload }),
+  }).catch(() => undefined);
+}
+
+/** Writes one addressed notification and relays it to devices. */
 export async function sendNotification(params: {
   recipientPlayerId: string;
   type: LeagueNotificationType;
@@ -165,7 +188,8 @@ export async function sendNotification(params: {
   body: string;
   challengeId?: string;
 }): Promise<void> {
-  await setDoc(doc(collection(db, 'notifications')), {
+  const ref = doc(collection(db, 'notifications'));
+  await setDoc(ref, {
     type: params.type,
     recipientPlayerId: params.recipientPlayerId,
     title: params.title,
@@ -174,6 +198,7 @@ export async function sendNotification(params: {
     createdAt: serverTimestamp(),
     read: false,
   });
+  triggerPush([params.recipientPlayerId], { title: params.title, body: params.body, type: params.type, notificationId: ref.id });
 }
 
 export const notifyMany = async (

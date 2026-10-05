@@ -254,27 +254,41 @@ their URLs show a Vercel login page to anyone not signed in to the account that
 owns the project. Turn it off under Project Settings → Deployment Protection, or
 share a protection bypass link, if colleagues need to open a preview.
 
-## Notifications on Spark
-
-The app supports a Spark-plan notification mode using Firestore real-time
-listeners, while the app is open in a browser tab or an installed PWA.
+## Notifications, entirely on the free tier
 
 Notifications are addressed rather than broadcast. A logged match reaches the two
 players and anyone who staked a prediction on it; the whole office is only
 notified when the crown changes hands. A challenge notifies the person being
 called out, and tells them what the match is worth to them.
 
-One-time Firebase setup:
+Delivery has two layers, both free:
 
-1. In Firebase Console, open **Project settings > Cloud Messaging**.
-2. Under **Web configuration**, create or copy the Web Push certificate key.
-	the free usage quotas.
+- **In-app**: a Firestore real-time listener (`subscribeToInbox` in
+  `src/services/notifications.ts`) shows the bell/toast while a tab or
+  installed PWA is open. Pure Firestore, works on the Spark plan with no
+  further setup.
+- **Background push**: real OS-level notifications that arrive even when the
+  app is closed, via Firebase Cloud Messaging. The piece that actually calls
+  FCM is a **Vercel serverless function** (`api/send-push.ts`), not a Firebase
+  Cloud Function — that's deliberate, since Cloud Functions require upgrading
+  the Firebase project to the Blaze (pay-as-you-go) plan just to deploy, while
+  FCM itself is free on any plan at any volume. Running the relay on Vercel
+  (which this app is already deployed on, on the free Hobby tier) means real
+  background push without ever touching Firebase billing.
+
+One-time setup:
+
+1. In Firebase Console, open **Project settings > Cloud Messaging**, and under
+   **Web configuration** create or copy the Web Push certificate (VAPID) key.
+   Set it as `VITE_FIREBASE_VAPID_KEY` in Vercel's environment variables.
+2. In Firebase Console, open **Project settings > Service accounts** and
+   generate a new private key. Set the downloaded JSON's contents as
+   `FIREBASE_SERVICE_ACCOUNT_KEY` in Vercel's environment variables (mark it
+   Sensitive/Secret). This works on the Spark plan — generating a service
+   account key isn't a Blaze feature, only deploying Cloud Functions is.
 3. Grant browser notification permission when prompted.
 
-The VAPID key and Cloud Functions are only needed for true background push while
-the app is closed. That requires a trusted sender and Firebase Blaze billing;
-Firestore cannot securely send browser push messages by itself on Spark.
-
 On iPhone, install the site to the Home Screen first, then open the installed
-app and grant notification permission.
+app and grant notification permission — Safari only delivers background push
+to an installed PWA, not to a plain browser tab.
 
