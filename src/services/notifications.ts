@@ -1,6 +1,7 @@
 import { getToken, isSupported, onMessage } from 'firebase/messaging';
 import {
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   query,
@@ -79,6 +80,19 @@ export async function registerForPushNotifications(playerId: string): Promise<bo
     serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js'),
   });
   if (!token) return false;
+
+  // FCM web tokens occasionally rotate on the same device (a browser update,
+  // the service worker itself changing, etc). Nothing ever deleted the old
+  // one, so a device could end up with two live tokens both receiving every
+  // push — the same notification showing twice on one phone. Track the last
+  // token this exact browser registered for this player, and drop it the
+  // moment a different one shows up.
+  const lastTokenKey = `office_8ball_fcm_token:${playerId}`;
+  const previousToken = localStorage.getItem(lastTokenKey);
+  if (previousToken && previousToken !== token) {
+    await deleteDoc(doc(collection(db, 'players', playerId, 'notificationTokens'), previousToken)).catch(() => undefined);
+  }
+  localStorage.setItem(lastTokenKey, token);
 
   await setDoc(doc(collection(db, 'players', playerId, 'notificationTokens'), token), {
     token,
