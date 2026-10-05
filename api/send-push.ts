@@ -42,10 +42,19 @@ export default async function handler(req: any, res: any) {
       const tokens = tokensSnapshot.docs.map((tokenDoc) => tokenDoc.id);
       if (tokens.length === 0) return;
 
+      // Data-only — no top-level `notification` field. Sending one alongside a
+      // custom onBackgroundMessage handler makes some browsers auto-display
+      // the push AND run the handler, showing the same notification twice on
+      // one device. Keeping this data-only means our service worker's single
+      // showNotification() call is the only thing that ever displays it.
       const response = await messaging.sendEachForMulticast({
         tokens,
-        notification: { title: String(title), body: String(body ?? '') },
-        data: { type: String(type ?? 'league'), notificationId: String(notificationId ?? '') },
+        data: {
+          title: String(title),
+          body: String(body ?? ''),
+          type: String(type ?? 'league'),
+          notificationId: String(notificationId ?? ''),
+        },
         webpush: { fcmOptions: { link: 'https://office-8-ball-rankings.vercel.app' } },
       });
 

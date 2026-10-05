@@ -92,8 +92,9 @@ export function subscribeToForegroundNotifications(onNotification: (title: strin
   const messaging = getMessagingOrNull();
   if (!messaging) return () => undefined;
   return onMessage(messaging, (payload) => {
-    const title = payload.notification?.title ?? 'Office 8-Ball';
-    const body = payload.notification?.body ?? 'You have a new league update.';
+    // Data-only payload (api/send-push.ts) — see firebase-messaging-sw.js for why.
+    const title = payload.data?.title ?? 'Office 8-Ball';
+    const body = payload.data?.body ?? 'You have a new league update.';
     onNotification(title, body);
   });
 }
