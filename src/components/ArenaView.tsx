@@ -191,34 +191,45 @@ const CallControls: React.FC<{
     { id: challenge.challengerId, name: challenge.challengerName, ball: balls[0] },
     { id: challenge.opponentId, name: challenge.opponentName, ball: balls[1] },
   ];
-  const pill = (on: boolean, disabled?: boolean) =>
-    `press h-9 min-w-0 rounded-full px-3 text-xs font-extrabold tabular-nums transition-colors ${
-      on ? 'bg-white text-bg' : disabled ? 'bg-surface-alt text-white/30' : 'bg-surface-alt text-white hover:bg-[#2C2C2C]'
-    }`;
+  const nextTip = { none: 'solids', solids: 'stripes', stripes: null } as const;
+  // Out of coins: one quiet line instead of a row of dead buttons.
+  if (left < 10) return <p className="text-center text-xs font-semibold text-white/55">No coins left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>;
   return (
     <div className="grid gap-2" onClick={(event) => event.stopPropagation()}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Stake</span>
-        <span className="text-xs font-semibold tabular-nums text-white/55">{left} of {DAILY_CHIPS} left today</span>
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        {STAKES.map((value) => (
-          <button key={value} type="button" aria-pressed={stake === value} disabled={value > left} onClick={() => setStake(value)} className={`${pill(stake === value, value > left)} inline-flex items-center justify-center gap-1.5`}>
-            <Coin size={14} />
-            {value}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/55">Ball tip, +{BALL_TIP_COST} for the jackpot</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {([null, 'solids', 'stripes'] as const).map((value) => (
-          <button key={value ?? 'none'} type="button" aria-pressed={ball === value} onClick={() => setBall(value)} className={`${pill(ball === value)} flex items-center justify-center gap-1.5`}>
-            {value && <Ball n={value === 'solids' ? 1 : 9} size={16} />}
-            {value ?? 'No tip'}
-          </button>
-        ))}
+      {/* One segmented stake bar and one ball-tip button that cycles none, solids, stripes. */}
+      <div className="flex items-center gap-2">
+        <div role="radiogroup" aria-label={`Stake, ${left} of ${DAILY_CHIPS} left today`} className="grid min-w-0 flex-1 grid-cols-4 rounded-full bg-bg p-[3px]">
+          {STAKES.map((value) => {
+            const off = value + (ball ? BALL_TIP_COST : 0) > left;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={stake === value}
+                disabled={off}
+                onClick={() => setStake(value)}
+                className={`press flex h-9 items-center justify-center gap-1 rounded-full text-xs font-extrabold tabular-nums transition-colors ${
+                  stake === value ? 'bg-white text-bg' : off ? 'text-white/25' : 'text-white'
+                }`}
+              >
+                {stake === value && <Coin size={13} />}
+                {value}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={() => setBall(nextTip[ball ?? 'none'])}
+          aria-label={ball ? `Ball tip on ${ball}, +${BALL_TIP_COST} for the jackpot. Tap to change.` : `No ball tip. Tap to tip solids or stripes for the jackpot, +${BALL_TIP_COST}.`}
+          className={`press relative grid h-[42px] w-[42px] flex-none place-items-center rounded-full transition-colors ${ball ? 'bg-white' : 'bg-bg'}`}
+        >
+          {ball ? <Ball n={ball === 'solids' ? 1 : 9} size={20} /> : <span className="h-4 w-4 rounded-full shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)]" />}
+          {ball && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-crown px-1.5 text-[10px] font-extrabold leading-4 text-bg">+{BALL_TIP_COST}</span>
+          )}
+        </button>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {sides.map((side) => (
@@ -234,7 +245,6 @@ const CallControls: React.FC<{
           </button>
         ))}
       </div>
-      {left < 10 && <p className="text-center text-xs font-semibold text-white/55">No coins left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>}
     </div>
   );
 };
