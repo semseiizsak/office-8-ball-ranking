@@ -126,15 +126,21 @@ export const KioskLiveMatch: React.FC<{
         <span className="h-11 w-11" />
       </div>
 
-      <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto pb-[calc(var(--safe-bottom)+1.5rem)]">
-        <FightPosterHero
-          a={challenger ?? { id: challenge.challengerId, name: challenge.challengerName, avatarUrl: '' }}
-          b={opponent ?? { id: challenge.opponentId, name: challenge.opponentName, avatarUrl: '' }}
-          height="34vh"
-        />
+      {/*
+        Portrait: hero, info, chat all stack in one column (chat's own flex-1
+        fills whatever's left). Landscape: a tablet lying on its side is wide
+        and short rather than tall and narrow, so the same content splits into
+        two side-by-side columns instead of one long scroll.
+      */}
+      <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto pb-[calc(var(--safe-bottom)+1.5rem)] landscape:flex-row landscape:items-stretch landscape:gap-4 landscape:overflow-y-hidden landscape:pb-4">
+        <div className="flex flex-col landscape:w-[44%] landscape:flex-none landscape:overflow-y-auto">
+          <FightPosterHero
+            a={challenger ?? { id: challenge.challengerId, name: challenge.challengerName, avatarUrl: '' }}
+            b={opponent ?? { id: challenge.opponentId, name: challenge.opponentName, avatarUrl: '' }}
+            height="clamp(200px, 34vh, 320px)"
+          />
 
-        <div className="stagger flex flex-1 flex-col justify-between gap-5 pt-5">
-          <div className="grid gap-5">
+          <div className="stagger grid gap-5 pt-5">
             <div className="grid grid-cols-2 gap-2 px-4">
               {sides.map((side, index) => (
                 <div key={side.id} className={`grid gap-1 ${index === 1 ? 'justify-items-end text-right' : 'justify-items-start'}`}>
@@ -221,24 +227,24 @@ export const KioskLiveMatch: React.FC<{
               {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}
             </div>
           </div>
-
-          {/* The match chat at the same size as the idle wall: newest at the bottom, older lines drop off the top. */}
-          <section aria-live="polite" className="mx-4 flex min-h-[320px] flex-1 flex-col rounded-[28px] bg-card px-5 pb-5 pt-4">
-            <span className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">
-              <span className="live-dot h-[9px] w-[9px]" />
-              Match chat
-            </span>
-            <div ref={chatScrollRef} className="mt-4 flex min-h-0 flex-1 flex-col justify-end gap-5 overflow-hidden">
-              {chatMessages.length === 0 ? (
-                <p className="self-center pb-[4vh] text-2xl font-semibold text-white/55">Nobody's said anything yet.</p>
-              ) : (
-                chatMessages.slice(-12).map((message) => (
-                  <MessageLine key={message.id} message={{ ...message, kind: 'user' }} author={players.find((player) => player.id === message.authorId)} big />
-                ))
-              )}
-            </div>
-          </section>
         </div>
+
+        {/* The match chat at the same size as the idle wall: newest at the bottom, older lines drop off the top. */}
+        <section aria-live="polite" className="mx-4 mt-5 flex min-h-[320px] flex-1 flex-col rounded-[28px] bg-card px-5 pb-5 pt-4 landscape:mx-0 landscape:mt-0 landscape:min-h-0">
+          <span className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.14em] text-white/55">
+            <span className="live-dot h-[9px] w-[9px]" />
+            Match chat
+          </span>
+          <div ref={chatScrollRef} className="mt-4 flex min-h-0 flex-1 flex-col justify-end gap-5 overflow-hidden">
+            {chatMessages.length === 0 ? (
+              <p className="self-center pb-[4vh] text-2xl font-semibold text-white/55">Nobody's said anything yet.</p>
+            ) : (
+              chatMessages.slice(-12).map((message) => (
+                <MessageLine key={message.id} message={{ ...message, kind: 'user' }} author={players.find((player) => player.id === message.authorId)} big />
+              ))
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

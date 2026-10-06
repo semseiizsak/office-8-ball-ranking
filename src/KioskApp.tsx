@@ -465,63 +465,77 @@ export default function KioskApp() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[calc(var(--safe-bottom)+1rem)]">
-          {liveChallenge && (
+        {/*
+          Portrait: everything stacks in one column, top to bottom. Landscape
+          (the tablet mounted on its side, wide and short instead of tall and
+          narrow): the action stack becomes a fixed sidebar and the ladder
+          takes the rest of the width instead of stretching thin and empty.
+        */}
+        <main className="flex-1 overflow-x-hidden px-3 pt-1 pb-[calc(var(--safe-bottom)+1rem)] landscape:flex landscape:items-start landscape:gap-4">
+          <div className="landscape:flex landscape:w-[320px] landscape:flex-none landscape:flex-col landscape:overflow-y-auto">
+            {liveChallenge && (
+              <button
+                type="button"
+                onClick={() => setManualLadder(false)}
+                className="press mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-live text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
+              >
+                <span className="live-dot h-[9px] w-[9px]" />
+                On the table now — tap to watch
+              </button>
+            )}
+
+            {cupOpen && (
+              <button
+                type="button"
+                onClick={() => setShowCupSignup(true)}
+                className="press mb-3 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-felt text-sm font-extrabold uppercase tracking-[0.06em] text-white"
+              >
+                <Trophy className="h-5 w-5" strokeWidth={2.25} />
+                Cup sign-up
+                <span className="font-semibold">{cup?.entrants.length ?? 0} in, closes {new Date(cupWindow.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}</span>
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={() => setManualLadder(false)}
-              className="press mb-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-live text-[13px] font-extrabold uppercase tracking-[0.06em] text-white"
+              onClick={() => setShowStartMatch(true)}
+              className="press mb-3 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-live text-sm font-extrabold uppercase tracking-[0.06em] text-white"
             >
               <span className="live-dot h-[9px] w-[9px]" />
-              On the table now — tap to watch
+              Start a game
             </button>
-          )}
 
-          {cupOpen && (
-            <button
-              type="button"
-              onClick={() => setShowCupSignup(true)}
-              className="press mb-3 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-felt text-sm font-extrabold uppercase tracking-[0.06em] text-white"
-            >
-              <Trophy className="h-5 w-5" strokeWidth={2.25} />
-              Cup sign-up
-              <span className="font-semibold">{cup?.entrants.length ?? 0} in, closes {new Date(cupWindow.closesAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })}</span>
-            </button>
-          )}
+            {activeChallenges.length > 0 && (
+              <div className="mb-3">
+                <ActiveChallengeTeaser challenge={activeChallenges[0]} players={players} onOpen={() => setShowChallenges(true)} />
+              </div>
+            )}
 
-          <button
-            type="button"
-            onClick={() => setShowStartMatch(true)}
-            className="press mb-3 flex h-[52px] w-full items-center justify-center gap-2.5 rounded-full bg-live text-sm font-extrabold uppercase tracking-[0.06em] text-white"
-          >
-            <span className="live-dot h-[9px] w-[9px]" />
-            Start a game
-          </button>
+            {/* Grouped into the sidebar in landscape; the portrait copy below (after the ladder) is the one that shows there. */}
+            {lastMatch && <div className="hidden landscape:block"><KioskLastMatch match={lastMatch} players={players} /></div>}
+          </div>
 
-          {activeChallenges.length > 0 && (
-            <div className="mb-3">
-              <ActiveChallengeTeaser challenge={activeChallenges[0]} players={players} onOpen={() => setShowChallenges(true)} />
-            </div>
-          )}
+          <div className="landscape:min-w-0 landscape:flex-1">
+            <LeaderboardView
+              players={players}
+              matches={seasonMatches}
+              league={league}
+              season={currentSeason}
+              currentPlayer={null}
+              now={clock}
+              leaderboardChanges={kioskLeaderboardChanges}
+              previousPlayers={previousPlayers}
+              onSelectPlayer={() => undefined}
+              onChallenge={() => setShowStartMatch(true)}
+              onAddPlayer={() => setShowAddPlayer(true)}
+              formDotsLimit={2}
+              hideCrown
+              hideTitles
+            />
+          </div>
 
-          <LeaderboardView
-            players={players}
-            matches={seasonMatches}
-            league={league}
-            season={currentSeason}
-            currentPlayer={null}
-            now={clock}
-            leaderboardChanges={kioskLeaderboardChanges}
-            previousPlayers={previousPlayers}
-            onSelectPlayer={() => undefined}
-            onChallenge={() => setShowStartMatch(true)}
-            onAddPlayer={() => setShowAddPlayer(true)}
-            formDotsLimit={2}
-            hideCrown
-            hideTitles
-          />
-
-          {lastMatch && <KioskLastMatch match={lastMatch} players={players} />}
+          {/* Portrait-only copy — see the landscape:hidden one above, grouped into the sidebar there. */}
+          {lastMatch && <div className="landscape:hidden"><KioskLastMatch match={lastMatch} players={players} /></div>}
         </main>
 
         <button
