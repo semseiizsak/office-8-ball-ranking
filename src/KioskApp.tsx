@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dices, QrCode, RotateCw, Trophy } from 'lucide-react';
-import { Challenge, ChallengeStakes, MatchRecord, Player, Season } from './types';
+import { Challenge, ChallengeStakes, MatchRecord, Player, Pocket, Season } from './types';
 import { poolService } from './services/poolService';
 import { notifyMany } from './services/notifications';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
@@ -320,7 +320,7 @@ export default function KioskApp() {
   const rankOf = (id: string, roster: Player[]) =>
     [...roster].sort((a, b) => b.elo - a.elo).findIndex((player) => player.id === id) + 1;
 
-  const handleKioskLogResult = async (challenge: Challenge, winnerId: string, winnerBall?: 'solids' | 'stripes') => {
+  const handleKioskLogResult = async (challenge: Challenge, winnerId: string, winnerBall?: 'solids' | 'stripes', lastPocket?: Pocket) => {
     const before = { a: rankOf(challenge.challengerId, players), b: rankOf(challenge.opponentId, players) };
     const playersBefore = players;
     const result = await poolService.logMatch({
@@ -330,6 +330,7 @@ export default function KioskApp() {
       modifiers: { eightOnBreak: false, scratchOnEight: false, tableRun: false },
       challengeId: challenge.id,
       winnerBall,
+      lastPocket,
     });
     await poolService.resolveChallenge({ challengeId: challenge.id, matchId: result.match.id, winnerId });
     // matches/challenges arrive live through the kiosk's own subscriptions —
@@ -420,7 +421,7 @@ export default function KioskApp() {
         challenge={liveChallenge}
         players={players}
         onSubscribeChat={poolService.subscribeToChatMessages}
-        onLogResult={(winnerId, winnerBall) => handleKioskLogResult(liveChallenge, winnerId, winnerBall)}
+        onLogResult={(winnerId, winnerBall, lastPocket) => handleKioskLogResult(liveChallenge, winnerId, winnerBall, lastPocket)}
         onClose={() => setManualLadder(true)}
       />
     );

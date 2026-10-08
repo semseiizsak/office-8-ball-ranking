@@ -13,7 +13,7 @@ const packName = (pack: Pack) =>
   pack.kind === 'bought'
     ? SHOP_LABEL[pack.tier ?? 'standard']
     : pack.kind === 'reward'
-    ? pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack'
+    ? pack.minRarity ? (pack.minRarity === 'epic' ? 'Legendary pack' : pack.minRarity === 'legendary' ? 'Ultimate pack' : `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack`) : 'Reward pack'
     : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack';
 
 /**

@@ -132,7 +132,7 @@ export type PackKind = 'weekly' | 'earned' | 'champion' | 'reward' | 'bought';
  */
 export type ShopTier = 'standard' | 'premium' | 'retro' | 'player';
 export const SHOP_PRICE: Record<ShopTier, number> = { standard: 400, premium: 1200, retro: 500, player: 600 };
-export const SHOP_LABEL: Record<ShopTier, string> = { standard: 'Season pack', premium: 'Premium pack', retro: 'Retro pack', player: 'Player pack' };
+export const SHOP_LABEL: Record<ShopTier, string> = { standard: 'Season pack', premium: 'Legendary pack', retro: 'Retro pack', player: 'Player pack' };
 
 /** The day's player pack: one player for everyone, drawn by the day. All three cards are them. */
 export const dailyDealPlayer = (playerIds: string[], dayKey: string) => {
@@ -304,7 +304,10 @@ export function rollPack(params: {
   const best = () => slots.reduce((top, slot, i) => (rank(slot.rarity) > rank(slots[top].rarity) ? i : top), 0);
   if (slots.every((slot) => slot.rarity === 'common')) slots[CARDS_PER_PACK - 1].rarity = 'uncommon';
   if (params.kind === 'champion' && rank(slots[best()].rarity) < rank('epic')) slots[best()].rarity = 'epic';
-  if (params.minRarity && rank(slots[best()].rarity) < rank(params.minRarity)) slots[best()].rarity = params.minRarity;
+  // The epic (shown as Legendary) pack guarantees all three cards gold or better.
+  if (params.minRarity === 'epic') {
+    for (const slot of slots) if (rank(slot.rarity) < rank('epic')) slot.rarity = 'epic';
+  } else if (params.minRarity && rank(slots[best()].rarity) < rank(params.minRarity)) slots[best()].rarity = params.minRarity;
   if (params.pity + 1 >= LEGENDARY_PITY && !slots.some((slot) => rank(slot.rarity) >= rank('legendary'))) slots[best()].rarity = 'legendary';
   const mythicsHere = new Set<string>();
   for (const slot of slots) {

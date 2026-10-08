@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { Challenge, ChatMessage, Player, Prediction } from '../types';
+import { Challenge, ChatMessage, Player, Pocket, Prediction } from '../types';
 import { VOTE_WINDOW_MS } from '../utils/league';
 import { Ball, CallSplit } from './ui';
+import { PocketPopup } from './PocketTable';
 import { VoterStack } from './ArenaView';
 import { FightPosterHero } from './FightPoster';
 import { MessageLine } from './LobbyChat';
@@ -32,7 +33,7 @@ export const KioskLiveMatch: React.FC<{
   challenge: Challenge;
   players: Player[];
   onSubscribeChat: (challengeId: string, onChange: (messages: ChatMessage[]) => void) => () => void;
-  onLogResult: (winnerId: string, winnerBall?: 'solids' | 'stripes') => Promise<void>;
+  onLogResult: (winnerId: string, winnerBall?: 'solids' | 'stripes', lastPocket?: Pocket) => Promise<void>;
   onClose: () => void;
 }> = ({ challenge, players, onSubscribeChat, onLogResult, onClose }) => {
   const [, setTick] = useState(0);
@@ -75,11 +76,13 @@ export const KioskLiveMatch: React.FC<{
     armWinner(id);
   };
 
-  const logWith = (ball?: 'solids' | 'stripes') => {
+  const [pendingBall, setPendingBall] = useState<'solids' | 'stripes' | null>(null);
+  const logWith = (ball?: 'solids' | 'stripes', pocket?: Pocket) => {
     if (isLogging || !armedWinnerId) return;
+    setPendingBall(null);
     if (armTimerRef.current) window.clearTimeout(armTimerRef.current);
     setIsLogging(true);
-    onLogResult(armedWinnerId, ball).catch(() => {
+    onLogResult(armedWinnerId, ball, pocket).catch(() => {
       setIsLogging(false);
       setArmedWinnerId(null);
       setLogError('Could not log that result. Try again.');
@@ -206,7 +209,7 @@ export const KioskLiveMatch: React.FC<{
                         key={group}
                         type="button"
                         disabled={isLogging}
-                        onClick={() => logWith(group)}
+                        onClick={() => setPendingBall(group)}
                         className="press flex h-16 items-center justify-center gap-3 rounded-2xl bg-surface text-base font-extrabold uppercase tracking-[0.06em] disabled:opacity-50"
                       >
                         <Ball n={n} size={40} />
@@ -223,6 +226,16 @@ export const KioskLiveMatch: React.FC<{
                     {isLogging ? 'Logging…' : 'Not sure, log it anyway'}
                   </button>
                 </div>
+              )}
+              {pendingBall && (
+                <PocketPopup
+                  large
+                  title="Which pocket did the last ball go in?"
+                  disabled={isLogging}
+                  onPick={(pocket) => logWith(pendingBall, pocket)}
+                  onSkip={() => logWith(pendingBall)}
+                  onClose={() => setPendingBall(null)}
+                />
               )}
               {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}
             </div>

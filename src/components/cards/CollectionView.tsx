@@ -140,7 +140,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
       ? [{ key: `player-${dealPlayer.id}`, tier: 'player' as ShopTier, seasonId: currentSeasonId, subjectId: dealPlayer.id, name: `Today: ${dealPlayer.name.split(' ')[0]}`, line: `Three cards, all ${dealPlayer.name.split(' ')[0]}. Only today.` }]
       : []),
     { key: 'standard', tier: 'standard', seasonId: currentSeasonId, name: SHOP_LABEL.standard, line: `Three cards from ${currentSeasonName}.` },
-    { key: 'premium', tier: 'premium', seasonId: currentSeasonId, name: SHOP_LABEL.premium, line: `Three cards from ${currentSeasonName}, one of them epic or better.` },
+    { key: 'premium', tier: 'premium', seasonId: currentSeasonId, name: SHOP_LABEL.premium, line: `Three cards from ${currentSeasonName}, all three gold or better.` },
     ...closedSeasons.map((season) => ({ key: `retro-${season.id}`, tier: 'retro' as ShopTier, seasonId: season.id, name: `${SHOP_LABEL.retro}, ${season.name}`, line: `Three cards from the ${season.name} set, at the ratings it closed on.` })),
   ];
   const buy = async (offer: (typeof offers)[number]) => {
@@ -321,7 +321,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
             <span className={`relative z-10 font-display text-[40px] font-extrabold ${pack.tier === 'premium' || pack.tier === 'retro' || pack.tier === 'player' || pack.kind === 'champion' ? 'text-white' : 'text-bg'}`}>8</span>
           </div>
           <div className="grid min-w-0 content-center gap-2">
-            <h2 className="text-xl">{pack.kind === 'bought' ? SHOP_LABEL[pack.tier ?? 'standard'] : pack.kind === 'reward' ? (pack.minRarity ? `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack` : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
+            <h2 className="text-xl">{pack.kind === 'bought' ? SHOP_LABEL[pack.tier ?? 'standard'] : pack.kind === 'reward' ? (pack.minRarity ? (pack.minRarity === 'epic' ? 'Legendary pack' : pack.minRarity === 'legendary' ? 'Ultimate pack' : `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack`) : 'Reward pack') : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack'}</h2>
             <p className="text-sm font-semibold text-white/70">{pack.reason ?? 'Three cards. It keeps until you open it.'}</p>
             <button type="button" onClick={() => setOpening(pack)} className={`${button} w-fit bg-white text-bg`}>
               Open

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import { Challenge, MatchRecord, Player } from './types';
+import { Challenge, MatchRecord, Player, Pocket } from './types';
 import { deriveLeagueInsights, runLeagueReplay, DAY_MS } from './utils/league';
 import { LeaderboardView } from './components/LeaderboardView';
 import { MatchSuccessModal } from './components/MatchSuccessModal';
@@ -419,7 +419,7 @@ const Harness: React.FC = () => {
   const league = deriveLeagueInsights(players, seasonMatches, challengesList, now);
   const me = players[2];
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => {
     setChallengesList((prev) =>
       prev.map((c) => {
         if (c.id !== challenge.id) return c;
@@ -435,6 +435,7 @@ const Harness: React.FC = () => {
               predictedWinnerId,
               stake,
               ball,
+              pocket,
               createdAt: Date.now(),
             },
           ],

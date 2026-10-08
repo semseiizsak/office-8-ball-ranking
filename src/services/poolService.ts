@@ -3,6 +3,7 @@ import {
   ChallengeStakes,
   ChallengeStatus,
   MatchModifier,
+  Pocket,
   Player,
   Season,
   SeasonStanding,
@@ -143,7 +144,8 @@ export const poolService = {
     modifiers: MatchModifier;
     challengeId?: string;
     winnerBall?: 'solids' | 'stripes';
-  }) => logMatch(params.playerAId, params.playerBId, params.winnerId, params.modifiers, params.challengeId, params.winnerBall),
+    lastPocket?: Pocket;
+  }) => logMatch(params.playerAId, params.playerBId, params.winnerId, params.modifiers, params.challengeId, params.winnerBall, params.lastPocket),
   setMatchReaction,
   subscribeToMatches,
   subscribeToMatchComments,

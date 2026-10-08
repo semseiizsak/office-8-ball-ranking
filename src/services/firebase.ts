@@ -43,6 +43,8 @@ import {
   Season,
   SeasonStanding,
   SeasonTitle,
+  Pocket,
+  POCKETS,
 } from '../types';
 import { calculateMatchElo } from '../utils/elo';
 import { OfflineMatch, offlineMatchDocId, planSync } from '../utils/outbox';
@@ -57,7 +59,7 @@ import {
   seasonDocId,
   callsOpen,
 } from '../utils/league';
-import { BALL_TIP_COST, DAILY_CHIPS, spentOnDay } from '../utils/chips';
+import { JACKPOT_ENTRY } from '../utils/chips';
 import { DailyPairing } from '../utils/daily';
 import {
   Card,
@@ -214,6 +216,7 @@ const toMatch = (id: string, data: Record<string, unknown>): MatchRecord => ({
   ),
   commentCount: Number(data.commentCount ?? 0),
   winnerBall: data.winnerBall === 'solids' || data.winnerBall === 'stripes' ? data.winnerBall : undefined,
+  lastPocket: POCKETS.includes(data.lastPocket as Pocket) ? (data.lastPocket as Pocket) : undefined,
 });
 
 interface LeagueState {
@@ -669,7 +672,8 @@ export async function logMatch(
   winnerId: string,
   modifiers: MatchModifier = { eightOnBreak: false, scratchOnEight: false, tableRun: false },
   challengeId?: string,
-  winnerBall?: 'solids' | 'stripes'
+  winnerBall?: 'solids' | 'stripes',
+  lastPocket?: Pocket
 ): Promise<LogMatchResult> {
   if (playerAId === playerBId) throw new Error('A player cannot play themselves');
   if (winnerId !== playerAId && winnerId !== playerBId) throw new Error('Winner must be one of the players');
@@ -766,6 +770,7 @@ export async function logMatch(
       isUpset: elo.isUpset,
       ...(challengeId ? { challengeId } : {}),
       ...(winnerBall ? { winnerBall } : {}),
+      ...(lastPocket ? { lastPocket } : {}),
       modifiers,
       timestamp: serverTimestamp(),
     };
@@ -825,6 +830,7 @@ const toPredictions = (data: Record<string, unknown> | undefined): Prediction[] 
       isLock: entry?.isLock === true,
       stake: Number(entry?.stake ?? 0) || undefined,
       ball: entry?.ball === 'solids' || entry?.ball === 'stripes' ? (entry.ball as 'solids' | 'stripes') : undefined,
+      pocket: POCKETS.includes(entry?.pocket as Pocket) ? (entry.pocket as Pocket) : undefined,
     }))
     .filter((prediction) => prediction.predictedWinnerId !== '')
     .sort((left, right) => left.createdAt - right.createdAt);
@@ -1234,6 +1240,9 @@ export async function addPrediction(params: {
   isLock?: boolean;
   stake?: number;
   ball?: 'solids' | 'stripes';
+  pocket?: Pocket;
+  /** The caller's coins as the app sees them, checked before the call goes out. */
+  balance: number;
 }): Promise<void> {
   const challengeRef = doc(db, 'challenges', params.challengeId);
   const snap = await getDoc(challengeRef);
@@ -1247,21 +1256,19 @@ export async function addPrediction(params: {
   if (!callsOpen({ status: String(data?.status ?? ''), startedAt: timestampToMillis(data?.startedAt) }, Date.now())) {
     throw new Error('Calls are closed on this match.');
   }
-  // The day's allowance is checked against every call already cast today.
+  // Calls come out of the caller's own coins. The balance is derived in the
+  // app from every source of coins, so it is checked there, not re-read here.
   const stake = Math.max(0, Math.round(params.stake ?? 0));
-  const cost = stake + (params.ball ? BALL_TIP_COST : 0);
-  if (cost > 0) {
-    const all = await getDocs(challengesCollection);
-    const spent = spentOnDay(all.docs.map((entry) => toChallenge(entry.id, entry.data(), Date.now())), params.predictorId, Date.now());
-    if (spent + cost > DAILY_CHIPS) throw new Error(`Only ${Math.max(0, DAILY_CHIPS - spent)} coins left today.`);
-  }
+  const entersJackpot = !!params.ball && !!params.pocket;
+  const cost = stake + (entersJackpot ? JACKPOT_ENTRY : 0);
+  if (cost > Math.max(0, params.balance)) throw new Error(`You only have ${Math.max(0, Math.floor(params.balance))} coins.`);
   await updateDoc(challengeRef, {
     [`predictions.${params.predictorId}`]: {
       predictorName: params.predictorName,
       predictedWinnerId: params.predictedWinnerId,
       isLock: false,
       ...(stake > 0 ? { stake } : {}),
-      ...(params.ball ? { ball: params.ball } : {}),
+      ...(entersJackpot ? { ball: params.ball, pocket: params.pocket } : {}),
       createdAt: Date.now(),
     },
   });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   TabType, Player, MatchRecord, MatchModifier, BallPreference, Challenge, ChallengeStakes,
-  Season, SeasonStanding, SeasonTitle,
+  Season, SeasonStanding, SeasonTitle, Pocket,
 } from './types';
 import { poolService } from './services/poolService';
 
@@ -38,7 +38,7 @@ import {
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { GRANTS, addBonus, leftToday } from './utils/chips';
+import { GRANTS, addBonus } from './utils/chips';
 import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
@@ -1048,7 +1048,8 @@ export default function App() {
     playerBId: string,
     winnerId: string,
     modifiers: MatchModifier,
-    winnerBall?: 'solids' | 'stripes'
+    winnerBall?: 'solids' | 'stripes',
+    lastPocket?: Pocket
   ) => {
     if (loggingRef.current) return;
     loggingRef.current = true;
@@ -1061,6 +1062,7 @@ export default function App() {
         modifiers,
         challengeId: activeChallengeId,
         winnerBall,
+        lastPocket,
       });
 
       // Everything the payoff screen needs is derivable from before and after.
@@ -1490,7 +1492,7 @@ export default function App() {
     });
   };
 
-  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => {
+  const handlePredict = async (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => {
     if (!currentPlayer) return;
     const alreadyVoted = challenge.predictions.some((p) => p.predictorId === currentPlayer.id);
     if (alreadyVoted) return;
@@ -1501,6 +1503,8 @@ export default function App() {
       predictedWinnerId,
       stake,
       ball,
+      pocket,
+      balance: chips.records.get(currentPlayer.id)?.chips ?? 0,
     }).catch((error) => alert(error instanceof Error ? error.message : 'Could not place that call.'));
   };
 
@@ -1928,9 +1932,9 @@ export default function App() {
               challengerShare={view.challengerShare}
               challengerVoters={view.challengerVoters}
               opponentVoters={view.opponentVoters}
-              chipsLeft={leftToday(challenges, currentPlayer.id, Date.now())}
+              chipsLeft={Math.max(0, Math.floor(chips.records.get(currentPlayer.id)?.chips ?? 0))}
               pot={league.chips.pools.get(liveChallenge.id) ?? 0}
-              onPredict={(predictedWinnerId, stake, ball) => void handlePredict(liveChallenge, predictedWinnerId, stake, ball)}
+              onPredict={(predictedWinnerId, stake, ball, pocket) => void handlePredict(liveChallenge, predictedWinnerId, stake, ball, pocket)}
               onSelectPlayer={(player) => setDossierPlayer(player)}
               onPlayChallenge={() => handlePlayChallenge(liveChallenge)}
               onCancelLive={() => {

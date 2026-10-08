@@ -1,9 +1,10 @@
 import { createPortal } from 'react-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
-import { Challenge, ChatMessage, Cheer, Player, Prediction } from '../types';
+import { Challenge, ChatMessage, Cheer, Player, Pocket, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
-import { stakeOf, BALL_TIP_COST, ChipsState, DAILY_CHIPS, STAKES, leftToday } from '../utils/chips';
+import { stakeOf, JACKPOT_ENTRY, ChipsState } from '../utils/chips';
+import { PocketTable, POCKET_LABEL } from './PocketTable';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { shamed } from '../utils/shame';
 import { ballColor, playerBall } from '../utils/balls';
@@ -20,7 +21,7 @@ interface ArenaViewProps {
   onIssueChallenge: () => void;
   onRespond: (challenge: Challenge, status: 'accepted' | 'declined') => Promise<void>;
   onCancel: (challenge: Challenge) => Promise<void>;
-  onPredict: (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => Promise<void>;
+  onPredict: (challenge: Challenge, predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => Promise<void>;
   onPlayChallenge: (challenge: Challenge) => void;
   /** Calls the match on: either player, no agreement step. */
   onStartChallenge: (challenge: Challenge) => Promise<void>;
@@ -166,84 +167,123 @@ export const deriveChallengeView = (challenge: Challenge, players: Player[], cur
 const ghost = (id: string, name: string) => ({ id, name, avatarUrl: '' });
 
 /**
- * Staking a call: pick how many chips, optionally tip the winner's balls for
- * the jackpot, then tap who wins. Once cast it cannot be changed.
+ * Staking a call: slide how many of your own coins to put down, optionally
+ * enter the jackpot (the winner's ball and the pocket of the last ball), then
+ * tap who wins. Once cast it cannot be changed.
  */
 const CallControls: React.FC<{
   challenge: Challenge;
   myCall?: Prediction;
-  /** Chips still available today. */
+  /** The caller's coins. */
   left: number;
-  onCall: (playerId: string, stake: number, ball?: 'solids' | 'stripes') => void;
+  onCall: (playerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => void;
   /** The two players' balls, for the colour dot on each button. */
   balls: [number, number];
   prefix?: string;
 }> = ({ challenge, myCall, left, onCall, balls, prefix = '' }) => {
-  const [stake, setStake] = useState<number>(Math.min(25, left) >= 10 ? (left >= 25 ? 25 : 10) : 0);
+  const [stake, setStake] = useState<number>(Math.min(25, left));
+  const [jackpot, setJackpot] = useState(false);
   const [ball, setBall] = useState<'solids' | 'stripes' | null>(null);
+  const [pocket, setPocket] = useState<Pocket | null>(null);
   if (myCall) {
     const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
     return (
       <p className="text-[13px] text-white/70">
         You put <b className="text-white">{stakeOf(myCall)} coins</b> on <b className="text-white">{first(pickedName)}</b>
-        {myCall.ball ? `, on ${myCall.ball} for the jackpot` : ''}. Calls can't be switched.
+        {myCall.ball ? `, ${myCall.ball}${myCall.pocket ? ` and the ${POCKET_LABEL[myCall.pocket]} pocket` : ''} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );
   }
-  const cost = stake + (ball ? BALL_TIP_COST : 0);
-  const canAfford = cost <= left;
+  const entry = jackpot ? JACKPOT_ENTRY : 0;
+  const maxStake = Math.max(0, left - entry);
+  const amount = Math.min(stake, maxStake);
+  const jackpotReady = !jackpot || (!!ball && !!pocket);
   const sides = [
     { id: challenge.challengerId, name: challenge.challengerName, ball: balls[0] },
     { id: challenge.opponentId, name: challenge.opponentName, ball: balls[1] },
   ];
-  const nextTip = { none: 'solids', solids: 'stripes', stripes: null } as const;
   // Out of coins: one quiet line instead of a row of dead buttons.
-  if (left < 10) return <p className="text-center text-xs font-semibold text-white/55">No coins left today. Fresh {DAILY_CHIPS} tomorrow morning.</p>;
+  if (left < 1) return <p className="text-center text-xs font-semibold text-white/55">You have no coins left. Win some matches and calls to earn more.</p>;
   return (
-    <div className="grid gap-2" onClick={(event) => event.stopPropagation()}>
-      {/* One segmented stake bar and one ball-tip button that cycles none, solids, stripes. */}
-      <div className="flex items-center gap-2">
-        <div role="radiogroup" aria-label={`Stake, ${left} of ${DAILY_CHIPS} left today`} className="grid min-w-0 flex-1 grid-cols-4 rounded-full bg-bg p-[3px]">
-          {STAKES.map((value) => {
-            const off = value + (ball ? BALL_TIP_COST : 0) > left;
-            return (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={stake === value}
-                disabled={off}
-                onClick={() => setStake(value)}
-                className={`press flex h-9 items-center justify-center gap-1 rounded-full text-xs font-extrabold tabular-nums transition-colors ${
-                  stake === value ? 'bg-white text-bg' : off ? 'text-white/25' : 'text-white'
-                }`}
-              >
-                {stake === value && <Coin size={13} />}
-                {value}
-              </button>
-            );
-          })}
+    <div className="grid gap-3" onClick={(event) => event.stopPropagation()}>
+      <div className="grid gap-1.5 rounded-2xl bg-bg px-3.5 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[13px] font-bold text-white/70">Your stake</span>
+          <span className="flex items-center gap-1.5 text-base font-black tabular-nums">
+            <Coin size={16} />
+            {amount}
+            <span className="text-[11px] font-semibold text-white/45">of {left}</span>
+          </span>
         </div>
-        <button
-          type="button"
-          onClick={() => setBall(nextTip[ball ?? 'none'])}
-          aria-label={ball ? `Ball tip on ${ball}, +${BALL_TIP_COST} for the jackpot. Tap to change.` : `No ball tip. Tap to tip solids or stripes for the jackpot, +${BALL_TIP_COST}.`}
-          className={`press relative grid h-[42px] w-[42px] flex-none place-items-center rounded-full transition-colors ${ball ? 'bg-white' : 'bg-bg'}`}
-        >
-          {ball ? <Ball n={ball === 'solids' ? 1 : 9} size={20} /> : <span className="h-4 w-4 rounded-full shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)]" />}
-          {ball && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-crown px-1.5 text-[10px] font-extrabold leading-4 text-bg">+{BALL_TIP_COST}</span>
-          )}
-        </button>
+        <input
+          type="range"
+          min={1}
+          max={Math.max(1, maxStake)}
+          step={1}
+          value={Math.max(1, amount)}
+          disabled={maxStake < 1}
+          aria-label={`Stake, ${left} coins available`}
+          onChange={(event) => setStake(Number(event.target.value))}
+          className="h-6 w-full accent-white"
+        />
       </div>
+
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={jackpot}
+        disabled={left < JACKPOT_ENTRY + 1 && !jackpot}
+        onClick={() => setJackpot((value) => !value)}
+        className={`press flex items-center justify-between gap-3 rounded-2xl px-3.5 py-3 text-left transition-colors disabled:opacity-40 ${jackpot ? 'bg-white text-bg' : 'bg-bg'}`}
+      >
+        <span className="grid">
+          <span className="text-[13px] font-extrabold">Go for the jackpot</span>
+          <span className={`text-[11px] font-semibold ${jackpot ? 'text-bg/60' : 'text-white/55'}`}>
+            {JACKPOT_ENTRY} coins. The winner's ball and the last pocket.
+          </span>
+        </span>
+        <span className={`grid h-6 w-6 flex-none place-items-center rounded-full text-sm font-black ${jackpot ? 'bg-felt text-white' : 'shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)]'}`}>
+          {jackpot ? '✓' : ''}
+        </span>
+      </button>
+
+      {jackpot && (
+        <div className="anim-rise grid gap-3 rounded-2xl bg-bg px-3.5 py-3">
+          <div className="grid gap-1.5">
+            <span className="text-[13px] font-bold text-white/70">Which balls does the winner have?</span>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                ['solids', 1, 'Solids'],
+                ['stripes', 9, 'Stripes'],
+              ] as const).map(([group, n, label]) => (
+                <button
+                  key={group}
+                  type="button"
+                  aria-pressed={ball === group}
+                  onClick={() => setBall(group)}
+                  className={`press flex h-11 items-center justify-center gap-2 rounded-full text-xs font-extrabold transition-colors ${ball === group ? 'bg-white text-bg' : 'bg-surface-alt text-white'}`}
+                >
+                  <Ball n={n} size={20} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <span className="text-[13px] font-bold text-white/70">Which pocket takes the last ball?</span>
+            <PocketTable value={pocket} onChange={setPocket} />
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2">
         {sides.map((side) => (
           <button
             key={side.id}
             type="button"
-            disabled={!canAfford || stake === 0}
-            onClick={() => onCall(side.id, stake, ball ?? undefined)}
-            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-3 text-xs font-extrabold uppercase tracking-[0.06em] text-bg disabled:bg-surface-alt disabled:text-white/40"
+            disabled={amount < 1 || !jackpotReady}
+            onClick={() => onCall(side.id, amount, jackpot ? ball ?? undefined : undefined, jackpot ? pocket ?? undefined : undefined)}
+            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-3 text-xs font-extrabold text-bg disabled:bg-surface-alt disabled:text-white/40"
           >
             <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: ballColor(side.ball).c, boxShadow: side.ball === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }} />
             <span className="truncate">{prefix}{first(side.name)}</span>
@@ -278,7 +318,7 @@ export const LiveMatchScreen: React.FC<{
   chipsLeft: number;
   /** Stakes riding on this match. */
   pot?: number;
-  onPredict: (predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes') => void;
+  onPredict: (predictedWinnerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => void;
   onSelectPlayer?: (player: Player) => void;
   onPlayChallenge: () => void;
   onCancelLive: () => void;
@@ -453,7 +493,7 @@ export const LiveMatchScreen: React.FC<{
                 challenge={challenge}
                 myCall={myCall}
                 left={chipsLeft}
-                onCall={(id, stake, ball) => onPredict(id, stake, ball)}
+                onCall={(id, stake, ball, pocket) => onPredict(id, stake, ball, pocket)}
                 prefix="Call "
                 balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
               />
@@ -602,7 +642,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     .sort((left, right) => right.createdAt - left.createdAt);
   const settled = challenges.filter((challenge) => challenge.status === 'played').slice(0, 3);
 
-  const chipsLeft = leftToday(challenges, currentPlayer.id, now);
+  const chipsLeft = Math.max(0, Math.floor(chips.records.get(currentPlayer.id)?.chips ?? 0));
 
   const handleStart = async (challenge: Challenge) => {
     if (startingId) return;
@@ -622,8 +662,8 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
     return () => window.clearInterval(timer);
   }, [live.length]);
 
-  const call = (challenge: Challenge, playerId: string, stake: number, ball?: 'solids' | 'stripes') => {
-    void onPredict(challenge, playerId, stake, ball);
+  const call = (challenge: Challenge, playerId: string, stake: number, ball?: 'solids' | 'stripes', pocket?: Pocket) => {
+    void onPredict(challenge, playerId, stake, ball, pocket);
   };
 
   const matchLine = (challenge: Challenge, challenger?: Player, opponent?: Player) => (
@@ -695,7 +735,7 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
             challenge={challenge}
             myCall={myCall}
             left={chipsLeft}
-            onCall={(id, stake, ball) => call(challenge, id, stake, ball)}
+            onCall={(id, stake, ball, pocket) => call(challenge, id, stake, ball, pocket)}
             balls={[playerBall(challenger ?? { id: challenge.challengerId }), playerBall(opponent ?? { id: challenge.opponentId })]}
           />
         )}
@@ -799,16 +839,16 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
 
       {/* The jackpot and what is left of today's coins, on one strip. */}
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5">
-        <span className="flex min-w-0 items-center gap-2.5" title="Call the winner and their balls to take it.">
+        <span className="flex min-w-0 items-center gap-2.5" title="Call the winner, their balls and the last pocket to take it.">
           <Coin size={24} />
           <span className="grid min-w-0">
             <span className="font-display text-[22px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
-            <span className="text-[11px] font-semibold text-white/55">Jackpot, call the winner and their balls</span>
+            <span className="text-[11px] font-semibold text-white/55">Jackpot, call the winner, their balls and the last pocket</span>
           </span>
         </span>
         <span className="flex-none text-right">
           <span className="block text-[15px] font-black leading-none tabular-nums">{chipsLeft}</span>
-          <span className="text-[11px] font-semibold text-white/55">of {DAILY_CHIPS} left today</span>
+          <span className="text-[11px] font-semibold text-white/55">your coins</span>
         </span>
       </div>
 
@@ -1012,7 +1052,7 @@ export const RichestList: React.FC<{
       <section className="mt-2 grid gap-2">
                 {richest.length === 0 ? (
           <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">
-            Nobody has won a coin yet. Everyone gets {DAILY_CHIPS} a day to put on matches. Back the underdog when nobody else does and the
+            Nobody has won a coin yet. You bet with your own coins. Back the underdog when nobody else does and the
             whole pot is yours. {NERVE_MIN_CALLS} bets earns you a shot at 🔮 The Oracle.
           </p>
         ) : (

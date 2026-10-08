@@ -15,8 +15,8 @@ export type Reward =
 const PACKS: Record<string, Reward> = {
   standard: { kind: 'pack', label: 'Card pack' },
   rare: { kind: 'pack', minRarity: 'rare', label: 'Rare pack' },
-  epic: { kind: 'pack', minRarity: 'epic', label: 'Epic pack' },
-  legendary: { kind: 'pack', minRarity: 'legendary', label: 'Legendary pack' },
+  epic: { kind: 'pack', minRarity: 'epic', label: 'Legendary pack' },
+  legendary: { kind: 'pack', minRarity: 'legendary', label: 'Ultimate pack' },
 };
 
 /** Unlock key (badge id, or t:achievement:tier) to its themed card. */

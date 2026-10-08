@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { MatchModifier, MatchRecord, Player } from '../types';
+import { MatchModifier, MatchRecord, Player, Pocket } from '../types';
 import { CrownState } from '../utils/league';
 import { LogMatchView } from './LogMatchView';
 
@@ -17,7 +17,8 @@ interface MatchLoggerSheetProps {
     playerBId: string,
     winnerId: string,
     modifiers: MatchModifier,
-    winnerBall?: 'solids' | 'stripes'
+    winnerBall?: 'solids' | 'stripes',
+    lastPocket?: Pocket
   ) => void;
   onClose: () => void;
 }

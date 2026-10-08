@@ -9,7 +9,7 @@ import { buildSeasonFinale, FINALE_WINDOW_MS } from '../src/utils/finale';
 import { nerveDelta, deriveNerve, describeTimeLeft, isFinalDay, callsOpen, VOTE_WINDOW_MS, NERVE_BASE } from '../src/utils/league';
 import { Challenge } from '../src/types';
 import { MatchRecord, Player } from '../src/types';
-import { deriveChips, spentOnDay } from '../src/utils/chips';
+import { WALLET_LAUNCHED_AT, costOf, deriveChips } from '../src/utils/chips';
 import { dayKeyOf, deriveDaily, drawPairing } from '../src/utils/daily';
 import { CARDS_PER_PACK, ODDS, RARITIES, earnedPackReason, rollPack, rollRarity, seeded, specialAwards } from '../src/utils/cards';
 import { rewardFor } from '../src/utils/rewards';
@@ -416,10 +416,10 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   );
   eq('chips: an exact call splits the rolled jackpot evenly', [rolled.records.get('x')!.jackpots, rolled.records.get('y')!.jackpots, rolled.jackpot], [1, 1, 0]);
   eq('chips: every tip paid into the jackpot', rolled.payouts.get('c4')!.reduce((sum, p) => sum + p.jackpot, 0), 40);
-  // The daily allowance counts stakes and tips placed that day.
-  const today = [mkChallenge('c5', 'm5', 'A', base, [['x', 'A', 50, 'solids']])];
-  eq('chips: stake plus tip comes out of the day', spentOnDay(today, 'x', base + 3_600_000), 60);
-  eq('chips: tomorrow starts clean', spentOnDay(today, 'x', base + 86_400_000), 0);
+  // From the wallet on, a call costs its stake plus the jackpot entry, out of the player's own coins.
+  eq('chips: stake plus jackpot entry', costOf({ stake: 50, ball: 'solids', pocket: 'tl', createdAt: WALLET_LAUNCHED_AT + 1 }), 70);
+  eq('chips: stake alone', costOf({ stake: 50, createdAt: WALLET_LAUNCHED_AT + 1 }), 50);
+  eq('chips: old calls were free', costOf({ stake: 50, ball: 'solids', createdAt: WALLET_LAUNCHED_AT - 1 }), 0);
 }
 
 // --- match of the day: one draw per day, streaks and chips read off matches ---
@@ -589,7 +589,7 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
 }
 
 {
-  eq('rewards: tiers pay better packs', ['t:wins:1', 't:wins:3', 't:wins:4', 't:wins:5'].map((k) => rewardFor(k).label), ['Card pack', 'Rare pack', 'Epic pack', 'Legendary pack']);
+  eq('rewards: tiers pay better packs', ['t:wins:1', 't:wins:3', 't:wins:4', 't:wins:5'].map((k) => rewardFor(k).label), ['Card pack', 'Rare pack', 'Legendary pack', 'Ultimate pack']);
   eq('rewards: secret badges pay a rare pack', [rewardFor('first').label, rewardFor('broke', true).label], ['Card pack', 'Rare pack']);
   eq('rewards: special achievements give a themed card', [rewardFor('t:upsets:3').kind, rewardFor('jackpot1').label], ['card', 'Jackpot card']);
   const legendaryPack = rollPack({ packId: 'r1', kind: 'reward', playerIds: ['a', 'b'], pity: 0, takenMythics: new Set(), minRarity: 'legendary' });

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeftRight, History } from 'lucide-react';
-import { Player, MatchRecord, MatchModifier } from '../types';
+import { Player, MatchRecord, MatchModifier, Pocket } from '../types';
 import { CrownState } from '../utils/league';
 import { Ball, PlayerAvatar } from './ui';
+import { PocketPopup } from './PocketTable';
 import { MatchupCards } from './MatchupCards';
 
 /**
@@ -38,7 +39,8 @@ interface LogMatchViewProps {
     playerBId: string,
     winnerId: string,
     modifiers: MatchModifier,
-    winnerBall?: 'solids' | 'stripes'
+    winnerBall?: 'solids' | 'stripes',
+    lastPocket?: Pocket
   ) => void;
   isSubmitting?: boolean;
 }
@@ -75,9 +77,11 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
 
   const winner = winnerId === playerA?.id ? playerA : winnerId === playerB?.id ? playerB : null;
 
-  const record = (group?: 'solids' | 'stripes') => {
+  const [pendingGroup, setPendingGroup] = useState<'solids' | 'stripes' | null>(null);
+  const record = (group?: 'solids' | 'stripes', pocket?: Pocket) => {
     if (!playerA || !playerB || !winner || isSubmitting) return;
-    onRecordMatch(playerA.id, playerB.id, winner.id, NO_MODIFIERS, group);
+    setPendingGroup(null);
+    onRecordMatch(playerA.id, playerB.id, winner.id, NO_MODIFIERS, group, pocket);
   };
 
   return (
@@ -144,7 +148,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
                 key={group}
                 type="button"
                 disabled={isSubmitting}
-                onClick={() => record(group)}
+                onClick={() => setPendingGroup(group)}
                 className="press grid justify-items-center gap-2.5 rounded-2xl bg-surface py-[18px] text-[13px] font-extrabold uppercase tracking-[0.08em] transition-colors hover:bg-[#1C1C1C] disabled:opacity-50"
               >
                 <Ball n={n} size={64} className="callout-throw" style={{ animationDuration: '520ms', animationDelay: `${index * 80}ms` }} />
@@ -161,6 +165,16 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
             {isSubmitting ? 'Logging' : 'Not sure, log it anyway'}
           </button>
         </div>
+      )}
+
+      {pendingGroup && (
+        <PocketPopup
+          title="Which pocket did the last ball go in?"
+          disabled={isSubmitting}
+          onPick={(pocket) => record(pendingGroup, pocket)}
+          onSkip={() => record(pendingGroup)}
+          onClose={() => setPendingGroup(null)}
+        />
       )}
 
       {selectingFor && (

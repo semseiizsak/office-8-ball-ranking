@@ -1,25 +1,37 @@
-import { Challenge, MatchRecord } from '../types';
+import { Challenge, MatchRecord, Prediction } from '../types';
 
 /**
  * Office chips: the betting side of calling a match.
  *
- * Everyone gets a fresh daily allowance to stake; what is not staked that day
- * is gone. Every match is its own pool: the losing stakes are shared among
- * the people who backed the winner, in proportion to what they put in, and
- * the winning stakes come back. What a player has won is their wealth.
+ * Calls are paid out of your own coins, with no daily limit. The winning
+ * stakes come back and the losing stakes go into the jackpot. What a player has won is their wealth.
  *
- * On top, a ball tip (solids or stripes for the winner) costs a flat fee that
- * goes into a jackpot. Everyone who calls both the winner and the ball shares
- * it; when nobody does, it rolls on and grows.
+ * On top, a jackpot entry (the winner's ball and the pocket of the last ball)
+ * costs a flat fee that goes into the pot, and the house adds more after every
+ * match. Whoever calls winner, ball and pocket shares it; when nobody does, it
+ * rolls on and grows.
  *
  * Nothing here is stored as a balance. It is all rebuilt from the challenges
  * and matches, in the order the matches were played, so a corrected result
  * corrects the chips too.
  */
 
-export const DAILY_CHIPS = 100;
 export const STAKES = [10, 25, 50, 100] as const;
+/** Old flat ball tip, kept for calls made before the wallet. */
 export const BALL_TIP_COST = 10;
+/** Entering the jackpot: winner, ball and the pocket of the last ball. */
+export const JACKPOT_ENTRY = 20;
+/** The house adds this to the jackpot after every settled match. */
+export const JACKPOT_HOUSE = 50;
+/**
+ * From here on a call is paid out of the player's own coins (2026-10-08). Calls
+ * before it were free, out of a daily allowance, and settle as they always did.
+ */
+export const WALLET_LAUNCHED_AT = 1791410413000;
+
+export const isWalletCall = (prediction: { createdAt: number }) => prediction.createdAt >= WALLET_LAUNCHED_AT;
+/** A jackpot entry in the current rules. */
+export const hasJackpotEntry = (prediction: Pick<Prediction, 'ball' | 'pocket'>) => !!prediction.ball && !!prediction.pocket;
 
 /**
  * Calls made before chips existed (2026-09-28 14:15 CEST) had no stake. They
@@ -37,26 +49,9 @@ export const stakeOf = (prediction: { stake?: number; isLock?: boolean; createdA
 /** One-off gifts to everyone on the roster, added to their stack. */
 export const GRANTS: Array<{ day: string; amount: number }> = [{ day: '2026-09-28', amount: 100 }];
 
-const dayKey = (at: number) => new Date(at).toDateString();
-
-/** What a prediction took out of the day's allowance. */
-export const costOf = (prediction: { stake?: number; ball?: string | null }) =>
-  (prediction.stake ?? 0) + (prediction.ball ? BALL_TIP_COST : 0);
-
-/** How much of today's allowance a player has already put down. */
-export function spentOnDay(challenges: Challenge[], playerId: string, at: number): number {
-  const day = dayKey(at);
-  let spent = 0;
-  for (const challenge of challenges) {
-    for (const prediction of challenge.predictions) {
-      if (prediction.predictorId === playerId && dayKey(prediction.createdAt) === day) spent += costOf(prediction);
-    }
-  }
-  return spent;
-}
-
-export const leftToday = (challenges: Challenge[], playerId: string, at: number) =>
-  Math.max(0, DAILY_CHIPS - spentOnDay(challenges, playerId, at));
+/** What a call takes out of the wallet. Free before the wallet existed. */
+export const costOf = (prediction: Pick<Prediction, 'stake' | 'ball' | 'pocket' | 'createdAt'>) =>
+  isWalletCall(prediction) ? (prediction.stake ?? 0) + (hasJackpotEntry(prediction) ? JACKPOT_ENTRY : 0) : 0;
 
 export interface ChipRecord {
   /** Everything paid out to this player: returned stakes, winnings and jackpots. */
@@ -102,6 +97,16 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
     return fresh;
   };
 
+  // Calls come out of the wallet the moment they are cast; a challenge that
+  // never gets played gives them back.
+  for (const challenge of challenges) {
+    if (!['pending', 'accepted', 'live', 'played'].includes(challenge.status)) continue;
+    for (const prediction of challenge.predictions) {
+      const cost = costOf(prediction);
+      if (cost > 0) record(prediction.predictorId).chips -= cost;
+    }
+  }
+
   for (const challenge of challenges) {
     if (['pending', 'accepted', 'live'].includes(challenge.status)) {
       pools.set(challenge.id, challenge.predictions.reduce((sum, prediction) => sum + stakeOf(prediction), 0));
@@ -124,6 +129,7 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
     const rightPool = right.reduce((sum, prediction) => sum + stakeOf(prediction), 0);
     const wrongPool = wrong.reduce((sum, prediction) => sum + stakeOf(prediction), 0);
 
+    const walletEra = settledAt(challenge) >= WALLET_LAUNCHED_AT;
     const paid = new Map<string, Payout>();
     const slot = (id: string, stake: number) => {
       const existing = paid.get(id) ?? { playerId: id, staked: 0, paid: 0, jackpot: 0 };
@@ -134,18 +140,27 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
 
     for (const prediction of right) {
       const stake = stakeOf(prediction);
-      const share = rightPool > 0 ? Math.floor((wrongPool * stake) / rightPool) : 0;
+      // Since the wallet, lost stakes feed the jackpot instead of the winners.
+      const share = walletEra ? 0 : rightPool > 0 ? Math.floor((wrongPool * stake) / rightPool) : 0;
       slot(prediction.predictorId, stake).paid += stake + share;
     }
     for (const prediction of wrong) slot(prediction.predictorId, stakeOf(prediction));
-    // Nobody backed the winner: the pool has nowhere to go, so it feeds the jackpot.
-    if (rightPool === 0) jackpot += wrongPool;
+    // Old rules: only when nobody backed the winner does the pool feed the jackpot.
+    if (walletEra || rightPool === 0) jackpot += wrongPool;
 
-    // The ball tips: every one pays into the jackpot, the exact calls share it.
-    const tips = challenge.predictions.filter((prediction) => prediction.ball);
-    jackpot += tips.length * BALL_TIP_COST;
+    // The jackpot: entries pay in, the house tops it up after every match, and
+    // only an exact call takes it: winner, ball and the last pocket. Calls from
+    // before the wallet were a flat ball tip and still win on winner and ball.
+    const tips = challenge.predictions.filter((prediction) => hasJackpotEntry(prediction) || (prediction.ball && !isWalletCall(prediction)));
+    jackpot += tips.reduce((sum, prediction) => sum + (hasJackpotEntry(prediction) ? JACKPOT_ENTRY : BALL_TIP_COST), 0);
+    if (walletEra) jackpot += JACKPOT_HOUSE;
     const exact = match?.winnerBall
-      ? tips.filter((prediction) => prediction.predictedWinnerId === winnerId && prediction.ball === match.winnerBall)
+      ? tips.filter(
+          (prediction) =>
+            prediction.predictedWinnerId === winnerId &&
+            prediction.ball === match.winnerBall &&
+            (!hasJackpotEntry(prediction) || (!!match.lastPocket && prediction.pocket === match.lastPocket))
+        )
       : [];
     if (exact.length > 0) {
       const each = Math.floor(jackpot / exact.length);
