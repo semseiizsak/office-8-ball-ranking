@@ -6,7 +6,7 @@ import { Challenge, MatchRecord, Prediction } from '../types';
  * Calls are paid out of your own coins, with no daily limit. The winning
  * stakes come back and the losing stakes go into the jackpot. What a player has won is their wealth.
  *
- * On top, a jackpot entry (the winner's ball and the pocket of the last ball)
+ * On top, a jackpot entry (the winner's balls and the pocket the 8 ball went in)
  * costs a flat fee that goes into the pot, and the house adds more after every
  * match. Whoever calls winner, ball and pocket shares it; when nobody does, it
  * rolls on and grows.
@@ -19,7 +19,7 @@ import { Challenge, MatchRecord, Prediction } from '../types';
 export const STAKES = [10, 25, 50, 100] as const;
 /** Old flat ball tip, kept for calls made before the wallet. */
 export const BALL_TIP_COST = 10;
-/** Entering the jackpot: winner, ball and the pocket of the last ball. */
+/** Entering the jackpot: winner, ball and the pocket the 8 ball goes in. */
 export const JACKPOT_ENTRY = 20;
 /** The house adds this to the jackpot after every settled match. */
 export const JACKPOT_HOUSE = 50;
@@ -149,7 +149,7 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
     if (walletEra || rightPool === 0) jackpot += wrongPool;
 
     // The jackpot: entries pay in, the house tops it up after every match, and
-    // only an exact call takes it: winner, ball and the last pocket. Calls from
+    // only an exact call takes it: winner, ball and the 8 ball's pocket. Calls from
     // before the wallet were a flat ball tip and still win on winner and ball.
     const tips = challenge.predictions.filter((prediction) => hasJackpotEntry(prediction) || (prediction.ball && !isWalletCall(prediction)));
     jackpot += tips.reduce((sum, prediction) => sum + (hasJackpotEntry(prediction) ? JACKPOT_ENTRY : BALL_TIP_COST), 0);

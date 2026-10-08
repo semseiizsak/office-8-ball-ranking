@@ -362,7 +362,7 @@ const Harness: React.FC = () => {
 
   // ---------- Kiosk sandbox: a fake live match you can log end to end, entirely
   // local (no Firestore writes), to check the ball-pick flow + ladder reorder. ----------
-  const [showKiosk, setShowKiosk] = useState(false);
+  const [showKiosk, setShowKiosk] = useState(() => new URLSearchParams(location.search).has('kiosk'));
   const [kioskPlayers, setKioskPlayers] = useState<Player[]>(players);
   const [kioskPrevPlayers, setKioskPrevPlayers] = useState<Player[] | undefined>(undefined);
   const kioskChallenge = liveChallenge;
@@ -372,7 +372,7 @@ const Harness: React.FC = () => {
     setTab('leaderboard');
     setShowKiosk(true);
   };
-  const handleKioskSandboxLog = async (winnerId: string, winnerBall?: 'solids' | 'stripes') => {
+  const handleKioskSandboxLog = async (winnerId: string, winnerBall?: 'solids' | 'stripes', lastPocket?: Pocket) => {
     const a = kioskPlayers.find((p) => p.id === kioskChallenge.challengerId)!;
     const b = kioskPlayers.find((p) => p.id === kioskChallenge.opponentId)!;
     const winnerIsA = winnerId === a.id;
@@ -391,7 +391,7 @@ const Harness: React.FC = () => {
     );
     setShowKiosk(false);
     window.setTimeout(() => setKioskPrevPlayers(undefined), 3000);
-    console.log('demo onLogResult', winnerId, winnerBall);
+    console.log('demo onLogResult', winnerId, winnerBall, lastPocket);
   };
   const [showAwards, setShowAwards] = useState(false);
   const [showWrap, setShowWrap] = useState(false);

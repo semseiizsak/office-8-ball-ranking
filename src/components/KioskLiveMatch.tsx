@@ -77,6 +77,17 @@ export const KioskLiveMatch: React.FC<{
   };
 
   const [pendingBall, setPendingBall] = useState<'solids' | 'stripes' | null>(null);
+  // The pocket popup holds the armed winner: the auto-disarm used to fire
+  // under it after 10 s, and every pocket tap then did nothing.
+  const openPocket = (ball: 'solids' | 'stripes') => {
+    if (isLogging || !armedWinnerId) return;
+    if (armTimerRef.current) window.clearTimeout(armTimerRef.current);
+    setPendingBall(ball);
+  };
+  const closePocket = () => {
+    setPendingBall(null);
+    if (armedWinnerId) armWinner(armedWinnerId);
+  };
   const logWith = (ball?: 'solids' | 'stripes', pocket?: Pocket) => {
     if (isLogging || !armedWinnerId) return;
     setPendingBall(null);
@@ -209,7 +220,7 @@ export const KioskLiveMatch: React.FC<{
                         key={group}
                         type="button"
                         disabled={isLogging}
-                        onClick={() => setPendingBall(group)}
+                        onClick={() => openPocket(group)}
                         className="press flex h-16 items-center justify-center gap-3 rounded-2xl bg-surface text-base font-extrabold uppercase tracking-[0.06em] disabled:opacity-50"
                       >
                         <Ball n={n} size={40} />
@@ -227,14 +238,14 @@ export const KioskLiveMatch: React.FC<{
                   </button>
                 </div>
               )}
-              {pendingBall && (
+              {pendingBall && armedWinnerId && (
                 <PocketPopup
                   large
-                  title="Which pocket did the last ball go in?"
+                  title="Where did the 8 ball go in?"
                   disabled={isLogging}
                   onPick={(pocket) => logWith(pendingBall, pocket)}
                   onSkip={() => logWith(pendingBall)}
-                  onClose={() => setPendingBall(null)}
+                  onClose={closePocket}
                 />
               )}
               {logError && <p role="alert" className="text-center text-xs font-semibold text-white/70">{logError}</p>}

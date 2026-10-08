@@ -168,7 +168,7 @@ const ghost = (id: string, name: string) => ({ id, name, avatarUrl: '' });
 
 /**
  * Staking a call: slide how many of your own coins to put down, optionally
- * enter the jackpot (the winner's ball and the pocket of the last ball), then
+ * enter the jackpot (the winner's balls and the pocket the 8 ball goes in), then
  * tap who wins. Once cast it cannot be changed.
  */
 const CallControls: React.FC<{
@@ -190,7 +190,7 @@ const CallControls: React.FC<{
     return (
       <p className="text-[13px] text-white/70">
         You put <b className="text-white">{stakeOf(myCall)} coins</b> on <b className="text-white">{first(pickedName)}</b>
-        {myCall.ball ? `, ${myCall.ball}${myCall.pocket ? ` and the ${POCKET_LABEL[myCall.pocket]} pocket` : ''} for the jackpot` : ''}. Calls can't be switched.
+        {myCall.ball ? `, ${myCall.ball}${myCall.pocket ? ` the 8 ball in the ${POCKET_LABEL[myCall.pocket]} pocket` : ''} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );
   }
@@ -239,7 +239,7 @@ const CallControls: React.FC<{
         <span className="grid">
           <span className="text-[13px] font-extrabold">Go for the jackpot</span>
           <span className={`text-[11px] font-semibold ${jackpot ? 'text-bg/60' : 'text-white/55'}`}>
-            {JACKPOT_ENTRY} coins. The winner's ball and the last pocket.
+            {JACKPOT_ENTRY} coins. The winner's balls and the 8 ball's pocket.
           </span>
         </span>
         <span className={`grid h-6 w-6 flex-none place-items-center rounded-full text-sm font-black ${jackpot ? 'bg-felt text-white' : 'shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)]'}`}>
@@ -270,7 +270,7 @@ const CallControls: React.FC<{
             </div>
           </div>
           <div className="grid gap-1.5">
-            <span className="text-[13px] font-bold text-white/70">Which pocket takes the last ball?</span>
+            <span className="text-[13px] font-bold text-white/70">Where will the 8 ball go in?</span>
             <PocketTable value={pocket} onChange={setPocket} />
           </div>
         </div>
@@ -839,11 +839,11 @@ export const ArenaView: React.FC<ArenaViewProps> = ({
 
       {/* The jackpot and what is left of today's coins, on one strip. */}
       <div className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-2.5">
-        <span className="flex min-w-0 items-center gap-2.5" title="Call the winner, their balls and the last pocket to take it.">
+        <span className="flex min-w-0 items-center gap-2.5" title="Call the winner, their balls and the 8 ball's pocket to take it.">
           <Coin size={24} />
           <span className="grid min-w-0">
             <span className="font-display text-[22px] font-extrabold leading-none tabular-nums">{chips.jackpot}</span>
-            <span className="text-[11px] font-semibold text-white/55">Jackpot, call the winner, their balls and the last pocket</span>
+            <span className="text-[11px] font-semibold text-white/55">Jackpot, call the winner, their balls and the 8 ball's pocket</span>
           </span>
         </span>
         <span className="flex-none text-right">

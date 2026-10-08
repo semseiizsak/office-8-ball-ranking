@@ -169,7 +169,7 @@ export const LogMatchView: React.FC<LogMatchViewProps> = ({
 
       {pendingGroup && (
         <PocketPopup
-          title="Which pocket did the last ball go in?"
+          title="Where did the 8 ball go in?"
           disabled={isSubmitting}
           onPick={(pocket) => record(pendingGroup, pocket)}
           onSkip={() => record(pendingGroup)}

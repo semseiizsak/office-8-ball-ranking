@@ -68,7 +68,7 @@ export interface MatchRecord {
   commentCount?: number;
   /** Which group the winner was on. The loser had the other one. */
   winnerBall?: 'solids' | 'stripes';
-  /** Which pocket the last ball dropped in. Decides the jackpot. */
+  /** Which pocket the 8 ball went in, whoever potted it. Decides the jackpot. */
   lastPocket?: Pocket;
 }
 
@@ -163,7 +163,7 @@ export interface Prediction {
   stake?: number;
   /** Optional tip on the winner's group, which buys into the jackpot. */
   ball?: 'solids' | 'stripes';
-  /** With ball, buys a jackpot entry: the pocket the last ball will drop in. */
+  /** With ball, buys a jackpot entry: the pocket the 8 ball will go in. */
   pocket?: Pocket;
 }
 
