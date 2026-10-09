@@ -31,7 +31,9 @@ export type LeagueNotificationType =
   /** Friday's weekly awards are in. */
   | 'weekly_awards'
   /** Packs, big pulls and trades. */
-  | 'cards';
+  | 'cards'
+  /** Somebody called it exactly and took the jackpot. */
+  | 'jackpot';
 
 /** One addressed message as the inbox shows it. */
 export interface LeagueNotification {
@@ -224,3 +226,37 @@ export const notifyMany = async (
     recipientIds.map((recipientPlayerId) => sendNotification({ recipientPlayerId, ...payload }))
   );
 };
+
+/**
+ * Somebody took the jackpot: the whole office hears it, the takers in their
+ * own words. Best effort, like every other notification.
+ */
+export async function announceJackpot(
+  takers: Array<{ playerId: string; amount: number }>,
+  players: Array<{ id: string; name: string }>
+): Promise<void> {
+  if (takers.length === 0) return;
+  const first = (id: string) => (players.find((player) => player.id === id)?.name ?? 'Someone').split(' ')[0];
+  const names = takers.map((taker) => first(taker.playerId));
+  const who = names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  const total = takers.reduce((sum, taker) => sum + taker.amount, 0);
+  const takerIds = new Set(takers.map((taker) => taker.playerId));
+  await Promise.all([
+    ...takers.map((taker) =>
+      sendNotification({
+        recipientPlayerId: taker.playerId,
+        type: 'jackpot',
+        title: '💎 You took the jackpot',
+        body: `${taker.amount} coins are in your stack.`,
+      })
+    ),
+    notifyMany(
+      players.map((player) => player.id).filter((id) => !takerIds.has(id)),
+      {
+        type: 'jackpot',
+        title: `💎 ${who} took the jackpot`,
+        body: `${total} coins, called winner, balls and pocket. The pot starts again.`,
+      }
+    ),
+  ]);
+}

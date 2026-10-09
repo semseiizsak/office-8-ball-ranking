@@ -25,6 +25,7 @@ const EMOJI: Record<string, string> = {
   shame: '🤡',
   tournament: '🏆',
   weekly_awards: '🎖️',
+  jackpot: '💎',
 };
 
 export const describeAgo = (createdAt: number, now: number): string => {

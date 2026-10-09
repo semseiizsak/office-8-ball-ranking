@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, Messaging } from 'firebase/messaging';
 import {
   addDoc,
+  arrayUnion,
   collection,
   connectFirestoreEmulator,
   deleteDoc,
@@ -1753,6 +1754,9 @@ const toCollector = (id: string, data: Record<string, unknown> | undefined): Col
   duplicateChips: Number(data?.duplicateChips ?? 0),
   spentChips: Number(data?.spentChips ?? 0),
   rewardChips: Number(data?.rewardChips ?? 0),
+  cashIns: Array.isArray(data?.cashIns)
+    ? (data.cashIns as Array<Record<string, unknown>>).map((entry) => ({ at: Number(entry.at ?? 0), coins: Number(entry.coins ?? 0), cards: Number(entry.cards ?? 0) }))
+    : [],
   opened: Number(data?.opened ?? 0),
 });
 
@@ -2013,7 +2017,11 @@ export async function cashInCard(cardId: string, ownerId: string): Promise<numbe
     const collector = toCollector(ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
     const chips = DUPLICATE_CHIPS[card.rarity];
     transaction.delete(ref);
-    transaction.set(collectorRef, { pity: collector.pity, opened: collector.opened, duplicateChips: collector.duplicateChips + chips }, { merge: true });
+    transaction.set(
+      collectorRef,
+      { pity: collector.pity, opened: collector.opened, duplicateChips: collector.duplicateChips + chips, cashIns: arrayUnion({ at: Date.now(), coins: chips, cards: 1 }) },
+      { merge: true }
+    );
     return chips;
   });
 }
@@ -2033,7 +2041,8 @@ export async function cashInCards(cardIds: string[], ownerId: string): Promise<n
       transaction.delete(entry.ref);
     }
     const before = Number(collectorDoc.exists() ? collectorDoc.data().duplicateChips ?? 0 : 0);
-    transaction.set(collectorRef, { duplicateChips: before + coins }, { merge: true });
+    const cards = docs.filter((entry) => entry.exists()).length;
+    transaction.set(collectorRef, { duplicateChips: before + coins, ...(coins > 0 ? { cashIns: arrayUnion({ at: Date.now(), coins, cards }) } : {}) }, { merge: true });
     return coins;
   });
 }

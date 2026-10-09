@@ -9,6 +9,7 @@ import { buildMatchRecap } from './utils/recap';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { LeagueNotification } from './services/notifications';
 import { ArenaView } from './components/ArenaView';
+import { coinLedger } from './utils/ledger';
 import { CupView } from './components/CupView';
 import { WeeklyAwardsScene } from './components/WeeklyAwardsScene';
 import { SeasonWrapScene } from './components/SeasonWrapScene';
@@ -532,7 +533,9 @@ const Harness: React.FC = () => {
               previousPlayers={kioskPrevPlayers} />
           ) : (
             <ArenaView players={players} challenges={[liveChallenge, ...challengesList]} currentPlayer={me}
-              chips={league.chips} daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
+              chips={league.chips}
+              ledger={coinLedger({ playerId: me.id, players, matches: seasonMatches, challenges: [liveChallenge, ...challengesList], chips: league.chips, dailies: [], tournaments: [harnessCup], packs: packList, collector: { id: me.id, counts: {}, pity: 0, duplicateChips: 30, spentChips: 400, rewardChips: 0, opened: 3, cashIns: [{ at: now - 3_600_000, coins: 20, cards: 4 }] }, now })}
+              daily={{ bye: false, opponent: players[1], played: false, won: false, streak: 2 }} onPlayDaily={() => setChallenging(true)} onLogMatch={() => setTab('log')} onInstantMatch={() => setChallenging(true)} onSelectPlayer={setDossier}
               onIssueChallenge={() => setChallenging(true)}
               onRespond={async () => {}} onCancel={async () => {}}
               onPredict={handlePredict} onPlayChallenge={() => {}}

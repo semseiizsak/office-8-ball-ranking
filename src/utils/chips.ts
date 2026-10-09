@@ -191,3 +191,23 @@ export function addBonus(state: ChipsState, playerId: string, amount: number) {
   entry.chips += amount;
   state.records.set(playerId, entry);
 }
+
+/**
+ * Who took the jackpot with the result just logged, and how much each, so the
+ * whole office can hear about it. Settles the challenge the way the
+ * resolveChallenge write is about to, and reads that challenge's payouts.
+ */
+export function jackpotTakers(
+  challenges: Challenge[],
+  matches: MatchRecord[],
+  challengeId: string,
+  match: MatchRecord
+): Array<{ playerId: string; amount: number }> {
+  const settled = challenges.map((challenge) =>
+    challenge.id === challengeId ? { ...challenge, status: 'played' as const, resolvedWinnerId: match.winnerId, matchId: match.id } : challenge
+  );
+  const all = matches.some((existing) => existing.id === match.id) ? matches : [match, ...matches];
+  return (deriveChips(settled, all).payouts.get(challengeId) ?? [])
+    .filter((payout) => payout.jackpot > 0)
+    .map((payout) => ({ playerId: payout.playerId, amount: payout.jackpot }));
+}

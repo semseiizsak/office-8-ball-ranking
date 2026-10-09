@@ -31,14 +31,16 @@ import {
   LeagueNotification,
   markInboxRead,
   notifyMany,
+  announceJackpot,
   registerForPushNotifications,
   sendEarnedNotifications,
   sendNotification,
   subscribeToInbox,
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
+import { coinLedger } from './utils/ledger';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { GRANTS, addBonus } from './utils/chips';
+import { GRANTS, addBonus, jackpotTakers } from './utils/chips';
 import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
@@ -233,6 +235,27 @@ export default function App() {
     for (const [id, amount] of deriveChallengeCoins(players.map((player) => player.id), matches, challenges, clock)) addBonus(merged, id, amount);
     return merged;
   }, [league.chips, dailyRecords, cupRecords, players, collectors, matches, challenges, clock]);
+
+  // The viewer's coin log: every movement on their stack, when and why.
+  const ledger = useMemo(() => {
+    if (!currentPlayer) return [];
+    const entries = coinLedger({
+      playerId: currentPlayer.id,
+      players,
+      matches,
+      challenges,
+      chips,
+      dailies,
+      tournaments,
+      packs,
+      collector: collectors.find((entry) => entry.id === currentPlayer.id),
+      now: clock,
+    });
+    const balance = chips.records.get(currentPlayer.id)?.chips ?? 0;
+    const logged = entries.reduce((sum, entry) => sum + entry.amount, 0);
+    if (Math.round(logged) !== Math.round(balance)) console.warn(`Coin log ${logged} does not add up to the stack ${balance}.`);
+    return entries;
+  }, [currentPlayer, players, matches, challenges, chips, dailies, tournaments, packs, collectors, clock]);
 
   useEffect(() => {
     let cancelled = false;
@@ -473,7 +496,7 @@ export default function App() {
         return;
       }
     }
-    setActiveTab(item.type === 'prediction_result' || item.type === 'match_live' ? 'arena' : 'leaderboard');
+    setActiveTab(item.type === 'prediction_result' || item.type === 'match_live' || item.type === 'jackpot' ? 'arena' : 'leaderboard');
   };
 
   // You are almost always one of the two people in a match you are logging.
@@ -1153,6 +1176,10 @@ export default function App() {
       ).catch((error) => console.warn('Result notifications not delivered:', error));
 
       if (activeChallengeId) {
+        // An exact call took the jackpot: everybody hears it.
+        void announceJackpot(jackpotTakers(challenges, matches, activeChallengeId, result.match), result.players).catch((error) =>
+          console.warn('Jackpot not announced:', error)
+        );
         // Settling the challenge books every spectator's call, so the player
         // records have to be re-read afterwards.
         await poolService.resolveChallenge({
@@ -1709,6 +1736,7 @@ export default function App() {
                 onLogMatch={() => openMatchLogger()}
                 onInstantMatch={() => setChallengeTarget({ mode: 'instant' })}
                 chips={chips}
+                ledger={ledger}
                 daily={(() => {
                   const mine = todaysDaily(dailies, currentPlayer.id, clock);
                   if (!mine) return null;

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Dices, QrCode, RotateCw, Trophy } from 'lucide-react';
 import { Challenge, ChallengeStakes, MatchRecord, Player, Pocket, Season } from './types';
 import { poolService } from './services/poolService';
-import { notifyMany } from './services/notifications';
+import { announceJackpot, notifyMany } from './services/notifications';
+import { jackpotTakers } from './utils/chips';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
 import { previewStakes } from './utils/stakes';
 import { hardRefresh } from './utils/refresh';
@@ -333,6 +334,9 @@ export default function KioskApp() {
       lastPocket,
     });
     await poolService.resolveChallenge({ challengeId: challenge.id, matchId: result.match.id, winnerId });
+    void announceJackpot(jackpotTakers(challenges, matches, challenge.id, result.match), result.players).catch((error) =>
+      console.warn('Jackpot not announced:', error)
+    );
     // matches/challenges arrive live through the kiosk's own subscriptions —
     // that's what flips `liveChallenge` to null and returns the screen to the
     // ladder — but there is no live players subscription anywhere in this

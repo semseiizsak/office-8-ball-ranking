@@ -183,6 +183,8 @@ export interface Collector {
   spentChips: number;
   /** Coins from rewards such as a completed player set. */
   rewardChips: number;
+  /** Every cash-in since the coin log, so it can say when. */
+  cashIns?: Array<{ at: number; coins: number; cards: number }>;
   opened: number;
 }
 
