@@ -20,7 +20,14 @@ export interface LedgerEntry {
   kind: LedgerKind;
   title: string;
   detail?: string;
+  /** The challenge a call, payout or jackpot belongs to. */
+  challengeId?: string;
+  /** The stack either side of this entry, filled in once the log is in order. */
+  before: number;
+  after: number;
 }
+
+type Draft = Omit<LedgerEntry, 'before' | 'after'>;
 
 export const LEDGER_EMOJI: Record<LedgerKind, string> = {
   call: '🔮',
@@ -49,7 +56,7 @@ export function coinLedger(params: {
   now: number;
 }): LedgerEntry[] {
   const { playerId: me, players, matches, challenges, chips, now } = params;
-  const out: LedgerEntry[] = [];
+  const out: Draft[] = [];
   const first = (id: string) => (players.find((player) => player.id === id)?.name ?? 'someone').split(' ')[0];
   const matchById = new Map(matches.map((match) => [match.id, match]));
   const vs = (challenge: Challenge) => `${first(challenge.challengerId)} vs ${first(challenge.opponentId)}`;
@@ -61,8 +68,8 @@ export function coinLedger(params: {
       if (prediction.predictorId !== me || costOf(prediction) <= 0) return;
       const entry = hasJackpotEntry(prediction) ? JACKPOT_ENTRY : 0;
       const stake = costOf(prediction) - entry;
-      if (stake > 0) out.push({ id: `call:${challenge.id}:${index}`, at: prediction.createdAt, amount: -stake, kind: 'call', title: `Called ${first(prediction.predictedWinnerId)}`, detail: vs(challenge) });
-      if (entry > 0) out.push({ id: `entry:${challenge.id}:${index}`, at: prediction.createdAt, amount: -entry, kind: 'jackpot', title: 'Jackpot entry', detail: vs(challenge) });
+      if (stake > 0) out.push({ id: `call:${challenge.id}:${index}`, at: prediction.createdAt, amount: -stake, kind: 'call', title: `Called ${first(prediction.predictedWinnerId)}`, detail: vs(challenge), challengeId: challenge.id });
+      if (entry > 0) out.push({ id: `entry:${challenge.id}:${index}`, at: prediction.createdAt, amount: -entry, kind: 'jackpot', title: 'Jackpot entry', detail: vs(challenge), challengeId: challenge.id });
     });
   }
   for (const challenge of challenges) {
@@ -74,9 +81,9 @@ export function coinLedger(params: {
     const result = winnerId ? `${first(winnerId)} beat ${first(winnerId === challenge.challengerId ? challenge.opponentId : challenge.challengerId)}` : vs(challenge);
     if (payout.paid > 0) {
       const old = !challenge.predictions.some((prediction) => prediction.predictorId === me && isWalletCall(prediction));
-      out.push({ id: `pay:${challenge.id}`, at, amount: payout.paid, kind: 'payout', title: 'Your call came in', detail: `${result}${old ? ', stake and winnings' : ', stake back'}` });
+      out.push({ id: `pay:${challenge.id}`, at, amount: payout.paid, kind: 'payout', title: 'Your call came in', detail: `${result}${old ? ', stake and winnings' : ', stake back'}`, challengeId: challenge.id });
     }
-    if (payout.jackpot > 0) out.push({ id: `jackpot:${challenge.id}`, at, amount: payout.jackpot, kind: 'jackpot', title: 'Jackpot!', detail: `Winner, balls and pocket, ${result}` });
+    if (payout.jackpot > 0) out.push({ id: `jackpot:${challenge.id}`, at, amount: payout.jackpot, kind: 'jackpot', title: 'Jackpot!', detail: `Winner, balls and pocket, ${result}`, challengeId: challenge.id });
   }
 
   // Every match pays both sides; runs count over every match ever played.
@@ -165,12 +172,32 @@ export function coinLedger(params: {
     }
     // The stored totals are the truth; anything the packs no longer show goes in one line.
     const shopEarlier = collector.spentChips - params.packs.filter((pack) => pack.ownerId === me).reduce((sum, pack) => sum + (pack.price ?? 0), 0);
-    if (shopEarlier > 0) out.push({ id: 'shop:earlier', at: 0, amount: -shopEarlier, kind: 'shop', title: 'Pack shop', detail: 'Earlier purchases, all together' });
+    if (shopEarlier > 0) out.push({ id: 'shop:earlier', at: 0, amount: -shopEarlier, kind: 'shop', title: 'Pack shop', detail: 'Purchases not itemised, all together' });
     const setsEarlier = collector.rewardChips - out.filter((entry) => entry.kind === 'set').reduce((sum, entry) => sum + entry.amount, 0);
     if (setsEarlier > 0) out.push({ id: 'set:earlier', at: 0, amount: setsEarlier, kind: 'set', title: 'Player sets', detail: 'Earlier rewards, all together' });
     const earlier = collector.duplicateChips - packDuplicates - logged.reduce((sum, cashIn) => sum + cashIn.coins, 0);
     if (earlier > 0) out.push({ id: 'cash:earlier', at: 0, amount: earlier, kind: 'cards', title: 'Cards cashed in', detail: 'Before the coin log, all together' });
   }
 
-  return out.filter((entry) => entry.amount !== 0).sort((a, b) => b.at - a.at);
+  // Oldest first to run the balance, then newest first for reading.
+  let balance = 0;
+  return out
+    .filter((entry) => entry.amount !== 0)
+    .sort((a, b) => a.at - b.at || b.amount - a.amount)
+    .map((entry) => {
+      const before = balance;
+      balance += entry.amount;
+      return { ...entry, before, after: balance };
+    })
+    .reverse();
+}
+
+/** A won call or a jackpot: the moments worth a louder mark. */
+export const isBigMoment = (entry: LedgerEntry) => (entry.kind === 'jackpot' && entry.amount > 0) || entry.kind === 'payout';
+
+/** The slice of the log inside a window, and the stack it opened on. */
+export function ledgerWindow(entries: LedgerEntry[], from: number, until: number) {
+  const inside = entries.filter((entry) => entry.at >= from && entry.at < until);
+  const prior = entries.find((entry) => entry.at < from);
+  return { entries: inside, opening: prior ? prior.after : 0 };
 }

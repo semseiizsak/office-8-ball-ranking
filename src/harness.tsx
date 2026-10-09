@@ -546,7 +546,9 @@ const Harness: React.FC = () => {
           onSelectTab={(t) => setTab(t === 'arena' ? 'arena' : t === 'cup' ? 'cup' : t === 'collection' ? 'collection' : t === 'history' ? 'events' : 'leaderboard')}
           arenaBadge={1} cupBadge collectionBadge={packList.some((pack) => !pack.openedAt)} />
         <PlayerDossierModal player={dossier} rank={players.findIndex((p) => p.id === dossier?.id) + 1}
-          allPlayers={players} matches={seasonMatches} league={league}
+          allPlayers={players} matches={seasonMatches} league={league} challenges={[liveChallenge, ...challengesList]}
+          seasons={[pastSeason, currentSeason]} balances={new Map([...league.chips.records].map(([id, record]) => [id, record.chips]))}
+          ledgerFor={(id) => coinLedger({ playerId: id, players, matches: seasonMatches, challenges: [liveChallenge, ...challengesList], chips: league.chips, dailies: [], tournaments: [harnessCup], packs: [], now })}
           onClose={() => setDossier(null)} onChallenge={() => setDossier(null)} />
         {showIncoming && (
           <IncomingChallengeModal challenge={challenges[0]} players={players}

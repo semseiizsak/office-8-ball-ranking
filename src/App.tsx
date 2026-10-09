@@ -38,7 +38,7 @@ import {
   subscribeToInbox,
 } from './services/notifications';
 import { earnedNotifications } from './utils/earned';
-import { coinLedger } from './utils/ledger';
+import { LedgerEntry, coinLedger } from './utils/ledger';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
 import { GRANTS, addBonus, jackpotTakers } from './utils/chips';
 import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
@@ -236,26 +236,35 @@ export default function App() {
     return merged;
   }, [league.chips, dailyRecords, cupRecords, players, collectors, matches, challenges, clock]);
 
-  // The viewer's coin log: every movement on their stack, when and why.
-  const ledger = useMemo(() => {
-    if (!currentPlayer) return [];
-    const entries = coinLedger({
-      playerId: currentPlayer.id,
-      players,
-      matches,
-      challenges,
-      chips,
-      dailies,
-      tournaments,
-      packs,
-      collector: collectors.find((entry) => entry.id === currentPlayer.id),
-      now: clock,
-    });
-    const balance = chips.records.get(currentPlayer.id)?.chips ?? 0;
-    const logged = entries.reduce((sum, entry) => sum + entry.amount, 0);
-    if (Math.round(logged) !== Math.round(balance)) console.warn(`Coin log ${logged} does not add up to the stack ${balance}.`);
-    return entries;
-  }, [currentPlayer, players, matches, challenges, chips, dailies, tournaments, packs, collectors, clock]);
+  // Anyone's coin log: every movement on their stack, when and why. Built on
+  // demand and kept until the data moves. Only the viewer's own packs are
+  // loaded, so for anyone else the shop shows as one line.
+  const ledgerFor = useMemo(() => {
+    const cache = new Map<string, LedgerEntry[]>();
+    return (playerId: string) => {
+      const cached = cache.get(playerId);
+      if (cached) return cached;
+      const entries = coinLedger({
+        playerId,
+        players,
+        matches,
+        challenges,
+        chips,
+        dailies,
+        tournaments,
+        packs: playerId === currentPlayer?.id ? packs : [],
+        collector: collectors.find((entry) => entry.id === playerId),
+        now: clock,
+      });
+      const balance = chips.records.get(playerId)?.chips ?? 0;
+      const logged = entries.length ? entries[0].after : 0;
+      if (Math.round(logged) !== Math.round(balance)) console.warn(`Coin log ${logged} does not add up to the stack ${balance} for ${playerId}.`);
+      cache.set(playerId, entries);
+      return entries;
+    };
+  }, [currentPlayer?.id, players, matches, challenges, chips, dailies, tournaments, packs, collectors, clock]);
+  const ledger = useMemo(() => (currentPlayer ? ledgerFor(currentPlayer.id) : []), [currentPlayer, ledgerFor]);
+  const balances = useMemo(() => new Map([...chips.records].map(([id, record]) => [id, record.chips])), [chips]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1875,6 +1884,9 @@ export default function App() {
           dailyRecords={dailyRecords}
           cupRecords={cupRecords}
           awardRecords={awardRecords}
+          seasons={seasons}
+          ledgerFor={ledgerFor}
+          balances={balances}
           startingElo={currentSeason.startingElo}
           currentPlayerId={currentPlayer.id}
           onSelectPlayer={(player) => setDossierPlayer(player)}

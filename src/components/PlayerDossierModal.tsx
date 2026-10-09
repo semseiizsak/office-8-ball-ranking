@@ -2,7 +2,9 @@ import { rewardFor } from '../utils/rewards';
 import { sponsorOf } from '../utils/sponsors';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, Pencil, Swords } from 'lucide-react';
-import { Challenge, Player, MatchRecord } from '../types';
+import { Challenge, Player, MatchRecord, Season } from '../types';
+import { LedgerEntry } from '../utils/ledger';
+import { CoinsCard } from './CoinsCard';
 import { LeagueInsights, findTopRival, RIVALRY_RACE_TARGET } from '../utils/league';
 import {
   ACHIEVEMENTS,
@@ -40,6 +42,10 @@ interface PlayerDossierModalProps {
   dailyRecords?: Map<string, DailyRecord>;
   cupRecords?: Map<string, CupRecord>;
   awardRecords?: Map<string, Array<{ week: string; key: string }>>;
+  /** For the coins card: seasons, anyone's coin log and everyone's stack. */
+  seasons?: Season[];
+  ledgerFor?: (playerId: string) => LedgerEntry[];
+  balances?: Map<string, number>;
 }
 
 type Tab = 'overview' | 'stats' | 'rivals' | 'badges';
@@ -115,6 +121,9 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
   dailyRecords,
   cupRecords,
   awardRecords,
+  seasons = [],
+  ledgerFor,
+  balances,
 }) => {
   const [tab, setTab] = useState<Tab>('overview');
   useEffect(() => setTab('overview'), [player?.id]);
@@ -287,6 +296,10 @@ export const PlayerDossierModal: React.FC<PlayerDossierModalProps> = ({
           <p className="rounded-2xl bg-card px-4 py-5 text-center text-sm text-white/70">No matches logged yet. No rivalry to speak of.</p>
         )}
       </Section>
+
+      {ledgerFor && balances && (
+        <CoinsCard player={player} players={allPlayers} seasons={seasons} challenges={challenges} ledgerFor={ledgerFor} balances={balances} />
+      )}
 
       <div className="grid grid-cols-3 gap-0.5 overflow-hidden rounded-2xl bg-card">
         <Tile value={insight?.winsVsHigherRated ?? 0} label="Upset wins" />

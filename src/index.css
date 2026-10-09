@@ -101,7 +101,8 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
 .anim-rise { animation: rise-in 340ms var(--ease) both; }
 /* A coin change rises off the count, holds, and fades. */
 @keyframes coin-pop { 0% { opacity: 0; transform: translateY(6px); } 12%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-6px); } }
-.coin-pop { animation: coin-pop 2400ms var(--ease-io) both; }
+.coin-pop { animation: coin-pop 2600ms var(--ease-io) both; }
+.coin-pop-long { animation: coin-pop 4000ms var(--ease-io) both; }
 
 /* Lépcsőzetes beúszás: a szülő kapja, a gyerekek --i / --j indexet */
 .stagger > * { animation: rise-in 340ms var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
