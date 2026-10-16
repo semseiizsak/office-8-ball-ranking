@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ClipboardCheck, Flag, Play, Send, Swords, Tv } from 'lucide-react';
 import { Challenge, ChatMessage, Cheer, Player, Pocket, Prediction } from '../types';
 import { NERVE_MIN_CALLS, VOTE_WINDOW_MS } from '../utils/league';
-import { stakeOf, JACKPOT_ENTRY, ChipsState } from '../utils/chips';
+import { stakeOf, JACKPOT_ENTRY, ChipsState, oddsFor, returnOf } from '../utils/chips';
 import { PocketTable, POCKET_LABEL } from './PocketTable';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS } from '../utils/daily';
 import { shamed } from '../utils/shame';
@@ -193,7 +193,8 @@ const CallControls: React.FC<{
     const pickedName = myCall.predictedWinnerId === challenge.challengerId ? challenge.challengerName : challenge.opponentName;
     return (
       <p className="text-[13px] text-white/70">
-        You put <b className="text-white">{stakeOf(myCall)} coins</b> on <b className="text-white">{first(pickedName)}</b>
+        You put <b className="text-white">{stakeOf(myCall)} coins</b> on <b className="text-white">{first(pickedName)}</b> at ×{oddsFor(challenge, myCall.predictedWinnerId).toFixed(2)}, pays{' '}
+        <b className="text-white">{returnOf(challenge, myCall.predictedWinnerId, stakeOf(myCall))}</b>
         {myCall.ball ? `, ${myCall.ball}${myCall.pocket ? ` the 8 ball in the ${POCKET_LABEL[myCall.pocket]} pocket` : ''} for the jackpot` : ''}. Calls can't be switched.
       </p>
     );
@@ -205,7 +206,7 @@ const CallControls: React.FC<{
   const sides = [
     { id: challenge.challengerId, name: challenge.challengerName, ball: balls[0] },
     { id: challenge.opponentId, name: challenge.opponentName, ball: balls[1] },
-  ];
+  ].map((side) => ({ ...side, odds: oddsFor(challenge, side.id), pays: returnOf(challenge, side.id, amount) }));
   // Out of coins: one quiet line instead of a row of dead buttons.
   if (left < 1) return <p className="text-center text-xs font-semibold text-white/55">You have no coins left. Win some matches and calls to earn more.</p>;
   return (
@@ -287,10 +288,13 @@ const CallControls: React.FC<{
             type="button"
             disabled={amount < 1 || !jackpotReady}
             onClick={() => onCall(side.id, amount, jackpot ? ball ?? undefined : undefined, jackpot ? pocket ?? undefined : undefined)}
-            className="press flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-3 text-xs font-extrabold text-bg disabled:bg-surface-alt disabled:text-white/40"
+            className="press flex h-14 min-w-0 flex-col items-center justify-center overflow-hidden rounded-full bg-white px-3 text-xs font-extrabold text-bg disabled:bg-surface-alt disabled:text-white/40"
           >
-            <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: ballColor(side.ball).c, boxShadow: side.ball === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }} />
-            <span className="truncate">{prefix}{first(side.name)}</span>
+            <span className="flex min-w-0 max-w-full items-center gap-2">
+              <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: ballColor(side.ball).c, boxShadow: side.ball === 8 ? 'inset 0 0 0 1px rgba(255,255,255,.45)' : undefined }} />
+              <span className="truncate">{prefix}{first(side.name)}</span>
+            </span>
+            <span className="text-[11px] font-semibold tabular-nums opacity-60">×{side.odds.toFixed(2)} pays {side.pays}</span>
           </button>
         ))}
       </div>

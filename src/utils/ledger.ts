@@ -1,5 +1,5 @@
 import { Challenge, MatchRecord, Player } from '../types';
-import { ChipsState, GRANTS, JACKPOT_ENTRY, costOf, hasJackpotEntry, isWalletCall } from './chips';
+import { ChipsState, GRANTS, JACKPOT_ENTRY, costOf, hasJackpotEntry } from './chips';
 import { CHALLENGE_REWARD, MATCH_COINS, MATCH_COINS_FROM, STREAK_FROM, weekProgress } from './coins';
 import { Collector, Pack, SET_REWARD_COINS } from './cards';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS, DailyPairing, dayKeyOf } from './daily';
@@ -80,8 +80,7 @@ export function coinLedger(params: {
     const winnerId = challenge.resolvedWinnerId;
     const result = winnerId ? `${first(winnerId)} beat ${first(winnerId === challenge.challengerId ? challenge.opponentId : challenge.challengerId)}` : vs(challenge);
     if (payout.paid > 0) {
-      const old = !challenge.predictions.some((prediction) => prediction.predictorId === me && isWalletCall(prediction));
-      out.push({ id: `pay:${challenge.id}`, at, amount: payout.paid, kind: 'payout', title: 'Your call came in', detail: `${result}${old ? ', stake and winnings' : ', stake back'}`, challengeId: challenge.id });
+      out.push({ id: `pay:${challenge.id}`, at, amount: payout.paid, kind: 'payout', title: 'Your call came in', detail: `${result}, stake and winnings`, challengeId: challenge.id });
     }
     if (payout.jackpot > 0) out.push({ id: `jackpot:${challenge.id}`, at, amount: payout.jackpot, kind: 'jackpot', title: 'Jackpot!', detail: `Winner, balls and pocket, ${result}`, challengeId: challenge.id });
   }

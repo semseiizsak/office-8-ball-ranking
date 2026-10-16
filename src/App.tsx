@@ -741,7 +741,6 @@ export default function App() {
       (card) =>
         (card.seasonId || currentSeason.id) === currentSeason.id &&
         card.photoId &&
-        card.photoId !== 'none' &&
         photoShots[card.playerId] &&
         card.photoId !== photoShots[card.playerId].id
     );
@@ -751,11 +750,18 @@ export default function App() {
       .catch((error) => console.warn('Season photos not restored:', error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer?.id, isLoading, cardsLoading, photos.size, cards.length]);
-  // Cards carry their season and the photo from when they were pulled.
-  const cardsShown = useMemo(
-    () => cards.map((card) => ({ ...card, seasonId: card.seasonId || currentSeason.id, photo: card.photoId ? photos.get(card.photoId) : undefined })),
-    [cards, photos, currentSeason.id]
-  );
+  // Cards carry their season and the photo from when they were pulled. This
+  // season's cards show the player's live photo straight away, so a card pulled
+  // before the photo existed, or whose stored copy is missing, is never blank.
+  const cardsShown = useMemo(() => {
+    const live = new Map(players.map((player) => [player.id, player.avatarUrl]));
+    return cards.map((card) => {
+      const seasonId = card.seasonId || currentSeason.id;
+      const stored = card.photoId ? photos.get(card.photoId) : undefined;
+      const photo = (seasonId === currentSeason.id ? live.get(card.playerId) : undefined) || stored;
+      return { ...card, seasonId, photo };
+    });
+  }, [cards, photos, players, currentSeason.id]);
   // Cards from before photos and seasons were stored get them once, as they are now.
   useEffect(() => {
     if (!currentPlayer || isLoading || cardsLoading) return;

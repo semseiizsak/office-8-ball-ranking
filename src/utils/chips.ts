@@ -3,8 +3,11 @@ import { Challenge, MatchRecord, Prediction } from '../types';
 /**
  * Office chips: the betting side of calling a match.
  *
- * Calls are paid out of your own coins, with no daily limit. The winning
- * stakes come back and the losing stakes go into the jackpot. What a player has won is their wealth.
+ * Calls are paid out of your own coins, with no daily limit. Every call has
+ * fixed odds, set from the two ratings when the challenge went out: back the
+ * favourite and it pays a little, back the underdog and it pays a lot. A right
+ * call pays stake × odds from the house, whoever else called, so nobody's win
+ * is split. The losing stakes go into the jackpot. What a player has won is their wealth.
  *
  * On top, a jackpot entry (the winner's balls and the pocket the 8 ball went in)
  * costs a flat fee that goes into the pot, and the house adds more after every
@@ -28,6 +31,26 @@ export const JACKPOT_HOUSE = 50;
  * before it were free, out of a daily allowance, and settle as they always did.
  */
 export const WALLET_LAUNCHED_AT = 1791410413000;
+
+/** Odds are kept between these, so a sure thing still pays and a long shot stays sane. */
+export const MIN_ODDS = 1.1;
+export const MAX_ODDS = 6;
+
+/**
+ * What one coin on `playerId` pays back if they win, stake included. Fair odds
+ * from the Elo expectancy, frozen with the ratings when the challenge was sent.
+ */
+export function oddsFor(challenge: Pick<Challenge, 'challengerId' | 'stakes'>, playerId: string): number {
+  const { challengerElo = 1000, opponentElo = 1000 } = challenge.stakes ?? {};
+  const mine = playerId === challenge.challengerId ? challengerElo : opponentElo;
+  const theirs = playerId === challenge.challengerId ? opponentElo : challengerElo;
+  const chance = 1 / (1 + Math.pow(10, (theirs - mine) / 400));
+  return Math.min(MAX_ODDS, Math.max(MIN_ODDS, Math.round((1 / chance) * 100) / 100));
+}
+
+/** What a right call pays back in total, stake included. */
+export const returnOf = (challenge: Pick<Challenge, 'challengerId' | 'stakes'>, playerId: string, stake: number) =>
+  Math.floor(stake * oddsFor(challenge, playerId));
 
 export const isWalletCall = (prediction: { createdAt: number }) => prediction.createdAt >= WALLET_LAUNCHED_AT;
 /** A jackpot entry in the current rules. */
@@ -140,8 +163,13 @@ export function deriveChips(challenges: Challenge[], matches: MatchRecord[]): Ch
 
     for (const prediction of right) {
       const stake = stakeOf(prediction);
-      // Since the wallet, lost stakes feed the jackpot instead of the winners.
-      const share = walletEra ? 0 : rightPool > 0 ? Math.floor((wrongPool * stake) / rightPool) : 0;
+      // Since the wallet, a right call pays fixed odds from the house and the
+      // lost stakes feed the jackpot. Before it, winners split the losers' pool.
+      if (walletEra) {
+        slot(prediction.predictorId, stake).paid += returnOf(challenge, winnerId, stake);
+        continue;
+      }
+      const share = rightPool > 0 ? Math.floor((wrongPool * stake) / rightPool) : 0;
       slot(prediction.predictorId, stake).paid += stake + share;
     }
     for (const prediction of wrong) slot(prediction.predictorId, stakeOf(prediction));
