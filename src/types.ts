@@ -145,6 +145,9 @@ export interface ChallengeStakes {
   challengerIsUnderdog: boolean;
   /** Bounty riding on the match because the opponent holds the crown. */
   crownBounty: number;
+  /** Wins against each other before this challenge, for the odds. Missing on old challenges. */
+  challengerH2H?: number;
+  opponentH2H?: number;
 }
 
 /** The six pockets seen from above: top/bottom row, left, middle, right. */

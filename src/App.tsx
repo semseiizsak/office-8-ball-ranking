@@ -40,7 +40,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { LedgerEntry, coinLedger } from './utils/ledger';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { GRANTS, addBonus, jackpotTakers } from './utils/chips';
+import { GRANTS, addBonus, jackpotTakers, withHeadToHead } from './utils/chips';
 import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
@@ -1385,7 +1385,7 @@ export default function App() {
     sendingChallengeRef.current = true;
     let challenge;
     try {
-      challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes });
+      challenge = await poolService.createChallenge({ challenger: currentPlayer, opponent, stakes: withHeadToHead(stakes, currentPlayer.id, opponent.id, matches) });
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Could not send challenge.');
       return;
@@ -1433,7 +1433,7 @@ export default function App() {
     sendingChallengeRef.current = true;
     let challenge: Challenge;
     try {
-      challenge = await poolService.startInstantMatch({ challenger: currentPlayer, opponent, stakes });
+      challenge = await poolService.startInstantMatch({ challenger: currentPlayer, opponent, stakes: withHeadToHead(stakes, currentPlayer.id, opponent.id, matches) });
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Could not start the match.');
       return;

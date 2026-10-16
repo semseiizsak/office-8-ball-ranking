@@ -864,6 +864,12 @@ const toChallenge = (id: string, data: Record<string, unknown>, now: number): Ch
       opponentWinDelta: Number((data.stakes as Record<string, unknown>)?.opponentWinDelta ?? 0),
       challengerIsUnderdog: Boolean((data.stakes as Record<string, unknown>)?.challengerIsUnderdog),
       crownBounty: Number((data.stakes as Record<string, unknown>)?.crownBounty ?? 0),
+      ...((data.stakes as Record<string, unknown>)?.challengerH2H !== undefined
+        ? {
+            challengerH2H: Number((data.stakes as Record<string, unknown>).challengerH2H) || 0,
+            opponentH2H: Number((data.stakes as Record<string, unknown>).opponentH2H) || 0,
+          }
+        : {}),
     },
     matchId: data.matchId ? String(data.matchId) : null,
     resolvedWinnerId: data.resolvedWinnerId ? String(data.resolvedWinnerId) : null,

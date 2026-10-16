@@ -281,6 +281,11 @@ const CallControls: React.FC<{
         </div>
       )}
 
+      {(challenge.stakes.challengerH2H ?? 0) + (challenge.stakes.opponentH2H ?? 0) > 0 && (
+        <p className="text-center text-[11px] font-semibold tabular-nums text-white/55">
+          Head to head {first(challenge.challengerName)} {challenge.stakes.challengerH2H} : {challenge.stakes.opponentH2H} {first(challenge.opponentName)}, counted in the odds
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {sides.map((side) => (
           <button

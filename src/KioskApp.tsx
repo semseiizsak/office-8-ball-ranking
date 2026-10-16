@@ -3,7 +3,7 @@ import { Dices, QrCode, RotateCw, Trophy } from 'lucide-react';
 import { Challenge, ChallengeStakes, MatchRecord, Player, Pocket, Season } from './types';
 import { poolService } from './services/poolService';
 import { announceJackpot, notifyMany } from './services/notifications';
-import { jackpotTakers } from './utils/chips';
+import { jackpotTakers, withHeadToHead } from './utils/chips';
 import { deriveLeagueInsights, matchesInSeason, IMPLICIT_SEASON } from './utils/league';
 import { previewStakes } from './utils/stakes';
 import { hardRefresh } from './utils/refresh';
@@ -283,7 +283,7 @@ export default function KioskApp() {
   };
 
   const handleStartMatch = async (challenger: Player, opponent: Player, stakes: ChallengeStakes) => {
-    const challenge = await poolService.startInstantMatch({ challenger, opponent, stakes });
+    const challenge = await poolService.startInstantMatch({ challenger, opponent, stakes: withHeadToHead(stakes, challenger.id, opponent.id, matches) });
     setShowStartMatch(false);
     setAcceptedDuel(challenge);
     await pingRoom(challenger.id, opponent.id, challenge.id, 'Started from the kiosk. Calls are open for the next four minutes.');

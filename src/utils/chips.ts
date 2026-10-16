@@ -1,4 +1,4 @@
-import { Challenge, MatchRecord, Prediction } from '../types';
+import { Challenge, ChallengeStakes, MatchRecord, Prediction } from '../types';
 
 /**
  * Office chips: the betting side of calling a match.
@@ -36,15 +36,47 @@ export const WALLET_LAUNCHED_AT = 1791410413000;
 export const MIN_ODDS = 1.1;
 export const MAX_ODDS = 6;
 
+/** At most this much of the chance comes from the head to head record, the rest from Elo. */
+export const H2H_MAX_WEIGHT = 0.5;
+/** Games against each other at which the record carries half its full weight. */
+export const H2H_HALF_AT = 8;
+
+/** The challenge's stakes with the two players' record against each other, frozen with the ratings. */
+export function withHeadToHead(stakes: ChallengeStakes, challengerId: string, opponentId: string, matches: MatchRecord[]): ChallengeStakes {
+  let challengerH2H = 0;
+  let opponentH2H = 0;
+  for (const match of matches) {
+    if (match.winnerId === challengerId && match.loserId === opponentId) challengerH2H++;
+    else if (match.winnerId === opponentId && match.loserId === challengerId) opponentH2H++;
+  }
+  return { ...stakes, challengerH2H, opponentH2H };
+}
+
+/**
+ * The chance `playerId` wins: the Elo expectancy, pulled towards their record
+ * against this opponent. A few games barely move it, a long rivalry counts
+ * for up to half.
+ */
+export function winChance(challenge: Pick<Challenge, 'challengerId' | 'stakes'>, playerId: string): number {
+  const { challengerElo = 1000, opponentElo = 1000, challengerH2H = 0, opponentH2H = 0 } = challenge.stakes ?? {};
+  const isChallenger = playerId === challenge.challengerId;
+  const mine = isChallenger ? challengerElo : opponentElo;
+  const theirs = isChallenger ? opponentElo : challengerElo;
+  const elo = 1 / (1 + Math.pow(10, (theirs - mine) / 400));
+  const won = isChallenger ? challengerH2H : opponentH2H;
+  const games = challengerH2H + opponentH2H;
+  if (games === 0) return elo;
+  const record = (won + 1) / (games + 2);
+  const weight = Math.min(H2H_MAX_WEIGHT, games / (games + H2H_HALF_AT));
+  return (1 - weight) * elo + weight * record;
+}
+
 /**
  * What one coin on `playerId` pays back if they win, stake included. Fair odds
- * from the Elo expectancy, frozen with the ratings when the challenge was sent.
+ * from the win chance, frozen with the challenge when it was sent.
  */
 export function oddsFor(challenge: Pick<Challenge, 'challengerId' | 'stakes'>, playerId: string): number {
-  const { challengerElo = 1000, opponentElo = 1000 } = challenge.stakes ?? {};
-  const mine = playerId === challenge.challengerId ? challengerElo : opponentElo;
-  const theirs = playerId === challenge.challengerId ? opponentElo : challengerElo;
-  const chance = 1 / (1 + Math.pow(10, (theirs - mine) / 400));
+  const chance = winChance(challenge, playerId);
   return Math.min(MAX_ODDS, Math.max(MIN_ODDS, Math.round((1 / chance) * 100) / 100));
 }
 
