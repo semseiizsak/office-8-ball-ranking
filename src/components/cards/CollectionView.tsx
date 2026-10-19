@@ -637,7 +637,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
           {sheetError && <p role="alert" className="rounded-xl bg-live p-3 text-sm font-semibold text-white">{sheetError}</p>}
           {openCard.ownerId === me ? (
             <div className="grid gap-2">
-              {openCard.rarity !== 'mythic' &&
+              {openCard.rarity !== 'mythic' && openCard.type === 'player' &&
                 (confirmCash ? (
                   <div className="grid gap-2 rounded-2xl bg-surface p-3">
                     <p className="text-sm font-semibold">

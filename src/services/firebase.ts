@@ -2009,7 +2009,7 @@ export async function grantSpecial(params: {
   });
 }
 
-/** Cashes a card in for chips. A mythic is one of a kind and cannot be. */
+/** Cashes a card in for chips. Only plain player cards; mythics and specials stay. */
 export async function cashInCard(cardId: string, ownerId: string): Promise<number> {
   const ref = doc(cardsCollection, cardId);
   const collectorRef = doc(collectorsCollection, ownerId);
@@ -2019,6 +2019,7 @@ export async function cashInCard(cardId: string, ownerId: string): Promise<numbe
     const card = toCard(cardDoc.id, cardDoc.data());
     if (card.ownerId !== ownerId) throw new Error('Not your card.');
     if (card.rarity === 'mythic') throw new Error('A mythic cannot be cashed in.');
+    if (card.type !== 'player') throw new Error('A special card cannot be cashed in.');
     const collectorDoc = await transaction.get(collectorRef);
     const collector = toCollector(ownerId, collectorDoc.exists() ? collectorDoc.data() : undefined);
     const chips = DUPLICATE_CHIPS[card.rarity];
@@ -2032,7 +2033,7 @@ export async function cashInCard(cardId: string, ownerId: string): Promise<numbe
   });
 }
 
-/** Cashes in many cards at once, the spare copies. Mythics never. */
+/** Cashes in many cards at once, the spare copies. Mythics and specials never. */
 export async function cashInCards(cardIds: string[], ownerId: string): Promise<number> {
   const collectorRef = doc(collectorsCollection, ownerId);
   return runTransaction(db, async (transaction) => {
@@ -2042,7 +2043,7 @@ export async function cashInCards(cardIds: string[], ownerId: string): Promise<n
     for (const entry of docs) {
       if (!entry.exists()) continue;
       const card = toCard(entry.id, entry.data());
-      if (card.ownerId !== ownerId || card.rarity === 'mythic') continue;
+      if (card.ownerId !== ownerId || card.rarity === 'mythic' || card.type !== 'player') continue;
       coins += DUPLICATE_CHIPS[card.rarity];
       transaction.delete(entry.ref);
     }
