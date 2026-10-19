@@ -1,11 +1,15 @@
 /**
- * Monday's cup sign-up reminder: once at 9:30, a last call at 11:30.
+ * Monday's cup sign-up reminder: once in the 9 o'clock hour, a last call in
+ * the 11 o'clock hour.
  *
- * Called on a schedule (`?slot=morning` / `?slot=late`). Every player who has
- * not signed up yet gets the same inbox notification and push the app sends
- * itself. Each slot goes out at most once a week, kept in `cupReminders/{week}`,
- * and only between its own time and the noon close, so a repeated or stray
- * call can never send it twice or at the wrong hour.
+ * Vercel cron calls it (vercel.json). Hobby crons fire somewhere inside their
+ * hour and run on UTC, so it is called at two UTC hours per slot to cover both
+ * summer and winter time; without `?slot` it works out the slot from
+ * Budapest's clock. Every player who has not signed up yet gets the same inbox
+ * notification and push the app sends itself. Each slot goes out at most once
+ * a week, kept in `cupReminders/{week}`, and only between its own hour and the
+ * noon close, so a repeated or stray call can never send it twice or at the
+ * wrong hour.
  *
  * Reads: the week's tournament, its reminder doc and the players, then the
  * device tokens of whoever is reminded. A few dozen reads a week.
@@ -20,14 +24,14 @@ const CLOSES_HOUR = 12;
 
 const SLOTS = {
   morning: {
-    from: 9 * 60 + 30,
+    from: 9 * 60,
     title: '🏆 The weekly cup is open',
     body: 'Sign up before noon, the draw is at 12:00.',
   },
   late: {
-    from: 11 * 60 + 30,
+    from: 11 * 60,
     title: '🏆 Last call for the cup',
-    body: 'Sign-ups close at noon. Half an hour to get in.',
+    body: 'Sign-ups close at noon. Get in while you can.',
   },
 } as const;
 
@@ -63,13 +67,13 @@ function budapestNow() {
 }
 
 export default async function handler(req: any, res: any) {
-  const slot = String(req.query?.slot ?? '') as Slot;
-  if (!(slot in SLOTS)) {
+  const now = budapestNow();
+  const asked = String(req.query?.slot ?? '');
+  if (asked && !(asked in SLOTS)) {
     res.status(400).json({ error: 'slot must be morning or late' });
     return;
   }
-
-  const now = budapestNow();
+  const slot = (asked || (now.minute >= SLOTS.late.from ? 'late' : 'morning')) as Slot;
   if (!now.monday || now.minute < SLOTS[slot].from || now.minute >= CLOSES_HOUR * 60) {
     res.status(200).json({ ok: true, sent: 0, skipped: 'outside the slot' });
     return;

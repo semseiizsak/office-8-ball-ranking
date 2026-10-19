@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/cup-reminder?utc=7", "schedule": "0 7 * * 1" },
+    { "path": "/api/cup-reminder?utc=8", "schedule": "0 8 * * 1" },
+    { "path": "/api/cup-reminder?utc=9", "schedule": "0 9 * * 1" },
+    { "path": "/api/cup-reminder?utc=10", "schedule": "0 10 * * 1" }
+  ]
+}
