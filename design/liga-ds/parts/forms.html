@@ -1,0 +1,367 @@
+<section class="sec" id="fx-datetime" data-title="Date, time and sliders">
+  <h2 class="t-title">Date, time and sliders</h2>
+  <p class="lead">Scheduling a match or ending a season uses an inline month grid, never a system wheel for the date. Past days are greyed out and cannot be picked. Times are a short list of chips, taken slots are struck out. Sliders always show their value in a bubble above the thumb.</p>
+
+  <h3 class="sub">Date and time picker</h3>
+  <div class="demo fx-grid" data-fx-sched>
+    <div class="fx-col">
+      <div class="seg block" role="group" aria-label="What are you scheduling" data-fx-mode>
+        <button aria-pressed="true" data-mode="match">Match</button>
+        <button aria-pressed="false" data-mode="season">Season end</button>
+      </div>
+      <div class="fx-panel fx-cal" data-fx-cal>
+        <div class="fx-cal-h">
+          <b class="num" data-fx-cal-title aria-live="polite">October 2026</b>
+          <div class="fx-cal-nav">
+            <button class="ibtn" data-fx-cal-prev aria-label="Previous month"><i data-lucide="chevron-left"></i></button>
+            <button class="ibtn" data-fx-cal-next aria-label="Next month"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="fx-cal-wd" aria-hidden="true"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+        <div class="fx-cal-g" role="group" data-fx-cal-grid></div>
+      </div>
+      <p class="fx-note">Today has a ring, the picked day is a solid fill, a dot means a match is already planned. Arrow keys move between days, Page up and Page down change the month.</p>
+    </div>
+    <div class="fx-col">
+      <div class="fx-col" data-fx-times-wrap>
+        <span class="fx-lbl" id="fx-times-l">Start time</span>
+        <div class="fx-times" role="group" aria-labelledby="fx-times-l" data-fx-times>
+          <button class="fx-time num" aria-pressed="false">12:00</button>
+          <button class="fx-time num" aria-pressed="true">12:30</button>
+          <button class="fx-time num" disabled aria-label="13:00, taken">13:00</button>
+          <button class="fx-time num" aria-pressed="false">13:30</button>
+          <button class="fx-time num" aria-pressed="false">16:00</button>
+          <button class="fx-time num" disabled aria-label="16:30, taken">16:30</button>
+          <button class="fx-time num" aria-pressed="false">17:00</button>
+          <button class="fx-time num" aria-pressed="false">17:30</button>
+        </div>
+        <p class="fx-note">Struck out times already have a match on the table.</p>
+      </div>
+      <div class="fx-when" aria-live="polite">
+        <span class="fx-when-ic"><i data-lucide="calendar-check"></i></span>
+        <span class="fx-when-tx"><b data-fx-when>Wed 21 October, 12:30</b><span data-fx-when-sub>Dave gets a reminder an hour before</span></span>
+      </div>
+      <button class="btn primary block lg" data-fx-sched-go>Schedule match</button>
+    </div>
+  </div>
+
+  <h3 class="sub">Slider and range slider</h3>
+  <div class="demo fx-grid">
+    <div class="fx-col">
+      <div class="row-sb"><span class="fx-lbl" id="fx-k-l">K factor</span><span class="t-caption" data-fx-k-desc>Balanced</span></div>
+      <div class="fx-sl" data-fx-slider>
+        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+        <output class="fx-bub num" aria-hidden="true">32</output>
+        <input type="range" min="16" max="48" step="4" value="32" aria-labelledby="fx-k-l">
+      </div>
+      <div class="fx-sl-ends num"><span>16</span><span>48</span></div>
+      <p class="fx-note">Higher K moves ratings faster after each match. Default 32.</p>
+    </div>
+    <div class="fx-col">
+      <div class="row-sb"><span class="fx-lbl" id="fx-rr-l">Who can join the cup</span><span class="t-caption num" data-fx-rr-out>Rating 1000 to 1300</span></div>
+      <div class="fx-sl fx-dual" data-fx-dual>
+        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+        <output class="fx-bub num a" aria-hidden="true">1000</output>
+        <output class="fx-bub num b" aria-hidden="true">1300</output>
+        <input type="range" min="800" max="1600" step="10" value="1000" aria-label="Lowest rating" data-end="a">
+        <input type="range" min="800" max="1600" step="10" value="1300" aria-label="Highest rating" data-end="b">
+      </div>
+      <div class="fx-sl-ends num"><span>800</span><span>1600</span></div>
+      <p class="fx-note">Two thumbs never cross, they stop 50 apart.</p>
+    </div>
+    <div class="fx-col">
+      <div class="row-sb"><span class="fx-lbl" id="fx-sl-l">Season length</span><span class="t-caption">Weeks</span></div>
+      <div class="fx-sl" data-fx-slider>
+        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+        <output class="fx-bub num" aria-hidden="true">8</output>
+        <input type="range" min="2" max="16" step="1" value="8" aria-labelledby="fx-sl-l">
+      </div>
+      <div class="fx-sl-ends num"><span>2</span><span>16</span></div>
+    </div>
+    <div class="fx-col">
+      <div class="row-sb"><span class="fx-lbl" id="fx-sl-d">K factor, locked</span><span class="t-caption">Mid season</span></div>
+      <div class="fx-sl is-off" data-fx-slider>
+        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+        <output class="fx-bub num" aria-hidden="true">24</output>
+        <input type="range" min="16" max="48" step="4" value="24" disabled aria-labelledby="fx-sl-d">
+      </div>
+      <p class="fx-note">Disabled: rating settings unlock when the season ends.</p>
+    </div>
+  </div>
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Date grid</td><td>Match date, season end, cup draw</td><td>Monday first, past days disabled, 44 px cells</td></tr>
+    <tr><td>Time chips</td><td>Short lists of start times</td><td>Up to 12 chips, taken slots disabled with a strike</td></tr>
+    <tr><td>Slider</td><td>A number in a known range</td><td>Value bubble always visible, ends labelled below</td></tr>
+    <tr><td>Range slider</td><td>A band, like a rating window</td><td>Thumbs keep a minimum gap, both reachable by keyboard</td></tr>
+  </table>
+</section>
+
+<section class="sec" id="fx-profile" data-title="Colour, number and photo">
+  <h2 class="t-title">Colour, number and photo</h2>
+  <p class="lead">A player is recognised by colour first, then number, then photo. The preview avatar updates live as you pick. Numbers can be shared, the hint only says who else wears it.</p>
+  <div class="demo fx-prof" data-fx-prof>
+    <div class="fx-prof-prev">
+      <span class="av xl" style="--c:var(--pc-blue)" data-fx-av><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span>
+      <b class="t-section" data-fx-pname style="color:var(--pct-blue)">You</b>
+      <span class="t-caption" data-fx-pdesc>Blue, number 23</span>
+    </div>
+    <div class="fx-col">
+      <span class="fx-lbl" id="fx-col-l">Colour</span>
+      <div class="fx-swatches" role="radiogroup" aria-labelledby="fx-col-l" data-fx-swatches></div>
+      <p class="fx-note">Arrow keys move through colours. The selected one gets a ring and a tick.</p>
+      <span class="fx-lbl" id="fx-num-l" style="margin-top:8px">Number</span>
+      <div class="fx-num">
+        <button aria-label="Lower number" data-fx-num="-1"><i data-lucide="minus"></i></button>
+        <input class="num" inputmode="numeric" maxlength="2" value="23" aria-labelledby="fx-num-l" data-fx-num-in>
+        <button aria-label="Higher number" data-fx-num="1"><i data-lucide="plus"></i></button>
+      </div>
+      <p class="fx-note" data-fx-num-hint aria-live="polite">Nobody else wears 23.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Photo cropper</h3>
+  <div class="demo fx-grid">
+    <div class="fx-crop" data-fx-crop>
+      <div class="fx-crop-frame" tabindex="0" role="img" aria-label="Photo crop area. Drag or use the arrow keys to move the photo, plus and minus to zoom.">
+        <div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div>
+        <div class="fx-crop-mask" aria-hidden="true"></div>
+        <div class="fx-crop-grid" aria-hidden="true"></div>
+        <div class="fx-crop-ring" aria-hidden="true"></div>
+      </div>
+      <div class="fx-zoom">
+        <button class="ibtn plain" aria-label="Zoom out" data-fx-zoom="-1"><i data-lucide="zoom-out"></i></button>
+        <div class="fx-sl" data-fx-slider data-fmt="x">
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num" aria-hidden="true">1.0×</output>
+          <input type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom">
+        </div>
+        <button class="ibtn plain" aria-label="Zoom in" data-fx-zoom="1"><i data-lucide="zoom-in"></i></button>
+      </div>
+      <div class="acts-2" style="margin-top:0">
+        <button class="btn secondary" data-fx-crop-reset><i data-lucide="rotate-ccw"></i>Reset</button>
+        <button class="btn primary">Use photo</button>
+      </div>
+    </div>
+    <div class="fx-col">
+      <b class="t-head">How it works</b>
+      <p class="t-small">The frame is 4:5, the size of a player card. The circle shows what your round avatar will keep. Drag to move, use the slider to zoom up to 3×.</p>
+      <p class="t-small">The grid appears only while you drag. Reset brings the photo back to the centre.</p>
+      <p class="fx-note">Placeholder: a neutral gradient until a photo loads.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="fx-search" data-title="Search and select">
+  <h2 class="t-title">Search and select</h2>
+  <p class="lead">Search shows recent searches first, then live results grouped by type with the matching part underlined. Custom selects open a menu anchored to the field, same width, under it. Multi select keeps picks as chips inside the field.</p>
+
+  <h3 class="sub">Search with results</h3>
+  <div class="demo">
+    <div class="fx-srch" data-fx-srch>
+      <div class="search">
+        <i data-lucide="search"></i>
+        <input class="input" type="search" placeholder="Players and leagues" role="combobox" aria-expanded="true" aria-controls="fx-sr-list" aria-autocomplete="list" aria-label="Search players and leagues" autocomplete="off" data-fx-sq>
+        <button class="ibtn plain fx-clear" aria-label="Clear search" hidden data-fx-sclear><i data-lucide="x"></i></button>
+      </div>
+      <div class="fx-sr-panel" data-fx-spanel></div>
+      <p class="fx-sr" aria-live="polite" data-fx-slive></p>
+      <p class="fx-note">Try "da", "mi" or "pool". Arrow keys move through results, Enter opens one.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Select and multi select</h3>
+  <div class="demo form-grid">
+    <div class="field">
+      <span class="fx-lbl" id="fx-dd1-l">Sport</span>
+      <div class="fx-dd" data-fx-dd>
+        <button class="input fx-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd1-l fx-dd1-v"><i data-lucide="target" data-fx-dd-ic></i><span class="fx-dd-v" id="fx-dd1-v">Foosball</span><i data-lucide="chevron-down"></i></button>
+        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd1-l" hidden>
+          <li role="option" aria-selected="true" data-icon="target"><i data-lucide="target"></i>Foosball<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false" data-icon="circle-dot"><i data-lucide="circle-dot"></i>Table tennis<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false" data-icon="disc"><i data-lucide="disc"></i>Pool<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false" data-icon="crosshair"><i data-lucide="crosshair"></i>Darts<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false" data-icon="gamepad-2"><i data-lucide="gamepad-2"></i>Video games<i data-lucide="check" class="tick"></i></li>
+        </ul>
+      </div>
+      <span class="hint">Default state, opens on click, Enter or arrow down.</span>
+    </div>
+    <div class="field">
+      <span class="fx-lbl" id="fx-dd2-l">Season length</span>
+      <div class="fx-dd" data-fx-dd data-required>
+        <button class="input fx-dd-btn invalid" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd2-l fx-dd2-v" aria-describedby="fx-dd2-e" aria-invalid="true"><span class="fx-dd-v ph" id="fx-dd2-v">Pick a length</span><i data-lucide="chevron-down"></i></button>
+        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd2-l" hidden>
+          <li role="option" aria-selected="false">2 weeks<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false">4 weeks<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false">8 weeks<i data-lucide="check" class="tick"></i></li>
+          <li role="option" aria-selected="false" aria-disabled="true">12 weeks, Pro leagues<i data-lucide="lock" class="tick" style="visibility:visible"></i></li>
+        </ul>
+      </div>
+      <span class="err" id="fx-dd2-e" data-fx-dd-err><i data-lucide="alert-circle"></i>Pick how long the season runs</span>
+    </div>
+    <div class="field">
+      <span class="fx-lbl" id="fx-dd3-l">Visibility</span>
+      <div class="fx-dd">
+        <button class="input fx-dd-btn" disabled aria-labelledby="fx-dd3-l fx-dd3-v"><i data-lucide="lock"></i><span class="fx-dd-v" id="fx-dd3-v">Private, invite only</span><i data-lucide="chevron-down"></i></button>
+      </div>
+      <span class="hint">Disabled: only the league admin can change this.</span>
+    </div>
+    <div class="field">
+      <span class="fx-lbl" id="fx-ms-l">2v2 players</span>
+      <div class="fx-ms" data-fx-ms data-max="3">
+        <div class="input fx-ms-box" data-fx-ms-box>
+          <button class="fx-ms-add" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-ms-l" aria-describedby="fx-ms-c" data-fx-ms-add>Add players</button>
+        </div>
+        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-multiselectable="true" aria-labelledby="fx-ms-l" hidden data-fx-ms-menu></ul>
+      </div>
+      <span class="hint num" id="fx-ms-c" data-fx-ms-count>2 of 3 picked</span>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="fx-swipe" data-title="Swipe, refresh, load more">
+  <h2 class="t-title">Swipe, refresh, load more</h2>
+  <p class="lead">Rows in your own match history swipe left to reveal two quick actions. Every action also lives in the long press menu, so swiping is never the only way. Feeds refresh with a pull from the top and load older items with a row at the bottom.</p>
+
+  <h3 class="sub">Swipe action row</h3>
+  <div class="demo fx-grid">
+    <div class="fx-swp-wrap" data-fx-swp-wrap>
+      <ul class="fx-swp-list" aria-label="Your recent matches">
+        <li class="fx-swp" data-fx-swipe>
+          <div class="fx-swp-acts" aria-hidden="true"><button class="fx-swp-act re" tabindex="-1" data-act="rematch"><i data-lucide="rotate-ccw"></i>Rematch</button><button class="fx-swp-act del" tabindex="-1" data-act="delete"><i data-lucide="trash-2"></i>Delete</button></div>
+          <div class="row fx-swp-fg" tabindex="0" data-name="Dave" aria-label="Lost to Dave, 6 to 10, 2 hours ago" aria-describedby="fx-swp-help">
+            <span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span>
+            <span class="main"><b>Dave</b><span class="num">Lost 6 to 10, 2 h ago</span></span>
+            <span class="delta down num">−12</span>
+          </div>
+        </li>
+        <li class="fx-swp" data-fx-swipe>
+          <div class="fx-swp-acts" aria-hidden="true"><button class="fx-swp-act re" tabindex="-1" data-act="rematch"><i data-lucide="rotate-ccw"></i>Rematch</button><button class="fx-swp-act del" tabindex="-1" data-act="delete"><i data-lucide="trash-2"></i>Delete</button></div>
+          <div class="row fx-swp-fg" tabindex="0" data-name="Mira" aria-label="Beat Mira, 10 to 8, yesterday" aria-describedby="fx-swp-help">
+            <span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span>
+            <span class="main"><b>Mira</b><span class="num">Won 10 to 8, yesterday</span></span>
+            <span class="delta up num">+16</span>
+          </div>
+        </li>
+        <li class="fx-swp" data-fx-swipe>
+          <div class="fx-swp-acts" aria-hidden="true"><button class="fx-swp-act re" tabindex="-1" data-act="rematch"><i data-lucide="rotate-ccw"></i>Rematch</button></div>
+          <div class="row fx-swp-fg" tabindex="0" data-name="Sam and Kim" aria-label="You and Ann beat Sam and Kim, 3 days ago" aria-describedby="fx-swp-help">
+            <span class="av-pair"><span class="av sm" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span></span>
+            <span class="main"><b>Sam and Kim</b><span>2v2 with Ann, 3 days ago</span></span>
+            <span class="delta up num">+9</span>
+          </div>
+        </li>
+        <li class="fx-swp" data-fx-swipe>
+          <div class="fx-swp-acts" aria-hidden="true"><button class="fx-swp-act re" tabindex="-1" data-act="rematch"><i data-lucide="rotate-ccw"></i>Rematch</button><button class="fx-swp-act del" tabindex="-1" data-act="delete"><i data-lucide="trash-2"></i>Delete</button></div>
+          <div class="row fx-swp-fg" tabindex="0" data-name="Joe" aria-label="Beat Joe, 10 to 2, 5 hours ago" aria-describedby="fx-swp-help">
+            <span class="av" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span>
+            <span class="main"><b>Joe</b><span class="num">Won 10 to 2, 5 h ago</span></span>
+            <span class="delta up num">+7</span>
+          </div>
+        </li>
+      </ul>
+      <div class="menu fx-lp" role="menu" aria-label="Match actions" hidden data-fx-lp>
+        <button role="menuitem" data-act="rematch"><i data-lucide="rotate-ccw"></i>Rematch</button>
+        <button role="menuitem" data-act="share"><i data-lucide="share"></i>Share result</button>
+        <button role="menuitem" data-act="report"><i data-lucide="flag"></i>Report a mistake</button>
+        <hr>
+        <button role="menuitem" class="danger" data-act="delete"><i data-lucide="trash-2"></i>Delete match</button>
+      </div>
+      <div class="fx-swp-toast" aria-live="polite" data-fx-swp-toast></div>
+    </div>
+    <div class="fx-col">
+      <div class="fx-lp-note">
+        <span class="fx-when-ic"><i data-lucide="pointer"></i></span>
+        <span class="t-small"><b class="t-body-strong" style="display:block;color:var(--text)">Long press for every action</b>Hold a row for half a second, right click it, or focus it and press Enter. The menu opens next to the row.</span>
+      </div>
+      <p class="fx-note" id="fx-swp-help">Swipe left or press the left arrow to reveal Rematch and Delete. Right arrow or Escape closes.</p>
+      <p class="fx-note">Matches older than 24 h cannot be deleted, so the 2v2 row only shows Rematch. Delete always offers Undo for 6 s.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Pull to refresh and load more</h3>
+  <div class="demo fx-grid">
+    <div class="fx-ptr" data-fx-ptr>
+      <div class="fx-ptr-bar"><b class="t-head">Feed</b><button class="ibtn plain" aria-label="Refresh feed" data-fx-ptr-btn><i data-lucide="refresh-cw"></i></button></div>
+      <div class="fx-ptr-ind" aria-hidden="true"><span class="fx-ptr-ic" data-fx-ptr-ic><i data-lucide="arrow-down"></i></span><span data-fx-ptr-tx>Pull to refresh</span></div>
+      <div class="fx-ptr-scroll" tabindex="0" aria-label="Match feed" data-fx-ptr-scroll>
+        <div class="fx-ptr-content" data-fx-ptr-content>
+          <ul class="fx-feed" data-fx-feed></ul>
+          <div class="fx-more" data-fx-more></div>
+        </div>
+      </div>
+      <p class="fx-sr" aria-live="polite" data-fx-ptr-live></p>
+    </div>
+    <div class="fx-col">
+      <span class="fx-lbl">Indicator states</span>
+      <div class="fx-ptr-states">
+        <div class="fx-ptr-st"><span class="fx-ptr-ic"><i data-lucide="arrow-down"></i></span>Pull to refresh</div>
+        <div class="fx-ptr-st"><span class="fx-ptr-ic"><i data-lucide="arrow-up"></i></span>Release to refresh</div>
+        <div class="fx-ptr-st"><span class="fx-ptr-ic"><span class="fx-spin"></span></span>Refreshing</div>
+        <div class="fx-ptr-st"><span class="fx-ptr-ic"><i data-lucide="check"></i></span>Updated just now</div>
+      </div>
+      <p class="fx-note">Drag the feed down from the top, or use the refresh button. Load more cycles through its states: loading, a failed load with Try again, and the end of the list.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="fx-validate" data-title="Codes and validation">
+  <h2 class="t-title">Codes and validation</h2>
+  <p class="lead">Invite codes are six boxes that advance on their own and accept a pasted code. Forms check a field when you leave it, show success inline, and on submit list what needs a look at the top, with links straight to each field.</p>
+
+  <h3 class="sub">Invite code</h3>
+  <div class="demo fx-grid">
+    <div class="fx-col" data-fx-otp-wrap>
+      <span class="fx-lbl" id="fx-otp-l">Enter the 6 digit invite code</span>
+      <div class="fx-otp" role="group" aria-labelledby="fx-otp-l" data-fx-otp>
+        <input inputmode="numeric" autocomplete="one-time-code" aria-label="Digit 1 of 6">
+        <input inputmode="numeric" autocomplete="off" aria-label="Digit 2 of 6">
+        <input inputmode="numeric" autocomplete="off" aria-label="Digit 3 of 6">
+        <input inputmode="numeric" autocomplete="off" aria-label="Digit 4 of 6">
+        <input inputmode="numeric" autocomplete="off" aria-label="Digit 5 of 6">
+        <input inputmode="numeric" autocomplete="off" aria-label="Digit 6 of 6">
+      </div>
+      <p class="fx-otp-msg" aria-live="polite" data-fx-otp-msg><span class="t-caption">The code is in the invite message.</span></p>
+      <div class="row-wrap"><button class="btn secondary sm" data-fx-otp-clear>Clear</button><span class="fx-note">Demo: 482913 joins, anything else shows the error.</span></div>
+    </div>
+    <div class="fx-col">
+      <span class="fx-lbl">States</span>
+      <div class="fx-otp fx-otp-mini err" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>1</span></div>
+      <p class="fx-otp-msg err"><i data-lucide="alert-circle"></i>No league uses this code. Ask for a fresh one.</p>
+      <div class="fx-otp fx-otp-mini ok" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>3</span></div>
+      <p class="fx-otp-msg ok"><i data-lucide="check-circle-2"></i>You are in. Joining Office foosball.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Form validation</h3>
+  <div class="demo">
+    <form class="fx-form" novalidate data-fx-form>
+      <div class="alert er fx-sum" role="alert" tabindex="-1" hidden data-fx-sum></div>
+      <div class="alert ok" role="status" tabindex="-1" hidden data-fx-done></div>
+      <div class="field" data-fx-f="name">
+        <label for="fx-f-name">League name</label>
+        <div class="fx-fw"><input id="fx-f-name" class="input" autocomplete="off" placeholder="Friday darts" aria-describedby="fx-f-name-m"><i data-lucide="check" class="fx-ok-ic"></i></div>
+        <span class="fx-msg" id="fx-f-name-m"><span class="hint">At least 3 characters. Try "Office foosball" to see a taken name.</span></span>
+      </div>
+      <div class="field" data-fx-f="email">
+        <label for="fx-f-email">Invite by email</label>
+        <div class="fx-fw"><input id="fx-f-email" class="input" type="email" autocomplete="off" placeholder="dave@example.com" aria-describedby="fx-f-email-m"><i data-lucide="check" class="fx-ok-ic"></i></div>
+        <span class="fx-msg" id="fx-f-email-m"><span class="hint">We send them a link and the invite code.</span></span>
+      </div>
+      <div class="field" data-fx-f="desc">
+        <div class="row-sb"><label for="fx-f-desc">Description</label><span class="fx-count num" id="fx-f-desc-c" data-fx-count>0 of 140</span></div>
+        <textarea id="fx-f-desc" class="input" placeholder="What the league is about, house rules, where the table is" aria-describedby="fx-f-desc-c fx-f-desc-m" data-max="140"></textarea>
+        <span class="fx-msg" id="fx-f-desc-m"></span>
+      </div>
+      <div class="row-wrap"><button class="btn primary lg" type="submit">Create league</button><button class="btn ghost" type="reset">Start over</button></div>
+      <p class="fx-note">Submit empty to see the summary. A field turns green with a tick once it is good, the counter goes bold near the limit and red past it.</p>
+    </form>
+  </div>
+  <table class="spec">
+    <tr><th>Component</th><th>When it checks</th><th>Copy</th></tr>
+    <tr><td>Invite code</td><td>As soon as the sixth digit lands</td><td>Says what to do next, never that you typed it wrong</td></tr>
+    <tr><td>Inline success</td><td>On leaving a field that is now valid</td><td>Short and warm, green text with a tick</td></tr>
+    <tr><td>Summary</td><td>On submit, only if something needs a look</td><td>Count in the title, one link per field</td></tr>
+    <tr><td>Counter</td><td>While typing</td><td>"12 of 140", bold from 120, red past the limit</td></tr>
+  </table>
+</section>

@@ -1,0 +1,342 @@
+<h2 class="group" data-group>Animation</h2>
+
+<section class="sec" id="mo-micro" data-title="Micro interactions">
+  <h2 class="t-title">Micro interactions</h2>
+  <p class="lead">Small, quick and always on the same curve. Things rise 8 px and fade in, indicators slide, numbers count. Nothing overshoots, nothing bounces. Every demo replays with its button, and each one plays once when it scrolls into view.</p>
+  <div class="mo-rmbar">
+    <div><b>Preview reduced motion</b><span>Shows what every demo becomes when the phone asks for less motion</span></div>
+    <button class="toggle" role="switch" aria-checked="false" aria-label="Preview reduced motion" data-mo-rm></button>
+  </div>
+
+  <div class="mo-grid">
+
+    <div class="demo mo-cell" data-mo="press">
+      <div class="mo-head"><b>Button press</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage><button class="btn primary lg">Log a match</button></div>
+      <p class="mo-note">Scale to .97 on press, back on release, 120 ms each way.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="toggle">
+      <div class="mo-head"><b>Toggle</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="mo-setrow"><div><b>Match reminders</b><span>A nudge after 3 quiet days</span></div><button class="toggle" role="switch" aria-checked="true" aria-label="Match reminders" data-mo-toggle></button></div>
+      </div>
+      <p class="mo-note">Knob slides and the track fills in 280 ms.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="seg">
+      <div class="mo-head"><b>Segmented indicator</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="seg mo-slide" role="group" aria-label="Period" data-mo-slide><span class="mo-ind" aria-hidden="true"></span><button aria-pressed="true">Week</button><button aria-pressed="false">Month</button><button aria-pressed="false">Season</button></div>
+      </div>
+      <p class="mo-note">One pill moves between options instead of two fading. 280 ms.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="stagger">
+      <div class="mo-head"><b>List stagger in</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="list">
+          <div class="row"><span class="rank">1</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="main"><b>Mira</b></span><span class="elo">1 302</span></div>
+          <div class="row"><span class="rank">2</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="main"><b>Dave</b></span><span class="elo">1 248</span></div>
+          <div class="row"><span class="rank">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="main"><b>You</b></span><span class="elo">1 237</span></div>
+          <div class="row"><span class="rank">4</span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="main"><b>Sam</b></span><span class="elo">1 190</span></div>
+        </div>
+      </div>
+      <p class="mo-note">Rows rise 8 px and fade in, 40 ms apart. Only on first load, never on refresh.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="count">
+      <div class="mo-head"><b>Number count up</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="mo-count"><span class="t-big-num" data-mo-num>1 248</span><span class="t-caption">Your rating</span></div>
+      </div>
+      <p class="mo-note">Counts from the old value to the new one in 800 ms. Tabular figures so the width never jumps.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="delta">
+      <div class="mo-head"><b>Elo delta pop</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="mo-poprow"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="main"><b>You</b><span>Beat Mira just now</span></span><span class="elo">1 248<span class="delta up mo-pop" data-mo-pop>+18</span></span></div>
+      </div>
+      <p class="mo-note">Rises 8 px, holds, then fades up and out. 1.2 s in total.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="rank">
+      <div class="mo-head"><b>Rank swap</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="list mo-ranks" data-mo-ranks>
+          <div class="row" data-r0="3" data-r1="4" data-e0="1 248" data-e1="1 248"><span class="rank">3</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="main"><b>Dave</b></span><span class="elo">1 248</span></div>
+          <div class="row me" data-r0="4" data-r1="3" data-e0="1 237" data-e1="1 251" data-up><span class="rank">4</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="main"><b>You</b></span><span class="elo">1 237</span></div>
+          <div class="row" data-r0="5" data-r1="5" data-e0="1 190" data-e1="1 190"><span class="rank">5</span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="main"><b>Sam</b></span><span class="elo">1 190</span></div>
+        </div>
+      </div>
+      <p class="mo-note">FLIP: measure, reorder, slide from the old place. 400 ms, the climbing row stays on top.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="tabs">
+      <div class="mo-head"><b>Tab bar selection</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <nav class="tabbar mo-tabbar mo-slide" role="tablist" aria-label="Main" data-mo-slide><span class="mo-ind" aria-hidden="true"></span>
+          <button role="tab" aria-selected="true"><i data-lucide="list-ordered"></i>Ranks</button>
+          <button role="tab" aria-selected="false"><i data-lucide="swords"></i>Arena</button>
+          <button role="tab" aria-selected="false"><i data-lucide="trophy"></i>Cup</button>
+          <button role="tab" aria-selected="false"><i data-lucide="layers"></i>Cards</button>
+        </nav>
+      </div>
+      <p class="mo-note">The selected pill slides to the new tab in 280 ms. Icon and label colour cross over at the same time.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="sheet">
+      <div class="mo-head"><b>Sheet up</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage tall" data-mo-stage>
+        <div class="mo-sheetbg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="mo-scrim" data-mo-scrim></div>
+        <div class="mo-sheet" data-mo-sheet>
+          <div class="grab"></div>
+          <span class="t-head">Who did you play?</span>
+          <div class="row-wrap">
+            <span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span>
+            <span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span>
+            <span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span>
+            <span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="mo-note">Scrim fades while the sheet slides up from the edge, both 280 ms.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="toast">
+      <div class="mo-head"><b>Toast in and out</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage tall" data-mo-stage>
+        <div class="toast ok" data-mo-toast><i data-lucide="check-circle-2"></i><div class="tx"><b>Match saved</b>You gained 14 rating</div></div>
+      </div>
+      <p class="mo-note">In 180 ms, rising 8 px. Out 180 ms, fade only. Shortened here, real toasts stay 4 s.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="skel">
+      <div class="mo-head"><b>Skeleton to content</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="mo-swap">
+          <div class="mo-skel" data-mo-skel aria-hidden="true"><div><i class="skel c"></i><i class="skel l"></i><i class="skel s"></i></div><div><i class="skel c"></i><i class="skel l"></i><i class="skel s"></i></div></div>
+          <div class="list" data-mo-content>
+            <div class="row"><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="main"><b>Kim beat Joe</b></span><span class="delta up">+12</span></div>
+            <div class="row"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="main"><b>Mira beat Ann</b></span><span class="delta up">+9</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="mo-note">Skeleton and content share one box and crossfade in 280 ms, so nothing shifts.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="like">
+      <div class="mo-head"><b>Reaction pop</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="row-wrap"><button class="react" aria-pressed="false" data-mo-like>🔥<span class="num">3</span></button><button class="react" aria-pressed="false">😂<span class="num">1</span></button></div>
+      </div>
+      <p class="mo-note">Scale 1 to 1.12 and back on the same curve, 280 ms. Never past 1.12, no spring.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="prog">
+      <div class="mo-head"><b>Progress fill</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="mo-prog"><div class="row-sb"><span class="t-label">Season 3</span><span class="t-label num" data-mo-pct>72%</span></div><div class="bar win"><i style="width:72%" data-mo-bar></i></div><span class="t-caption">11 days left</span></div>
+      </div>
+      <p class="mo-note">Fills from the old value to the new one in 400 ms, the label counts along.</p>
+    </div>
+
+    <div class="demo mo-cell" data-mo="dot">
+      <div class="mo-head"><b>Unread dot</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-stage" data-mo-stage>
+        <div class="nrow"><span class="ic brand"><i data-lucide="swords"></i></span><span class="tx"><b>Mira challenged you</b>Tap to see the stakes<time>Just now</time></span><span class="ud" data-mo-ud></span></div>
+      </div>
+      <p class="mo-note">Grows from 0 to full size and fades in, 180 ms. No ring, no pulse.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="sec" id="mo-scenes" data-title="Celebration scenes">
+  <h2 class="t-title">Celebration scenes</h2>
+  <p class="lead">The big moments get a short scene, at most 1.4 s, then the screen is usable again. Same ease in out curve, no bounce. Live like moments play on black whatever the theme, everything else on the app background. With reduced motion each scene is one simple fade.</p>
+  <div class="mo-scenes">
+
+    <div class="demo mo-scene" data-mo="saved">
+      <div class="mo-head"><b>Match saved</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone">
+        <div class="mo-sc mo-saved" data-mo-stage>
+          <div class="mo-col">
+            <span class="av lg" style="--c:var(--pc-green)" data-k="av"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span>
+            <span class="t-head" data-k="head">You beat Mira</span>
+          </div>
+          <div class="mo-inline"><span class="mo-huge delta up" data-k="big">+14</span><span class="coin-pill" data-k="coin"><span class="coin"></span>+20</span></div>
+          <div class="mo-chart" data-k="chart">
+            <div class="row-sb"><span class="t-label">Rating, last 10 matches</span><span class="t-label num">1 251</span></div>
+            <svg viewBox="0 0 240 56" preserveAspectRatio="none" aria-hidden="true"><path class="ln" data-k="line" d="M2 40 L27 44 L52 36 L77 38 L102 30 L127 34 L152 26 L177 28 L202 22 L238 8" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
+          </div>
+          <div class="list mo-ranks" data-mo-ranks data-k="list">
+            <div class="row" data-r0="2" data-r1="2" data-e0="1 288" data-e1="1 288"><span class="rank">2</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="main"><b>Mira</b></span><span class="elo">1 288</span></div>
+            <div class="row me" data-r0="4" data-r1="3" data-e0="1 237" data-e1="1 251" data-up><span class="rank">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="main"><b>You</b></span><span class="elo">1 251</span></div>
+            <div class="row" data-r0="3" data-r1="4" data-e0="1 248" data-e1="1 248"><span class="rank">4</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="main"><b>Dave</b></span><span class="elo">1 248</span></div>
+          </div>
+          <div class="mo-chips"><span class="mo-chip" data-k="bd">🎩 Hat Trick 2 of 3</span><span class="mo-chip" data-k="bd">🔥 Streak W3</span></div>
+          <button class="btn primary block" data-k="btn">Done</button>
+        </div>
+      </div>
+      <p class="mo-note">Avatar scales in, +14 counts up, coins rise, the rating line draws, then you pass Dave. 1.3 s.</p>
+    </div>
+
+    <div class="demo mo-scene" data-mo="crown">
+      <div class="mo-head"><b>Crown taken</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone">
+        <div class="mo-sc" data-mo-stage>
+          <div class="mo-crowncard">
+            <span class="mo-fill" data-k="fill"></span>
+            <span class="mo-crown-ic" data-k="icon"><i data-lucide="crown"></i></span>
+            <span class="t-hero" data-k="hero">Crown taken</span>
+            <span class="t-small" data-k="sub">You took it from Mira</span>
+          </div>
+          <div class="mo-stats">
+            <div class="tile" data-k="stat"><span class="t-caption">Previous</span><span class="v">Mira</span></div>
+            <div class="tile" data-k="stat"><span class="t-caption">Her reign</span><span class="v">6 days</span></div>
+            <div class="tile" data-k="stat"><span class="t-caption">Defences</span><span class="v">4</span></div>
+          </div>
+          <div class="mo-bounty" data-k="bounty"><div><b>Bounty</b><span>Grows 10 with every defence</span></div><span class="v"><span class="coin"></span><span data-k="bnum">120</span></span></div>
+          <div class="mo-notify" data-k="notify"><span class="ic"><i data-lucide="bell"></i></span><span class="tx"><b>The office knows</b>Sent to 7 players in Office foosball</span></div>
+          <div class="mo-acts" data-k="acts"><button class="btn secondary">Share</button><button class="btn primary">Done</button></div>
+        </div>
+      </div>
+      <p class="mo-note">Gold fills from the bottom, the crown drops straight in, reign stats and the bounty follow. 1.3 s.</p>
+    </div>
+
+    <div class="demo mo-scene" data-mo="challenge">
+      <div class="mo-head"><b>Challenge sent</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone">
+        <div class="mo-sc" data-mo-stage>
+          <div class="mo-col"><span class="t-title" data-k="title">Challenge sent</span><span class="t-small" data-k="sub">Mira gets a push now</span></div>
+          <div class="mo-opp" data-k="opp"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="main"><b>Mira</b><span>Rank 2, rating 1 288</span></span><span class="form"><i class="w"></i><i class="w"></i><i></i><i class="w"></i><i class="w"></i></span></div>
+          <div class="mo-fly" data-k="flyx"><div data-k="flyy">
+            <div class="card lg">
+              <div class="card-h"><h3>Stakes</h3><span class="pill warning"><i data-lucide="clock"></i>24h left</span></div>
+              <div class="stakes">
+                <div class="tile" data-k="tile"><span class="k t-caption">If you win</span><span class="v delta up">+21</span></div>
+                <div class="tile" data-k="tile"><span class="k t-caption">If you lose</span><span class="v delta down">−11</span></div>
+                <div class="tile" data-k="tile"><span class="k t-caption">Coins</span><span class="v">50</span></div>
+                <div class="tile" data-k="tile"><span class="k t-caption">Rank gap</span><span class="v">2</span></div>
+              </div>
+            </div>
+          </div></div>
+          <div class="mo-exp" data-k="exp"><div class="row-sb"><span class="t-label">Expires tomorrow at 15:30</span><i data-lucide="clock"></i></div><div class="bar"><i data-k="expbar" style="width:100%"></i></div><span class="t-caption">Stakes are frozen until she answers</span></div>
+          <button class="btn secondary block" data-k="btn">Back to arena</button>
+        </div>
+      </div>
+      <p class="mo-note">The card flies in on a curve (x and y on different timings), lands, then the stakes stagger in and the expiry fills. 1.3 s.</p>
+    </div>
+
+    <div class="demo mo-scene" data-mo="badge">
+      <div class="mo-head"><b>Badge unlocked</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone">
+        <div class="mo-sc mo-badge" data-mo-stage>
+          <div class="mo-medal">
+            <svg viewBox="0 0 168 168" aria-hidden="true"><circle class="trk" cx="84" cy="84" r="78" fill="none" stroke-width="8"/><circle class="arc" data-k="arc" cx="84" cy="84" r="78" fill="none" stroke-width="8" stroke-linecap="round"/></svg>
+            <span class="em" data-k="em">🗡️</span>
+          </div>
+          <div class="mo-col"><span class="t-title" data-k="name">Giant Killer</span><span class="t-small" data-k="desc">Beat a player 200 rating above you</span></div>
+          <div class="mo-tier" data-k="tier"><span class="medal bronze">🗡️</span><div><div class="row-sb"><b>Tier 1 of 3</b><span class="t-caption">Bronze</span></div><div class="bar gold"><i data-k="tierbar" style="width:33%"></i></div><span class="t-caption">Next: beat a player 300 above you</span></div></div>
+          <div class="mo-others" data-k="others"><span class="av-pair"><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span></span><span class="tx"><b>Sam and Kim have it too</b>3 of 7 players in the league</span></div>
+          <span class="coin-pill" data-k="coin"><span class="coin"></span>+50</span>
+          <button class="btn primary block" data-k="btn">Show on profile</button>
+          <div class="mo-confetti" data-k="confetti" aria-hidden="true"></div>
+        </div>
+      </div>
+      <p class="mo-note">The emoji turns once on its y axis, the ring fills, the name rises, tier and owners follow, confetti falls straight. 1.4 s.</p>
+    </div>
+
+    <div class="demo mo-scene" data-mo="cup">
+      <div class="mo-head"><b>Cup champion</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone" data-theme="dark">
+        <div class="mo-sc" data-mo-stage>
+          <div class="mo-cupart">
+            <span class="mo-rays" data-k="rays"></span>
+            <span class="mo-trophy" data-k="trophy"><i data-lucide="trophy"></i></span>
+          </div>
+          <div class="mo-col"><span class="mo-mask"><span class="t-display" data-k="name">Mira</span></span><span class="t-section" data-k="title">Cup champion</span></div>
+          <div class="mo-final" data-k="final"><span class="t-caption">Week 42 final</span><div class="mo-score"><b>Mira</b><span class="num">3 : 1</span><b>Dave</b></div></div>
+          <div class="bk mo-path">
+            <div class="slot won" data-k="slot"><span class="seed">QF</span>Beat Joe<span class="sc">2 : 0</span></div>
+            <div class="slot won" data-k="slot"><span class="seed">SF</span>Beat Kim<span class="sc">2 : 1</span></div>
+            <div class="slot won" data-k="slot"><span class="seed">F</span>Beat Dave<span class="sc">3 : 1</span></div>
+          </div>
+          <span class="coin-pill" data-k="coin"><span class="coin"></span>+100</span>
+          <button class="btn primary block" data-k="btn">See the bracket</button>
+          <div class="mo-confetti" data-k="confetti" aria-hidden="true"></div>
+        </div>
+      </div>
+      <p class="mo-note">Trophy rises, solid gold rays open, the name slides up out of a mask, the path to the title stacks in, then confetti. 1.4 s, always on black.</p>
+    </div>
+
+    <div class="demo mo-scene" data-mo="live">
+      <div class="mo-head"><b>Live start</b><button class="btn secondary sm mo-replay" data-mo-replay><i data-lucide="rotate-ccw"></i>Replay</button></div>
+      <div class="mo-phone" data-theme="dark">
+        <div class="mo-sc mo-live" data-mo-stage>
+          <div class="row-sb"><span class="pill live" data-k="pill"><span class="live-dot"></span>Live</span><span class="t-caption" data-k="watch">Office foosball, first to 10</span></div>
+          <div class="mo-vsbox">
+            <div class="mo-side a" data-k="a"><span class="av lg" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="t-display">Dave</span></div>
+            <span class="mo-vs" data-k="vs">VS</span>
+            <div class="mo-side b" data-k="b"><span class="av lg" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="t-display">Mira</span></div>
+          </div>
+          <div class="mo-odds" data-k="odds"><div class="row-sb"><span class="t-label" style="color:var(--pct-blue)">Dave 42%</span><span class="t-caption">Win chance</span><span class="t-label" style="color:var(--pct-orange)">58% Mira</span></div><div class="mo-split"><i data-k="oa" style="width:42%;background:var(--pc-blue)"></i><i data-k="ob" style="width:58%;background:var(--pc-orange)"></i></div></div>
+          <div class="mo-viewers" data-k="viewers"><span class="av-pair"><span class="av sm" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span></span><span class="t-small">Ann, Kim, Joe and 9 more watching</span></div>
+          <div class="chat mo-chatp">
+            <p data-k="msg"><b style="color:var(--pct-orange)">Mira</b>you're going down</p>
+            <p data-k="msg"><b style="color:var(--pct-blue)">Dave</b>we'll see 😅</p>
+            <p data-k="msg"><b style="color:var(--pct-maroon)">Ann</b>called it for Mira</p>
+          </div>
+          <button class="btn live block" data-k="btn"><span class="live-dot"></span>Watch</button>
+          <div class="mo-flash" data-k="flash" aria-hidden="true"></div>
+        </div>
+      </div>
+      <p class="mo-note">Names slide in from both sides, one soft VS flash, the Live pill pulses twice, then odds, viewers and chat. 1.4 s, always on black.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="sec" id="mo-tokens" data-title="Motion tokens">
+  <h2 class="t-title">Motion tokens</h2>
+  <p class="lead">Five durations and one curve cover everything. Pick the shortest one that still reads. Scenes are the only place that may run longer than 400 ms.</p>
+  <div class="demo">
+    <div class="mo-curve">
+      <svg viewBox="0 0 120 120" aria-hidden="true"><path class="ax" d="M10 110H110M10 110V10" fill="none" stroke-width="1.5"/><path class="cv" d="M10 110C75 110 45 10 110 10" fill="none" stroke-width="3" stroke-linecap="round"/></svg>
+      <p><b>One curve, ease in out.</b> <code>--ease: cubic-bezier(.65, 0, .35, 1)</code>. Slow start, fast middle, slow end. It never goes past 1, so nothing overshoots or settles back. No spring and no bounce curves anywhere, also not in Expo (use <code>Easing.bezier(.65, 0, .35, 1)</code>).</p>
+    </div>
+  </div>
+  <div class="mo-spec-wrap">
+  <table class="spec mo-spec">
+    <tr><th>Token</th><th>Value</th><th>Used for</th></tr>
+    <tr><td>--d-press</td><td>120 ms</td><td>Button and row press, scale to .97 and back</td></tr>
+    <tr><td>--d-fast</td><td>180 ms</td><td>Hover, colour change, toast in and out, unread dot, reduced motion fades</td></tr>
+    <tr><td>--d-base</td><td>280 ms</td><td>Toggle, segmented indicator, tab bar slide, sheet up, list rows, skeleton crossfade, reaction pop</td></tr>
+    <tr><td>--d-slow</td><td>400 ms</td><td>Rank swap, progress fill, crown drop, anything that travels far</td></tr>
+    <tr><td>--d-scene</td><td>1200 ms</td><td>Celebration scenes, the longest step, the whole scene ends by 1.4 s</td></tr>
+    <tr><td>--mo-count</td><td>800 ms</td><td>Number count up for rating, coins and bounty</td></tr>
+    <tr><td>--mo-stagger</td><td>40 ms</td><td>Delay between rows or tiles appearing</td></tr>
+    <tr><td>--mo-rise</td><td>8 px</td><td>How far things rise when they appear</td></tr>
+    <tr><td>--ease</td><td>.65, 0, .35, 1</td><td>Every animation, no exceptions</td></tr>
+  </table>
+  </div>
+  <h3 class="sub">Reduced motion</h3>
+  <p class="lead">When the phone asks for reduced motion, nothing moves, scales or turns. The final state appears with one fade on <code>--d-base</code>. Numbers show their final value, confetti and flashes are skipped. Use the preview switch at the top of this group to see it.</p>
+  <div class="mo-spec-wrap">
+  <table class="spec mo-spec">
+    <tr><th>Moment</th><th>Becomes</th><th>Details</th></tr>
+    <tr><td>Micro interactions</td><td>Instant</td><td>Toggle, segment and tab change state at once, the stage fades in 280 ms</td></tr>
+    <tr><td>Toast, Elo delta</td><td>Fade only</td><td>Same timing, no rise</td></tr>
+    <tr><td>Rank swap</td><td>Fade</td><td>Rows swap places in one frame, the list fades in</td></tr>
+    <tr><td>Match saved</td><td>Crossfade</td><td>Final screen with +14, +20 and the new rank fades in</td></tr>
+    <tr><td>Crown taken</td><td>Crossfade</td><td>Gold card, crown and bounty already in place</td></tr>
+    <tr><td>Challenge sent</td><td>Crossfade</td><td>Card already landed, all stakes visible</td></tr>
+    <tr><td>Badge unlocked</td><td>Crossfade</td><td>Full ring, no turn, no confetti</td></tr>
+    <tr><td>Cup champion</td><td>Crossfade</td><td>Trophy, rays and name in place, no confetti</td></tr>
+    <tr><td>Live start</td><td>Crossfade</td><td>No slide, no flash, Live pill does not pulse</td></tr>
+  </table>
+  </div>
+</section>

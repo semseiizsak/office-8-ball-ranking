@@ -1,0 +1,464 @@
+<!-- ================= SYSTEM AND ACCOUNT (prefix sy-) ================= -->
+
+<section class="sec" id="sy-pro" data-title="Paywall and plans">
+  <h2 class="t-title">Paywall and plans</h2>
+  <p class="lead">Pro is the only place the brand colour fills a whole card. The paywall compares Free and Pro side by side, defaults to yearly, and always shows restore and the store terms. It opens from a locked feature or a full league, never on first launch.</p>
+
+  <div class="sy-phones">
+    <div class="sy-phone"><div class="sy-scr" id="sy-paywall">
+      <div class="sy-pw-head">
+        <span class="sy-pw-mark"><i data-lucide="sparkles"></i></span>
+        <span class="sy-pw-tx"><h3 class="t-section">Liga Pro</h3><span class="t-small">Room for the whole office</span></span>
+        <button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="seg block sy-billing" data-single role="group" aria-label="Billing period">
+        <button aria-pressed="false" data-sy-period="month">Monthly</button>
+        <button aria-pressed="true" data-sy-period="year">Yearly <span class="sy-save">Save 33%</span></button>
+      </div>
+      <div class="sy-plans" data-single role="group" aria-label="Plan">
+        <button class="sy-plan" aria-pressed="false" data-sy-plan="free"><span class="sy-pn">Free <span class="sy-radio"></span></span><span class="sy-price num">€0</span><span class="sy-per">12 members, 1 league</span></button>
+        <button class="sy-plan sy-pro" aria-pressed="true" data-sy-plan="pro"><span class="sy-pn">Pro <span class="sy-radio"></span></span><span class="sy-price num" data-sy-price>€31.99</span><span class="sy-per" data-sy-per>A year, €2.67 a month</span></button>
+      </div>
+      <ul class="sy-feat" aria-label="Pro includes">
+        <li><span class="sy-yes"><i data-lucide="check"></i></span>Unlimited members and leagues</li>
+        <li><span class="sy-yes"><i data-lucide="check"></i></span>Seasons and full history</li>
+        <li><span class="sy-yes"><i data-lucide="check"></i></span>Kiosk mode and custom card art</li>
+      </ul>
+      <figure class="sy-fill sy-quote">
+        <blockquote>"From 12 to 31 players in a week."</blockquote>
+        <figcaption class="sy-q-h"><span class="av" style="--c:var(--pc-blue);--av:28px"><span class="ring"></span><span class="face">D</span></span><span class="sy-note">Dave, admin at Acme Studio</span></figcaption>
+      </figure>
+      <div class="sy-foot">
+        <button class="btn brand block lg" data-sy-buy>Start 7 days free</button>
+        <p class="sy-note" style="text-align:center" data-sy-then>Then €31.99 a year, renews until you cancel</p>
+        <div class="sy-legal"><button>Restore</button><a href="#">Terms</a><a href="#">Privacy</a></div>
+      </div>
+    </div><span class="sy-step">Paywall, yearly and Pro selected</span></div>
+
+    <div class="sy-phone" style="align-items:stretch;gap:20px">
+      <div class="demo">
+        <h3 class="sub" style="margin-top:0">Purchase button states</h3>
+        <div class="sy-btn-row" style="flex-direction:column;align-items:stretch">
+          <button class="btn brand block lg">Start 7 days free</button>
+          <button class="btn brand block lg" aria-disabled="true" tabindex="-1"><span class="spin"></span>Confirming</button>
+          <button class="btn block lg sy-btn-ok"><i data-lucide="check"></i>You're on Pro</button>
+          <button class="btn secondary block lg">Continue with Free</button>
+        </div>
+        <p class="sy-note">Default, waiting for the store, done, and Free selected. A failed purchase returns to default and shows an error toast, nothing is charged.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">Subscription status</h3>
+  <div class="demo sy-grid2">
+    <div class="sy-sub">
+      <div class="sy-sub-h"><span class="sy-ic sy-brand"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>Liga Pro</b><span>Acme Studio, 4 leagues</span></span><span class="pill win">Active</span></div>
+      <div class="sy-sub-meta"><div><b>12 Nov 2026</b><span>Renews on</span></div><div><b>€31.99</b><span>Yearly</span></div></div>
+      <div class="sy-acts"><button class="btn secondary sm">Manage</button><button class="btn ghost sm">Receipts</button></div>
+    </div>
+    <div class="sy-sub">
+      <div class="sy-sub-h"><span class="sy-ic"><i data-lucide="calendar-x-2"></i></span><span class="sy-tx"><b>Liga Pro</b><span>Auto renew is off</span></span><span class="pill neutral">Ending</span></div>
+      <div class="sy-sub-meta"><div><b>12 Nov 2026</b><span>Pro until</span></div><div><b>Free</b><span>After that</span></div></div>
+      <div class="sy-acts"><button class="btn brand sm">Keep Pro</button></div>
+    </div>
+    <div class="sy-sub">
+      <div class="sy-sub-h"><span class="sy-ic sy-warn"><i data-lucide="credit-card"></i></span><span class="sy-tx"><b>Payment didn't go through</b><span>Pro stays on for 6 more days</span></span></div>
+      <div class="sy-acts"><button class="btn primary sm">Update payment</button></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Usage limit</h3>
+  <div class="demo sy-grid2">
+    <div class="sy-sub sy-use">
+      <div class="row-sb"><b>Members</b><span class="sy-count">12 of 12</span></div>
+      <div class="bar sy-bar-full"><i style="width:100%"></i></div>
+      <div class="row-sb" style="margin-top:4px">
+        <span class="sy-avs"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="av yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="av" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span><span class="sy-more">+8</span></span>
+      </div>
+      <p class="t-small">Your league is full on Free. Pro makes room for everyone, Ann's invite is waiting.</p>
+      <button class="btn brand block" style="margin-top:4px">Upgrade to Pro</button>
+    </div>
+    <div class="sy-sub sy-use">
+      <div class="row-sb"><b>Members</b><span class="sy-count">9 of 12</span></div>
+      <div class="bar"><i style="width:75%"></i></div>
+      <p class="t-small">3 spots left on Free.</p>
+      <button class="btn ghost sm" style="align-self:flex-start;margin-left:-12px">See Pro</button>
+    </div>
+  </div>
+
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Paywall</td><td>Opened from a locked feature or a limit</td><td>Yearly preselected, restore always visible, store terms under the button</td></tr>
+    <tr><td>Plan card</td><td>Free and Pro, tap to select</td><td>Pro is solid brand with white text, selection is a ring, never a tint</td></tr>
+    <tr><td>Status card</td><td>Settings, Subscription</td><td>Active, Ending, Payment issue. Manage opens the store page</td></tr>
+    <tr><td>Usage card</td><td>Members screen, invite flow</td><td>Bar turns warning only when the limit is reached</td></tr>
+  </table>
+</section>
+
+<section class="sec" id="sy-onboard" data-title="Onboarding and permissions">
+  <h2 class="t-title">Onboarding and permissions</h2>
+  <p class="lead">Three slides, then straight into the league. Illustrations are icon compositions on a disc, never sport objects. System permission dialogs only appear after a primer screen that says what you get, and Not now is always an equal, calm choice.</p>
+
+  <div class="sy-phones">
+    <div class="sy-phone"><div class="sy-scr" id="sy-onb">
+      <div class="sy-top"><span></span><button class="btn ghost sm sy-skip" data-sy-skip>Skip</button></div>
+      <div class="sy-pager">
+        <div class="sy-track" data-sy-track>
+          <div class="sy-slide" aria-roledescription="slide" aria-label="1 of 3">
+            <div class="sy-ill" aria-hidden="true"><span class="sy-disc"></span><span class="sy-core"><i data-lucide="users"></i></span><span class="sy-sat sy-a"><i data-lucide="list-ordered"></i></span><span class="sy-sat sy-b sy-p"><i data-lucide="link"></i></span><span class="sy-sat sy-c"><i data-lucide="message-circle"></i></span></div>
+            <h3 class="t-section">Your own league</h3>
+            <p>Office, friends or club. Invite your people with one link.</p>
+            <ul class="sy-pts"><li><i data-lucide="link"></i>One invite link, no emails</li><li><i data-lucide="lock"></i>Private to your team</li><li><i data-lucide="users"></i>Free for up to 12 players</li></ul>
+          </div>
+          <div class="sy-slide" aria-roledescription="slide" aria-label="2 of 3">
+            <div class="sy-ill" aria-hidden="true"><span class="sy-disc"></span><span class="sy-core"><i data-lucide="plus"></i></span><span class="sy-sat sy-a"><i data-lucide="timer"></i></span><span class="sy-sat sy-b sy-w"><i data-lucide="check"></i></span><span class="sy-sat sy-c sy-p"><i data-lucide="swords"></i></span></div>
+            <h3 class="t-section">Log in five seconds</h3>
+            <p>Pick the opponent, tap the winner. Ratings update on the spot.</p>
+            <ul class="sy-pts"><li><i data-lucide="timer"></i>Five seconds per match</li><li><i data-lucide="users-round"></i>1v1 and 2v2</li><li><i data-lucide="trending-up"></i>Ratings move instantly</li></ul>
+          </div>
+          <div class="sy-slide" aria-roledescription="slide" aria-label="3 of 3">
+            <div class="sy-ill" aria-hidden="true"><span class="sy-disc"></span><span class="sy-core"><i data-lucide="trending-up"></i></span><span class="sy-sat sy-a sy-g"><i data-lucide="crown"></i></span><span class="sy-sat sy-b"><i data-lucide="calendar"></i></span><span class="sy-sat sy-c sy-p"><i data-lucide="layers"></i></span></div>
+            <h3 class="t-section">Climb and collect</h3>
+            <p>Take the crown, win the weekly cup, earn cards along the way.</p>
+            <ul class="sy-pts"><li><i data-lucide="crown"></i>Hold the crown, defend it</li><li><i data-lucide="calendar"></i>Weekly cup every Friday</li><li><i data-lucide="layers"></i>Collect player cards</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="sy-dots-nav" role="tablist" aria-label="Slides" data-sy-dots>
+        <button role="tab" aria-current="true" aria-label="Slide 1"><i></i></button>
+        <button role="tab" aria-current="false" aria-label="Slide 2"><i></i></button>
+        <button role="tab" aria-current="false" aria-label="Slide 3"><i></i></button>
+      </div>
+      <div class="sy-foot" style="padding-top:8px"><button class="btn primary block lg" data-sy-next>Next</button></div>
+    </div><span class="sy-step">Onboarding pager, tap Next or a dot</span></div>
+
+    <div class="sy-phone"><div class="sy-scr">
+      <div class="sy-perm-ill sy-fill" aria-hidden="true">
+        <div class="sy-mini sy-back"><span class="sy-mi sy-n"><i data-lucide="calendar"></i></span><span class="sy-mt"><b>The weekly cup is open</b>Sign up before noon</span></div>
+        <div class="sy-mini"><span class="sy-mi"><i data-lucide="swords"></i></span><span class="sy-mt"><b>Mira challenged you</b>Win and you take 21 rating</span></div>
+      </div>
+      <h3 class="t-section">Know when it's your turn</h3>
+      <ul class="sy-why">
+        <li><span class="sy-wi"><i data-lucide="swords"></i></span><span><b>Challenges</b>Answer before they expire</span></li>
+        <li><span class="sy-wi"><i data-lucide="radio"></i></span><span><b>Live matches</b>Watch your colleagues play</span></li>
+        <li><span class="sy-wi"><i data-lucide="calendar"></i></span><span><b>Cup draw</b>See who you face first</span></li>
+        <li><span class="sy-wi"><i data-lucide="moon"></i></span><span><b>Quiet after work</b>Nothing between 19:00 and 08:00</span></li>
+      </ul>
+      <div class="sy-foot">
+        <button class="btn primary block lg">Allow notifications</button>
+        <button class="btn ghost block">Not now</button>
+      </div>
+    </div><span class="sy-step">Push, before the system dialog, changeable later in Settings</span></div>
+
+    <div class="sy-phone"><div class="sy-scr">
+      <div class="sy-top"><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button><button class="btn ghost sm">Skip</button></div>
+      <div class="sy-cam sy-fill" aria-hidden="true"><span class="sy-frame"><i data-lucide="user-round"></i><span class="sy-badge"><i data-lucide="camera"></i></span></span></div>
+      <h3 class="t-section">Add a profile photo</h3>
+      <p class="t-small" style="margin:6px 0 14px">Shows on the leaderboard, live screen and your cards.</p>
+      <div class="sy-opt">
+        <button><i data-lucide="camera"></i><span>Take a photo</span><i data-lucide="chevron-right"></i></button>
+        <button><i data-lucide="image"></i><span>Choose from photos</span><i data-lucide="chevron-right"></i></button>
+      </div>
+      <ul class="sy-tips"><li><i data-lucide="sun"></i>Good light</li><li><i data-lucide="scan-face"></i>Face centred</li><li><i data-lucide="crop"></i>Square crop</li></ul>
+      <div class="sy-foot">
+        <div class="sy-denied"><i data-lucide="camera-off"></i><span><b>Camera access is off</b>Turn it on in Settings</span><button class="btn secondary sm">Settings</button></div>
+      </div>
+    </div><span class="sy-step">Camera and photos, with the denied state</span></div>
+  </div>
+
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Pager</td><td>First launch only, before joining a league</td><td>3 slides, Skip on all but the last, last button reads Get started. Slide 400 ms ease in out</td></tr>
+    <tr><td>Page dots</td><td>Under the slides</td><td>Active dot is a 22 px solid bar, each dot is a 44 px target</td></tr>
+    <tr><td>Permission primer</td><td>Right before a system dialog</td><td>Value first, one primary Allow, Not now asks again after the first challenge, never sooner</td></tr>
+    <tr><td>Denied state</td><td>Access was turned off earlier</td><td>Explain and link to Settings, the other path keeps working</td></tr>
+  </table>
+</section>
+
+<section class="sec" id="sy-status" data-title="Sync, updates and tips">
+  <h2 class="t-title">Sync, updates and tips</h2>
+  <p class="lead">Matches are saved on the phone first, so being offline never blocks logging. The sync pill sits under the app bar and only shows while something is pending. Tooltips explain one control, coach marks walk through a new screen once.</p>
+
+  <h3 class="sub">Sync pill</h3>
+  <div class="demo">
+    <div class="sy-btn-row">
+      <span class="sy-sync sy-off" role="status"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span>
+      <span class="sy-sync sy-ing" role="status"><span class="sy-spin"></span>Syncing 2 matches</span>
+      <span class="sy-sync sy-ok" role="status"><i data-lucide="check"></i>All synced</span>
+      <span class="sy-sync sy-err" role="status"><i data-lucide="refresh-cw"></i>Sync paused<button class="sy-act">Retry</button></span>
+    </div>
+    <div class="sy-appbar-demo">
+      <div class="appbar"><div class="league-sw"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
+      <div class="sy-syncbar"><span class="sy-sync sy-off" role="status" aria-live="polite" id="sy-sync-live"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span></div>
+    </div>
+    <div><button class="btn secondary sm" data-sy-sync-run><i data-lucide="play"></i>Go back online</button></div>
+    <p class="sy-note">Offline, syncing, synced, paused. Synced shows for 2 s and then the pill collapses.</p>
+  </div>
+
+  <h3 class="sub">Update banner</h3>
+  <div class="demo stack">
+    <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Update available</b>Version 1.4 brings season history.</span><button class="btn primary sm">Update</button><button class="ibtn sm plain" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+    <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Downloading update</b><span class="sy-prog"><span class="bar brand"><i style="width:64%"></i></span><span class="num">64%</span></span></span></div>
+    <div class="sy-update sy-must"><span class="sy-ic"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>A new version is needed</b>Your league moved to Liga 1.4. Update to keep logging matches.</span><button class="btn">Update now</button></div>
+  </div>
+
+  <h3 class="sub">Tooltip</h3>
+  <div class="demo">
+    <div class="sy-tipdemo">
+      <span class="sy-tipwrap"><button class="ibtn" aria-label="Filter" aria-describedby="sy-tip1"><i data-lucide="sliders-horizontal"></i></button><span class="sy-tip" role="tooltip" id="sy-tip1">Filter matches</span></span>
+      <span class="sy-tipwrap"><button class="ibtn" aria-label="Rating info"><i data-lucide="info"></i></button><span class="sy-tip sy-start" role="tooltip">Rating moves more for upsets</span></span>
+      <span class="sy-tipwrap"><button class="btn secondary sm" aria-describedby="sy-tip3">Hover me</button><span class="sy-tip sy-hover" role="tooltip" id="sy-tip3">Shows on hover and focus</span></span>
+    </div>
+    <p class="sy-note">Above by default, below when there is no room. Long press on touch, hover and focus on desktop. One short line, no buttons.</p>
+  </div>
+
+  <h3 class="sub">Coach mark</h3>
+  <div class="sy-phones">
+    <div class="sy-phone"><div class="sy-scr sy-coach" id="sy-coach">
+      <div class="sy-home">
+        <div class="appbar"><div class="league-sw" data-sy-cm="1"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
+        <ul class="list">
+          <li><div class="row"><span class="rank">1</span><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="main"><b>Mira</b><span>Streak W4</span></span><span class="elo">1302</span></div></li>
+          <li><div class="row"><span class="rank">2</span><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="main"><b>Dave</b><span>Streak W1</span></span><span class="elo">1248</span></div></li>
+          <li><div class="row me" data-sy-cm="2"><span class="rank">3</span><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="main"><b>You</b><span>Streak L1</span></span><span class="elo">1237</span></div></li>
+          <li><div class="row"><span class="rank">4</span><span class="av yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="main"><b>Sam</b><span>Streak W2</span></span><span class="elo">1190</span></div></li>
+        </ul>
+        <nav class="tabbar" aria-label="Main"><button aria-selected="true"><i data-lucide="list-ordered"></i>Ladder</button><button aria-selected="false"><i data-lucide="swords"></i>Play</button><button aria-selected="false"><i data-lucide="trophy"></i>Cup</button><button aria-selected="false"><i data-lucide="user"></i>Me</button></nav>
+      </div>
+      <button class="sy-fab" aria-label="Log a match" data-sy-cm="0"><i data-lucide="plus"></i></button>
+      <span class="sy-spot" aria-hidden="true" data-sy-spot></span>
+      <div class="sy-cm" role="dialog" aria-label="Tip" data-sy-cmcard>
+        <b data-sy-cmt>Log a match here</b>
+        <p data-sy-cmp>Tap plus after every game. Opponent, winner, done.</p>
+        <div class="sy-cm-f"><span class="sy-note num" data-sy-cmn>1 of 3</span><button class="btn ghost sm" data-sy-cmskip>Skip</button><button class="btn primary sm" data-sy-cmnext>Next</button></div>
+      </div>
+    </div><span class="sy-step">Coach mark, three steps on first visit</span></div>
+  </div>
+
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Sync pill</td><td>Under the app bar while anything is pending</td><td>Offline is neutral, never red. Paused offers Retry</td></tr>
+    <tr><td>Update banner</td><td>Top of Home, once per version</td><td>Dismissable. A required update uses the brand fill and cannot be dismissed</td></tr>
+    <tr><td>Tooltip</td><td>Icon only controls, rating terms</td><td>Inverted fill, 6 px arrow, one line, 180 ms fade</td></tr>
+    <tr><td>Coach mark</td><td>First visit to a screen</td><td>Spotlight on a scrim, max 3 steps, Skip always visible, never repeats</td></tr>
+  </table>
+</section>
+
+<section class="sec" id="sy-kiosk" data-title="Kiosk mode">
+  <h2 class="t-title">Kiosk mode</h2>
+  <p class="lead">The shared tablet next to the game, designed to be read from 2 metres. Players tap their own face, then confirm with a 4 digit PIN on 120 px keys. A wrong PIN shakes the dots briefly and clears them, nobody gets locked out for a typo.</p>
+  <div class="device-row">
+<div class="device-cap">
+  <div class="tablet"><div class="tablet-screen">
+<div class="sy-k" data-sy-kiosk>
+<header class="sy-khd"><span class="sy-klg"><i data-lucide="tablet"></i></span><span class="sy-kwho"><b>Office foosball</b><span>Acme Studio kiosk</span></span><span class="sy-kclock"><b class="num">10:42</b><span>Monday, 19 Oct</span></span></header>
+<div class="sy-ktitle"><h3 class="t-display">Who are you?</h3><p>Tap your face to log a match or join the cup</p></div>
+<div class="sy-kgrid" data-single><button class="sy-kpl" aria-pressed="true"><em class="sy-ktick"><i data-lucide="check"></i></em><span class="av" style="--c:var(--pc-orange);--av:132px"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><b>Mira</b><span class="num">1&nbsp;412</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-blue);--av:132px"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><b>Dave</b><span class="num">1&nbsp;356</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-green);--av:132px"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><b>You</b><span class="num">1&nbsp;318</span></button><button class="sy-kpl" aria-pressed="false"><span class="av yellow" style="--c:var(--pc-yellow);--av:132px"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><b>Sam</b><span class="num">1&nbsp;264</span></button><button class="sy-kpl" disabled aria-label="Kim, playing right now"><span class="av" style="--c:var(--pc-purple);--av:132px"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span><b>Kim</b><small>Playing</small></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-red);--av:132px"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><b>Joe</b><span class="num">1&nbsp;221</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-maroon);--av:132px"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span><b>Ann</b><span class="num">1&nbsp;187</span></button><button class="sy-kpl" aria-pressed="false"><span class="sy-kguest"><i data-lucide="user-plus"></i></span><b>Guest</b><span>No PIN needed</span></button></div>
+<p class="sy-khint"><i data-lucide="info"></i>Kim is in a match right now, back soon</p>
+<section class="sy-krecent" aria-label="Last games on this tablet"><div class="sy-ksh"><h3>Last games here</h3><span>14 today</span></div><ul><li class="sy-kday"><span class="av" style="--c:var(--pc-orange);--av:52px"><span class="ring"></span><span class="face">M</span></span><span class="sy-kday-t"><b>Mira beat Dave</b><span class="num">10:31, 10 : 7</span></span><span class="delta up num">+14</span></li><li class="sy-kday"><span class="av" style="--c:var(--pc-maroon);--av:52px"><span class="ring"></span><span class="face">A</span></span><span class="sy-kday-t"><b>Ann beat Joe</b><span class="num">10:12, 10 : 4</span></span><span class="delta up num">+22</span></li><li class="sy-kday"><span class="av yellow" style="--c:var(--pc-yellow);--av:52px"><span class="ring"></span><span class="face">S</span></span><span class="sy-kday-t"><b>Sam beat You</b><span class="num">09:48, 10 : 8</span></span><span class="delta up num">+9</span></li></ul></section>
+<div class="sy-knext"><span class="pill crown">Cup</span><span class="sy-knext-t"><b>Quarter final, Mira vs Sam</b><span>Today at 12:30, winner meets Dave</span></span><span class="sy-knext-time num">12:30</span></div>
+<button class="btn primary block sy-kcta" data-sy-kcta>Continue as Mira<i data-lucide="arrow-right"></i></button>
+</div>
+  </div></div>
+  <span>Who are you, Mira selected, Kim is playing</span>
+</div>
+<div class="device-cap">
+  <div class="tablet"><div class="tablet-screen">
+<div class="sy-k sy-kpin" data-sy-pin data-name="Mira" tabindex="-1">
+<header class="sy-ktop"><button class="ibtn sy-kib" aria-label="Back to players"><i data-lucide="arrow-left"></i></button><span class="sy-kstep">Office foosball kiosk</span></header>
+<div class="sy-kgreet"><span data-sy-kav><span class="av" style="--c:var(--pc-orange);--av:200px"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span></span><h3 class="t-display">Hi Mira</h3><p>Enter your 4 digit PIN</p></div>
+<div class="sy-kdots" data-sy-kdots role="img" aria-label="0 of 4 digits entered"><i></i><i></i><i></i><i></i></div>
+<p class="sy-kmsg" data-sy-kmsg aria-live="polite">Demo PIN is 1234</p>
+<div class="sy-kpad"><button class="sy-kkey" data-k="1">1</button><button class="sy-kkey" data-k="2">2</button><button class="sy-kkey" data-k="3">3</button><button class="sy-kkey" data-k="4">4</button><button class="sy-kkey" data-k="5">5</button><button class="sy-kkey" data-k="6">6</button><button class="sy-kkey" data-k="7">7</button><button class="sy-kkey" data-k="8">8</button><button class="sy-kkey" data-k="9">9</button><button class="sy-kkey sy-kplain" data-k="forgot" aria-label="Forgot PIN"><i data-lucide="circle-help"></i></button><button class="sy-kkey" data-k="0">0</button><button class="sy-kkey sy-kplain" data-k="del" aria-label="Delete last digit"><i data-lucide="delete"></i></button></div>
+</div>
+  </div></div>
+  <span>PIN pad, try a wrong PIN, demo PIN is 1234</span>
+</div>
+<div class="device-cap">
+  <div class="tablet land"><div class="tablet-screen">
+<div class="sy-k sy-kland" data-sy-kiosk>
+<div class="sy-kcol">
+<header class="sy-khd"><span class="sy-klg"><i data-lucide="tablet"></i></span><span class="sy-kwho"><b>Office foosball</b><span>Acme Studio kiosk</span></span><span class="sy-kclock"><b class="num">10:42</b><span>Monday, 19 Oct</span></span></header>
+<div class="sy-ktitle"><h3 class="t-display">Who are you?</h3></div>
+<div class="sy-kgrid" data-single><button class="sy-kpl" aria-pressed="true"><em class="sy-ktick"><i data-lucide="check"></i></em><span class="av" style="--c:var(--pc-orange);--av:88px"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><b>Mira</b><span class="num">1&nbsp;412</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-blue);--av:88px"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><b>Dave</b><span class="num">1&nbsp;356</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-green);--av:88px"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><b>You</b><span class="num">1&nbsp;318</span></button><button class="sy-kpl" aria-pressed="false"><span class="av yellow" style="--c:var(--pc-yellow);--av:88px"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><b>Sam</b><span class="num">1&nbsp;264</span></button><button class="sy-kpl" disabled aria-label="Kim, playing right now"><span class="av" style="--c:var(--pc-purple);--av:88px"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span><b>Kim</b><small>Playing</small></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-red);--av:88px"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><b>Joe</b><span class="num">1&nbsp;221</span></button><button class="sy-kpl" aria-pressed="false"><span class="av" style="--c:var(--pc-maroon);--av:88px"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span><b>Ann</b><span class="num">1&nbsp;187</span></button><button class="sy-kpl" aria-pressed="false"><span class="sy-kguest"><i data-lucide="user-plus"></i></span><b>Guest</b><span>No PIN needed</span></button></div>
+<p class="sy-khint"><i data-lucide="info"></i>Kim is in a match right now</p>
+</div>
+<div class="sy-kcol sy-kpin" data-sy-pin data-name="Mira" tabindex="-1">
+<div class="sy-kgreet sy-krow"><span data-sy-kav><span class="av" style="--c:var(--pc-orange);--av:96px"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span></span><span><h3 class="t-section" data-sy-kname>Hi Mira</h3><p>Enter your 4 digit PIN</p></span></div>
+<div class="sy-kdots" data-sy-kdots role="img" aria-label="0 of 4 digits entered"><i></i><i></i><i></i><i></i></div>
+<p class="sy-kmsg" data-sy-kmsg aria-live="polite">Demo PIN is 1234</p>
+<div class="sy-kpad"><button class="sy-kkey" data-k="1">1</button><button class="sy-kkey" data-k="2">2</button><button class="sy-kkey" data-k="3">3</button><button class="sy-kkey" data-k="4">4</button><button class="sy-kkey" data-k="5">5</button><button class="sy-kkey" data-k="6">6</button><button class="sy-kkey" data-k="7">7</button><button class="sy-kkey" data-k="8">8</button><button class="sy-kkey" data-k="9">9</button><button class="sy-kkey sy-kplain" data-k="forgot" aria-label="Forgot PIN"><i data-lucide="circle-help"></i></button><button class="sy-kkey" data-k="0">0</button><button class="sy-kkey sy-kplain" data-k="del" aria-label="Delete last digit"><i data-lucide="delete"></i></button></div>
+</div>
+</div>
+  </div></div>
+  <span>Landscape, pick on the left, PIN on the right</span>
+</div>
+  </div>
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Player picker</td><td>Kiosk home, log a match on the shared tablet</td><td>4 columns, 112 px avatars, selected tile is solid with a check. Players in a live match are disabled with a solid Playing pill</td></tr>
+    <tr><td>PIN pad</td><td>After picking a player</td><td>120 px keys portrait, 96 px landscape. Auto submits on the 4th digit</td></tr>
+    <tr><td>Error shake</td><td>Wrong PIN</td><td>360 ms, translateX 0, −16, 16, −12, 12, 0 with ease in out on every step, then the dots clear. No bounce</td></tr>
+    <tr><td>Forgot</td><td>Question key</td><td>Sends a reset to the player's phone, an admin can reset too</td></tr>
+  </table>
+</section>
+
+<section class="sec" id="sy-account" data-title="Account, teams and roles">
+  <h2 class="t-title">Account, teams and roles</h2>
+  <p class="lead">One account can be in many teams, each team runs one or more leagues. The switcher sheet nests leagues under their team. Roles are plain pills: only the Owner is filled. Deleting an account is calm and explicit: what happens, type to confirm, done.</p>
+
+  <h3 class="sub">Team and league switcher</h3>
+  <div class="demo stack">
+    <div class="sy-sheet" role="dialog" aria-label="Switch league">
+      <div class="grab"></div>
+      <div class="sheet-h"><span class="t-head">Switch league</span><button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button></div>
+      <div class="sy-sheet-in" data-sy-switch>
+        <div class="sy-team">
+          <div class="sy-team-h"><span class="sy-tl">AS</span><span class="sy-tx"><b>Acme Studio</b><span>3 leagues, 24 members</span></span><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></div>
+          <div class="sy-leagues">
+            <button class="sy-lg-row" aria-current="true"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Office foosball</b><span>Rank 3, 12 members</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+            <button class="sy-lg-row" aria-current="false"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Table tennis</b><span>Rank 7, 9 members</span></span><span class="pill live"><span class="live-dot"></span>Live</span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+            <button class="sy-lg-row" aria-current="false"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Darts Friday</b><span>Not ranked yet</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+          </div>
+        </div>
+        <div class="sy-team">
+          <div class="sy-team-h"><span class="sy-tl">FC</span><span class="sy-tx"><b>Friday crew</b><span>1 league, 6 members</span></span><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></div>
+          <div class="sy-leagues">
+            <button class="sy-lg-row" aria-current="false"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Padel nights</b><span>Rank 1</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+          </div>
+        </div>
+        <div class="sy-create">
+          <button><span class="sy-li"><i data-lucide="plus"></i></span>Create league</button>
+          <button><span class="sy-li"><i data-lucide="ticket"></i></span>Join with a code</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn secondary sm" data-open="sy-switcher"><i data-lucide="panel-bottom-open"></i>Open as sheet</button>
+  </div>
+
+  <h3 class="sub">Roles and members</h3>
+  <div class="demo">
+    <div class="sy-btn-row">
+      <span class="sy-role sy-owner sy-lg"><i data-lucide="key-round"></i>Owner</span>
+      <span class="sy-role sy-admin sy-lg"><i data-lucide="shield"></i>Admin</span>
+      <span class="sy-role sy-member sy-lg">Member</span>
+      <span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span>
+      <span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span>
+      <span class="sy-role sy-member">Member</span>
+    </div>
+    <div class="sy-mlist" data-sy-members>
+      <div class="sy-mrow"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="sy-tx"><span class="sy-nm"><b>You</b><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></span><span>Created the league in March</span></span><button class="ibtn" aria-label="No options for the owner" disabled><i data-lucide="ellipsis"></i></button></div>
+      <div class="sy-mrow"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="sy-tx"><span class="sy-nm"><b>Dave</b><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></span><span>148 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Dave" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+      <div class="sy-mrow"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="sy-tx"><span class="sy-nm"><b>Mira</b><span class="sy-role sy-member">Member</span></span><span>212 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Mira" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+      <div class="sy-mrow"><span class="av" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span><span class="sy-tx"><span class="sy-nm"><b>Kim</b><span class="sy-role sy-member">Member</span></span><span>31 matches, joined Sep 2026</span></span><button class="ibtn" aria-label="Options for Kim" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+      <div class="sy-mrow"><span class="sy-pend"><i data-lucide="mail"></i></span><span class="sy-tx"><span class="sy-nm"><b>Ann</b><span class="pill neutral" style="height:22px;padding:0 8px;font-size:11px">Invited</span></span><span>Sent 2 days ago</span></span><button class="btn ghost sm">Resend</button></div>
+    </div>
+    <p class="sy-note">Owner has no menu on their own row. Admins can change roles and remove members, only the Owner can transfer ownership.</p>
+  </div>
+
+  <h3 class="sub">Delete account</h3>
+  <div class="sy-phones">
+    <div class="sy-phone"><div class="sy-scr">
+      <div class="sy-top"><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button><span></span></div>
+      <div class="sy-del-h"><span class="sy-danger-ic"><i data-lucide="trash-2"></i></span><span><h3 class="t-section">Delete account</h3><span class="t-small">Here's what happens</span></span></div>
+      <ul class="sy-lose">
+        <li><i data-lucide="user-x"></i><b>Profile and photo are removed</b></li>
+        <li><i data-lucide="history"></i><b>Matches stay as Former player</b></li>
+        <li><i data-lucide="layers"></i><b>Coins, cards and badges are gone</b></li>
+        <li><i data-lucide="key-round"></i><b>Friday crew needs a new owner</b></li>
+      </ul>
+      <div class="sy-fill sy-before">
+        <button class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="download"></i></span><span><b>Download your data first</b>248 matches as a CSV</span><i data-lucide="chevron-right"></i></button>
+        <a href="#" class="sy-help"><i data-lucide="life-buoy"></i>Questions? Contact support</a>
+      </div>
+      <div class="sy-foot">
+        <button class="btn primary block lg">Keep my account</button>
+        <button class="btn ghost block">Continue</button>
+      </div>
+    </div><span class="sy-step">1 What happens</span></div>
+
+    <div class="sy-phone"><div class="sy-scr" id="sy-del">
+      <div class="sy-swap sy-form" data-sy-delform>
+        <div class="sy-top"><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button><span></span></div>
+        <h3 class="t-section" style="margin-top:12px">Last step</h3>
+        <p class="t-small" style="margin:6px 0 20px">Cancel Pro in your app store too, so billing stops.</p>
+        <div class="field">
+          <label for="sy-del-input">Type DELETE to confirm</label>
+          <input class="input sy-confirm-input" id="sy-del-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="DELETE">
+          <span class="hint" data-sy-delhint>Capital letters, exactly as shown</span>
+        </div>
+        <div class="sy-fill sy-why-leave">
+          <span class="sy-note">You leave 2 teams and 4 leagues. Your 248 matches stay.</span>
+          <b>What made you leave?</b>
+          <div class="sy-chips" data-toggle-group><button class="chip" aria-pressed="false">Not using it</button><button class="chip" aria-pressed="false">Too many alerts</button><button class="chip" aria-pressed="false">Something else</button></div>
+        </div>
+      </div>
+      <div class="sy-swap sy-form" data-sy-deldone hidden>
+      <div class="sy-center sy-done-top">
+        <span class="sy-done-ic"><i data-lucide="check"></i></span>
+        <h3 class="t-section">Account deleted</h3>
+        <p class="t-small">Thanks for playing. You're always welcome back with a new account.</p>
+      </div>
+      <div class="sy-fill sy-after">
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="file-down"></i></span><span><b>Your data file is ready</b>Download it within 7 days</span></div>
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="credit-card"></i></span><span><b>Cancel Pro in your store</b>Billing runs through your app store</span></div>
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="users"></i></span><span><b>Your leagues play on</b>Dave now owns Friday crew</span></div>
+      </div>
+      </div>
+      <div class="sy-foot">
+        <button class="btn danger block lg" data-sy-delbtn disabled>Delete account</button>
+        <button class="btn ghost block" data-sy-delcancel>Cancel</button>
+      </div>
+    </div><span class="sy-step">2 Confirm, then done (live)</span></div>
+
+    <div class="sy-phone"><div class="sy-scr">
+      <div class="sy-center sy-done-top">
+        <span class="sy-done-ic"><i data-lucide="check"></i></span>
+        <h3 class="t-section">Account deleted</h3>
+        <p class="t-small">Thanks for playing. You're always welcome back with a new account.</p>
+      </div>
+      <div class="sy-fill sy-after">
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="file-down"></i></span><span><b>Your data file is ready</b>Download it within 7 days</span></div>
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="credit-card"></i></span><span><b>Cancel Pro in your store</b>Billing runs through your app store</span></div>
+        <div class="sy-bf-row"><span class="sy-bf-ic"><i data-lucide="users"></i></span><span><b>Your leagues play on</b>Dave now owns Friday crew</span></div>
+      </div>
+      <div class="sy-foot"><button class="btn primary block lg">Close</button></div>
+    </div><span class="sy-step">3 Done</span></div>
+  </div>
+
+  <table class="spec">
+    <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
+    <tr><td>Switcher sheet</td><td>Tap the league name in the app bar</td><td>Teams as headers, leagues nested and indented, current gets a solid check and brand icon. Create and Join at the end</td></tr>
+    <tr><td>Role pill</td><td>Member rows, team headers</td><td>Owner solid inverted, Admin neutral fill, Member outline. Never a coloured tint</td></tr>
+    <tr><td>Member row</td><td>League members screen</td><td>Menu: Make admin, Reset kiosk PIN, Transfer ownership, Remove. Remove asks once in a dialog</td></tr>
+    <tr><td>Delete account</td><td>Settings, Account</td><td>Keep is the primary button on step 1. The danger button only enables on an exact DELETE</td></tr>
+  </table>
+
+  <template id="tpl-sy-switcher">
+    <div class="scrim" data-close></div>
+    <div class="sheet" role="dialog" aria-label="Switch league">
+      <div class="grab"></div>
+      <div class="sheet-h"><span class="t-head">Switch league</span><button class="ibtn sm" data-close aria-label="Close"><i data-lucide="x"></i></button></div>
+      <div class="sy-sheet-in" data-sy-switch>
+        <div class="sy-team">
+          <div class="sy-team-h"><span class="sy-tl">AS</span><span class="sy-tx"><b>Acme Studio</b><span>3 leagues, 24 members</span></span><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></div>
+          <div class="sy-leagues">
+            <button class="sy-lg-row" aria-current="true" data-close><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Office foosball</b><span>Rank 3, 12 members</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+            <button class="sy-lg-row" aria-current="false" data-close><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Table tennis</b><span>Rank 7, 9 members</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+            <button class="sy-lg-row" aria-current="false" data-close><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Darts Friday</b><span>Not ranked yet</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+          </div>
+        </div>
+        <div class="sy-team">
+          <div class="sy-team-h"><span class="sy-tl">FC</span><span class="sy-tx"><b>Friday crew</b><span>1 league, 6 members</span></span><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></div>
+          <div class="sy-leagues">
+            <button class="sy-lg-row" aria-current="false" data-close><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Padel nights</b><span>Rank 1</span></span><span class="sy-ck"><i data-lucide="check"></i></span></button>
+          </div>
+        </div>
+        <div class="sy-create">
+          <button data-close><span class="sy-li"><i data-lucide="plus"></i></span>Create league</button>
+          <button data-close><span class="sy-li"><i data-lucide="ticket"></i></span>Join with a code</button>
+        </div>
+      </div>
+    </div>
+  </template>
+</section>

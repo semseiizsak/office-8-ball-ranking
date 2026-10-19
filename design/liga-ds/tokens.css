@@ -1,0 +1,155 @@
+/* Liga design system: tokens.
+   One source of truth, three levels (same structure as the Simon's Dashboard DS):
+   1. primitive: raw values, never used directly by components
+   2. semantic: what a value is for, the theme swaps these
+   3. component: only where a component needs its own value
+   Dark is the default theme, light is the second. Both are complete. */
+
+/* ===== 1. Primitives ===== */
+:root{
+  /* brand: one fixed colour, always solid, never tinted or transparent */
+  --p-brand:#5B3DF5;
+  --p-brand-press:#4A2FD6;
+
+  /* neutrals */
+  --p-black:#0A0A0A;
+  --p-ink-900:#111111;
+  --p-ink-850:#141414;
+  --p-ink-800:#171717;
+  --p-ink-700:#222222;
+  --p-ink-600:#2C2C2C;
+  --p-ink-500:#3A3A3A;
+  --p-grey-400:#8C8C8C;
+  --p-grey-300:#B5B5B5;
+  --p-grey-200:#EAEAEA;
+  --p-grey-100:#F5F5F5;
+  --p-white:#FFFFFF;
+
+  /* meaning colours, always solid */
+  --p-green:#0EA650;
+  --p-red:#E5383B;
+  --p-gold:#F2B705;
+  --p-amber:#F5A524;
+  --p-blue:#2F6FEB;
+
+  /* medals and rarities */
+  --p-bronze:#A8622C;
+  --p-silver:#C9CCD1;
+
+  /* player colours: realistic, solid. Each has a text variant per theme. */
+  --pc-yellow:#F2B705; --pc-blue:#1F3FA3; --pc-red:#C8102E; --pc-purple:#4B2A7B;
+  --pc-orange:#E8601C; --pc-green:#146B3A; --pc-maroon:#7A1F2B; --pc-ink:#0A0A0A;
+
+  /* type */
+  --font-display:'Sora','Inter',system-ui,sans-serif;
+  --font-text:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+
+/* ===== 2. Semantic: dark (default) ===== */
+:root,[data-theme=dark]{
+  color-scheme:dark;
+  --bg:var(--p-black);            /* page */
+  --surface:var(--p-ink-850);     /* cards, rows */
+  --surface-2:var(--p-ink-700);   /* secondary buttons, inputs, tiles inside cards */
+  --surface-3:var(--p-ink-600);   /* hover, pressed */
+  --overlay:var(--p-ink-800);     /* sheets, dialogs, menus */
+  --line:#262626;
+  --line-strong:#3A3A3A;
+
+  --text:var(--p-white);
+  --text-2:#ADADAD;
+  --text-3:#7A7A7A;
+  --text-inverse:var(--p-black);
+
+  --primary:var(--p-white);       /* primary button fill */
+  --on-primary:var(--p-black);
+  --brand:var(--p-brand);
+  --brand-press:var(--p-brand-press);
+  --on-brand:var(--p-white);
+
+  --win:var(--p-green);   --on-win:var(--p-white);
+  --loss:var(--p-ink-500);--on-loss:var(--p-white);
+  --live:var(--p-red);    --on-live:var(--p-white);
+  --crown:var(--p-gold);  --on-crown:var(--p-black);
+  --warning:var(--p-amber);--on-warning:var(--p-black);
+  --error:var(--p-red);   --on-error:var(--p-white);
+  --info:var(--p-blue);   --on-info:var(--p-white);
+
+  /* player colour as text on this theme */
+  --pct-yellow:#F2B705; --pct-blue:#7D97F0; --pct-red:#FF6B7D; --pct-purple:#B394E6;
+  --pct-orange:#F59A63; --pct-green:#5FCB8C; --pct-maroon:#E0808C; --pct-ink:#FFFFFF;
+
+  --scrim:rgba(0,0,0,.64);
+  --sh-float:0 0 0 1px #262626,0 16px 40px rgba(0,0,0,.5);
+  --tabbar-bg:rgba(23,23,23,.86);
+}
+
+/* ===== 2. Semantic: light ===== */
+[data-theme=light]{
+  color-scheme:light;
+  --bg:var(--p-grey-100);
+  --surface:var(--p-white);
+  --surface-2:var(--p-grey-100);
+  --surface-3:var(--p-grey-200);
+  --overlay:var(--p-white);
+  --line:var(--p-grey-200);
+  --line-strong:#D6D6D6;
+
+  --text:var(--p-ink-900);
+  --text-2:#555450;
+  --text-3:#8A8984;
+  --text-inverse:var(--p-white);
+
+  --primary:var(--p-ink-900);
+  --on-primary:var(--p-white);
+
+  --loss:#D9D9D9; --on-loss:var(--p-ink-900);
+
+  --pct-yellow:#8A6A00; --pct-blue:#1F3FA3; --pct-red:#C8102E; --pct-purple:#4B2A7B;
+  --pct-orange:#B4460F; --pct-green:#146B3A; --pct-maroon:#7A1F2B; --pct-ink:#111111;
+
+  --scrim:rgba(0,0,0,.4);
+  --sh-float:0 0 0 1px #EAEAEA,0 12px 32px rgba(0,0,0,.08);
+  --tabbar-bg:rgba(255,255,255,.86);
+}
+
+/* ===== Scales (theme independent) ===== */
+:root{
+  /* spacing, 4 px base */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  /* radius */
+  --r-xs:8px;    /* small chips inside cards, menu items */
+  --r-sm:12px;   /* inputs, tiles, toasts' inner parts */
+  --r-md:16px;   /* cards, list groups, toasts */
+  --r-lg:24px;   /* sheets, hero cards, dialogs */
+  --r-pill:999px;
+  /* type: display (Sora 800, uppercase, tight) */
+  --t-hero:800 64px/1 var(--font-display);
+  --t-display:800 40px/1.05 var(--font-display);
+  --t-title:800 28px/1.05 var(--font-display);
+  --t-section:800 20px/1.1 var(--font-display);
+  /* type: text (Inter) */
+  --t-big-num:900 48px/1 var(--font-text);
+  --t-num:900 20px/1.1 var(--font-text);
+  --t-head:600 17px/1.3 var(--font-text);
+  --t-body:400 15px/1.45 var(--font-text);
+  --t-body-strong:600 15px/1.45 var(--font-text);
+  --t-small:400 13px/1.4 var(--font-text);
+  --t-label:600 13px/1.3 var(--font-text);
+  --t-caption:500 12px/1.3 var(--font-text);
+  --t-button:700 15px/1 var(--font-text);
+  /* motion: ease in out, no overshoot */
+  --ease:cubic-bezier(.65,0,.35,1);
+  --d-press:120ms; --d-fast:180ms; --d-base:280ms; --d-slow:400ms; --d-scene:1200ms;
+}
+
+/* ===== 3. Component tokens ===== */
+:root{
+  --btn-h-lg:52px; --btn-h-md:44px; --btn-h-sm:36px;
+  --icon-btn:44px;
+  --row-h:60px;
+  --tabbar-h:64px;
+  --avatar-lg:72px; --avatar-md:44px; --avatar-sm:32px;
+  --input-h:48px;
+  --hit:44px;           /* minimum touch target */
+}
