@@ -12,11 +12,11 @@
     `<span class="av ${cls} ${c === 'yellow' ? 'yellow' : ''}" style="--c:var(--pc-${c})"><span class="ring"></span><span class="face">${letter}</span><span class="no">${no}</span></span>`;
 
   // Player colours
-  $('#pcols').innerHTML = PLAYERS.map(([k, n, no]) =>
+  if ($('#pcols')) $('#pcols').innerHTML = PLAYERS.map(([k, n, no]) =>
     `<div class="pc">${av(k, n[0], no)}<span class="nm" style="color:var(--pct-${k})">${n}</span><code data-var="--pc-${k}"></code><code data-var="--pct-${k}"></code></div>`).join('');
 
   // Avatars
-  $('#avatars').innerHTML = [
+  if ($('#avatars')) $('#avatars').innerHTML = [
     av('blue', 'D', 7, 'xl'), av('orange', 'M', 5, 'lg'), av('green', 'A', 6), av('yellow', 'S', 1, 'sm'),
     `<span class="av-pair">${av('red', 'J', 3, 'lg')}${av('purple', 'K', 4, 'lg')}</span>`,
   ].join('');
@@ -26,24 +26,14 @@
     [1, 'Mira', 'orange', 5, 1302, 'W4', '👑'], [2, 'Dave', 'blue', 7, 1248, 'W1', ''], [3, 'You', 'green', 6, 1237, 'L1', '', 'me'],
     [4, 'Sam', 'yellow', 1, 1190, 'W2', ''], [5, 'Kim', 'purple', 4, 1102, 'L3', '🤡'], [6, 'Joe', 'red', 3, 1001, '', '', 'dormant'],
   ];
-  $('#ladder').innerHTML = ladder.map(([r, n, c, no, elo, st, em, cls = '']) =>
+  if ($('#ladder')) $('#ladder').innerHTML = ladder.map(([r, n, c, no, elo, st, em, cls = '']) =>
     `<li><button class="row ${r === 1 ? 'first' : ''} ${cls}"><span class="rank">${r}</span>${av(c, n[0], no)}<span class="main"><b>${n} ${em}</b><span>${cls === 'dormant' ? 'Dormant, 16 days' : st ? 'Streak ' + st : ''}</span></span><span class="elo">${elo}</span></button></li>`).join('');
-  $('#recent').innerHTML = ladder.filter((p) => p[1] !== 'You').map(([, n, c, no, elo]) =>
+  if ($('#recent')) $('#recent').innerHTML = ladder.filter((p) => p[1] !== 'You').map(([, n, c, no, elo]) =>
     `<li><button class="row">${av(c, n[0], no)}<span class="main"><b>${n}</b><span class="num">${elo}</span></span><span class="end"><i data-lucide="chevron-right"></i></span></button></li>`).join('');
 
   // Spacing
-  $('#spacing').innerHTML = [4, 8, 12, 16, 20, 24, 32, 40, 48].map((v) =>
+  if ($('#spacing')) $('#spacing').innerHTML = [4, 8, 12, 16, 20, 24, 32, 40, 48].map((v) =>
     `<div class="sp"><span class="num">${v}</span><i style="width:${v * 4}px"></i></div>`).join('');
-
-  // Icons
-  const ICONS = {
-    Navigation: ['list-ordered', 'swords', 'trophy', 'layers', 'history', 'chevron-right', 'chevron-down', 'arrow-left'],
-    Actions: ['plus', 'pencil', 'share', 'search', 'settings', 'trash-2', 'flag', 'more-horizontal', 'x', 'check'],
-    League: ['crown', 'coins', 'flame', 'target', 'users', 'user', 'calendar', 'clock', 'medal', 'shuffle'],
-    Feedback: ['bell', 'message-circle', 'info', 'alert-circle', 'check-circle-2', 'wifi-off', 'sparkles', 'undo-2'],
-  };
-  $('#icons').innerHTML = Object.entries(ICONS).map(([g, list]) =>
-    `<div class="ico-g"><span class="t-caption">${g}</span><div class="ico-row">${list.map((i) => `<span class="ico" title="${i}"><i data-lucide="${i}"></i><span>${i}</span></span>`).join('')}</div></div>`).join('');
 
   // Swatches
   const sw = $('[data-swatches]');
@@ -122,9 +112,11 @@
 
   // Motion replay
   const mo = $('.motion');
+  if (mo) {
   const play = () => { mo.classList.remove('go'); requestAnimationFrame(() => requestAnimationFrame(() => mo.classList.add('go'))); };
   mo.addEventListener('click', play);
   new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && play()), { threshold: .6 }).observe(mo);
+  }
 
   // Tokens JSON preview
   const names = ['--bg', '--surface', '--surface-2', '--surface-3', '--overlay', '--line', '--text', '--text-2', '--text-3', '--primary', '--on-primary', '--brand', '--win', '--loss', '--live', '--crown', '--error', '--warning', '--info'];
@@ -142,7 +134,7 @@
     font: { display: 'Sora_800ExtraBold', text: 'Inter' },
     motion: { easing: [0.65, 0, 0.35, 1], press: 120, fast: 180, base: 280, slow: 400, scene: 1200 },
   };
-  $('#tokjson').textContent = JSON.stringify(tokens, null, 2);
+  if ($('#tokjson')) $('#tokjson').textContent = JSON.stringify(tokens, null, 2);
   setTheme(saved);
 
   lucide.createIcons();

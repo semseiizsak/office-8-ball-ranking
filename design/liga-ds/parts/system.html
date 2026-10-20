@@ -4,7 +4,7 @@
   <h2 class="t-title">Paywall and plans</h2>
   <p class="lead">Pro is the only place the brand colour fills a whole card. The paywall compares Free and Pro side by side, defaults to yearly, and always shows restore and the store terms. It opens from a locked feature or a full league, never on first launch.</p>
 
-  <div class="sy-phones">
+  <div class="demo sy-stage">
     <div class="sy-phone"><div class="sy-scr" id="sy-paywall">
       <div class="sy-pw-head">
         <span class="sy-pw-mark"><i data-lucide="sparkles"></i></span>
@@ -35,26 +35,87 @@
       </div>
     </div><span class="sy-step">Paywall, yearly and Pro selected</span></div>
 
-    <div class="sy-phone" style="align-items:stretch;gap:20px">
-      <div class="demo">
-        <h3 class="sub" style="margin-top:0">Purchase button states</h3>
-        <div class="sy-btn-row" style="flex-direction:column;align-items:stretch">
-          <button class="btn brand block lg">Start 7 days free</button>
-          <button class="btn brand block lg" aria-disabled="true" tabindex="-1"><span class="spin"></span>Confirming</button>
-          <button class="btn block lg sy-btn-ok"><i data-lucide="check"></i>You're on Pro</button>
-          <button class="btn secondary block lg">Continue with Free</button>
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Plan card</b><span>Tap to select, the ring shows the choice</span></div>
+        <div class="sy-pv">
+          <div class="sy-plans sy-pv-pair" data-single role="group" aria-label="Plan, monthly">
+            <button class="sy-plan" aria-pressed="true"><span class="sy-pn">Free <span class="sy-radio"></span></span><span class="sy-price num">€0</span><span class="sy-per">12 members, 1 league</span></button>
+            <button class="sy-plan sy-pro" aria-pressed="false"><span class="sy-pn">Pro <span class="sy-radio"></span></span><span class="sy-price num">€3.99</span><span class="sy-per">A month</span></button>
+          </div>
+          <span class="sy-cap">Monthly, Free selected</span>
+          <div class="sy-plans sy-pv-pair" data-single role="group" aria-label="Plan, yearly">
+            <button class="sy-plan" aria-pressed="false"><span class="sy-pn">Free <span class="sy-radio"></span></span><span class="sy-price num">€0</span><span class="sy-per">12 members, 1 league</span></button>
+            <button class="sy-plan sy-pro" aria-pressed="true"><span class="sy-pn">Pro <span class="sy-radio"></span></span><span class="sy-price num">€31.99</span><span class="sy-per">A year, €2.67 a month</span></button>
+          </div>
+          <span class="sy-cap">Yearly, Pro selected</span>
+          <div class="sy-plans sy-pv-pair">
+            <div class="sy-plan sy-cur"><span class="sy-pn">Free <span class="pill neutral sy-pill-s">Current</span></span><span class="sy-price num">€0</span><span class="sy-per">You're on this plan</span></div>
+            <div class="sy-plan sy-pro sy-cur"><span class="sy-pn">Pro <span class="pill sy-pill-s sy-pill-inv">Current</span></span><span class="sy-price num">€31.99</span><span class="sy-per">Renews 12 Nov 2026</span></div>
+          </div>
+          <span class="sy-cap">Current plan, not selectable</span>
         </div>
-        <p class="sy-note">Default, waiting for the store, done, and Free selected. A failed purchase returns to default and shows an error toast, nothing is charged.</p>
+      </div>
+
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Anatomy</b><span>Pro plan card</span></div>
+        <div class="sy-anat">
+          <div class="sy-anat-fig">
+            <div class="sy-plan sy-pro sy-big" aria-hidden="true">
+              <span class="sy-pn"><span>Pro <span class="sy-mk">1</span></span><span class="sy-radio sy-on"></span></span>
+              <span class="sy-price num">€31.99 <span class="sy-mk">2</span></span>
+              <span class="sy-per">A year, €2.67 a month <span class="sy-mk">3</span></span>
+              <span class="sy-save sy-save-pos">Save 33%</span><span class="sy-mk sy-mk-save">4</span>
+            </div>
+          </div>
+          <ol class="sy-anat-l">
+            <li><span class="sy-mk">1</span><span><b>Name and radio</b>Radio fills when selected</span></li>
+            <li><span class="sy-mk">2</span><span><b>Price</b>Inter 900, tabular numbers</span></li>
+            <li><span class="sy-mk">3</span><span><b>Period</b>Yearly always shows the monthly price</span></li>
+            <li><span class="sy-mk">4</span><span><b>Saving</b>Solid win pill, white text</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Purchase button</b><span>Four states, one place</span></div>
+        <div class="sy-states">
+          <div><button class="btn brand block lg">Start 7 days free</button><span class="sy-cap">Default</span></div>
+          <div><button class="btn brand block lg" aria-disabled="true" tabindex="-1"><span class="spin"></span>Confirming</button><span class="sy-cap">Waiting for the store</span></div>
+          <div><button class="btn block lg sy-btn-ok"><i data-lucide="check"></i>You're on Pro</button><span class="sy-cap">Done, 1.8 s then closes</span></div>
+          <div><button class="btn secondary block lg">Continue with Free</button><span class="sy-cap">Free selected</span></div>
+        </div>
+        <p class="sy-note">A failed purchase returns to default with an error toast. Nothing is charged.</p>
+      </div>
+
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Where it opens</b><span>Always from a reason</span></div>
+        <div class="sy-ctx">
+          <div class="sy-ctx-row"><span class="sy-ci"><i data-lucide="lock"></i></span><span class="sy-tx"><b>Season history</b><span>Pro feature, all past seasons</span></span><button class="btn brand sm">Unlock</button></div>
+          <div class="sy-ctx-row sy-ctx-col">
+            <div class="row-sb"><span class="sy-tx"><b>Invite Ann</b><span>Your league is full</span></span><span class="sy-count num">12 of 12</span></div>
+            <div class="bar sy-bar-full"><i style="width:100%"></i></div>
+          </div>
+          <div class="sy-ctx-row"><span class="sy-ci sy-ci-brand"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>Liga Pro</b><span>Settings, compare plans</span></span><i data-lucide="chevron-right" class="sy-chev"></i></div>
+          <div class="sy-ctx-row"><span class="sy-ci"><i data-lucide="tablet"></i></span><span class="sy-tx"><b>Kiosk mode</b><span>Shared tablet by the table</span></span><span class="pill brand sy-pill-s">Pro</span></div>
+        </div>
       </div>
     </div>
   </div>
 
   <h3 class="sub">Subscription status</h3>
-  <div class="demo sy-grid2">
+  <div class="demo sy-g4">
     <div class="sy-sub">
       <div class="sy-sub-h"><span class="sy-ic sy-brand"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>Liga Pro</b><span>Acme Studio, 4 leagues</span></span><span class="pill win">Active</span></div>
       <div class="sy-sub-meta"><div><b>12 Nov 2026</b><span>Renews on</span></div><div><b>€31.99</b><span>Yearly</span></div></div>
       <div class="sy-acts"><button class="btn secondary sm">Manage</button><button class="btn ghost sm">Receipts</button></div>
+    </div>
+    <div class="sy-sub">
+      <div class="sy-sub-h"><span class="sy-ic sy-brand"><i data-lucide="gift"></i></span><span class="sy-tx"><b>Free trial</b><span>5 of 7 days left</span></span><span class="pill info">Trial</span></div>
+      <div class="sy-trial"><div class="bar brand"><i style="width:29%"></i></div><div class="row-sb"><span>Started 18 Oct</span><span>First charge 25 Oct</span></div></div>
+      <div class="sy-acts"><button class="btn secondary sm">Manage</button></div>
     </div>
     <div class="sy-sub">
       <div class="sy-sub-h"><span class="sy-ic"><i data-lucide="calendar-x-2"></i></span><span class="sy-tx"><b>Liga Pro</b><span>Auto renew is off</span></span><span class="pill neutral">Ending</span></div>
@@ -63,26 +124,37 @@
     </div>
     <div class="sy-sub">
       <div class="sy-sub-h"><span class="sy-ic sy-warn"><i data-lucide="credit-card"></i></span><span class="sy-tx"><b>Payment didn't go through</b><span>Pro stays on for 6 more days</span></span></div>
+      <div class="sy-sub-meta"><div><b>26 Oct</b><span>Next try</span></div><div><b>€31.99</b><span>Due</span></div></div>
       <div class="sy-acts"><button class="btn primary sm">Update payment</button></div>
     </div>
   </div>
 
   <h3 class="sub">Usage limit</h3>
-  <div class="demo sy-grid2">
+  <div class="demo sy-g3">
     <div class="sy-sub sy-use">
       <div class="row-sb"><b>Members</b><span class="sy-count">12 of 12</span></div>
       <div class="bar sy-bar-full"><i style="width:100%"></i></div>
       <div class="row-sb" style="margin-top:4px">
         <span class="sy-avs"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="av yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="av" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span><span class="sy-more">+8</span></span>
+        <span class="pill warning sy-pill-s">Full</span>
       </div>
       <p class="t-small">Your league is full on Free. Pro makes room for everyone, Ann's invite is waiting.</p>
-      <button class="btn brand block" style="margin-top:4px">Upgrade to Pro</button>
+      <button class="btn brand block" style="margin-top:auto">Upgrade to Pro</button>
     </div>
     <div class="sy-sub sy-use">
       <div class="row-sb"><b>Members</b><span class="sy-count">9 of 12</span></div>
       <div class="bar"><i style="width:75%"></i></div>
-      <p class="t-small">3 spots left on Free.</p>
-      <button class="btn ghost sm" style="align-self:flex-start;margin-left:-12px">See Pro</button>
+      <div class="sy-lim">
+        <div><b class="num">9</b><span>Members</span></div>
+        <div><b class="num">1 of 1</b><span>Leagues</span></div>
+        <div><b class="num">3</b><span>Spots left</span></div>
+      </div>
+      <p class="t-small">Plenty of room. The bar only turns warning at the limit.</p>
+      <button class="btn ghost sm" style="align-self:flex-start;margin:auto 0 0 -12px">See Pro</button>
+    </div>
+    <div class="sy-dd">
+      <div class="do"><b><i data-lucide="check-circle-2"></i>Do</b><ul><li>Open the paywall from the feature someone just tapped</li><li>Name what Pro unlocks right there</li><li>Keep restore and terms one tap away</li></ul></div>
+      <div class="dont"><b><i data-lucide="x-circle"></i>Don't</b><ul><li>Show it on first launch or after a loss</li><li>Tint the brand card to show selection</li><li>Hide the close button</li></ul></div>
     </div>
   </div>
 
@@ -90,7 +162,7 @@
     <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
     <tr><td>Paywall</td><td>Opened from a locked feature or a limit</td><td>Yearly preselected, restore always visible, store terms under the button</td></tr>
     <tr><td>Plan card</td><td>Free and Pro, tap to select</td><td>Pro is solid brand with white text, selection is a ring, never a tint</td></tr>
-    <tr><td>Status card</td><td>Settings, Subscription</td><td>Active, Ending, Payment issue. Manage opens the store page</td></tr>
+    <tr><td>Status card</td><td>Settings, Subscription</td><td>Active, Trial, Ending, Payment issue. Manage opens the store page</td></tr>
     <tr><td>Usage card</td><td>Members screen, invite flow</td><td>Bar turns warning only when the limit is reached</td></tr>
   </table>
 </section>
@@ -180,40 +252,83 @@
   <p class="lead">Matches are saved on the phone first, so being offline never blocks logging. The sync pill sits under the app bar and only shows while something is pending. Tooltips explain one control, coach marks walk through a new screen once.</p>
 
   <h3 class="sub">Sync pill</h3>
-  <div class="demo">
-    <div class="sy-btn-row">
-      <span class="sy-sync sy-off" role="status"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span>
-      <span class="sy-sync sy-ing" role="status"><span class="sy-spin"></span>Syncing 2 matches</span>
-      <span class="sy-sync sy-ok" role="status"><i data-lucide="check"></i>All synced</span>
-      <span class="sy-sync sy-err" role="status"><i data-lucide="refresh-cw"></i>Sync paused<button class="sy-act">Retry</button></span>
+  <div class="demo sy-g3">
+    <div class="sy-pnl">
+      <div class="sy-pnl-h"><b>States</b><span>One pill, four moments</span></div>
+      <ul class="sy-slist">
+        <li><span class="sy-sync sy-off" role="status"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span><span class="sy-cap">No connection. Neutral, never red</span></li>
+        <li><span class="sy-sync sy-ing" role="status"><span class="sy-spin"></span>Syncing 2 matches</span><span class="sy-cap">Back online, sending</span></li>
+        <li><span class="sy-sync sy-ok" role="status"><i data-lucide="check"></i>All synced</span><span class="sy-cap">Shows for 2 s, then collapses</span></li>
+        <li><span class="sy-sync sy-err" role="status"><i data-lucide="refresh-cw"></i>Sync paused<button class="sy-act">Retry</button></span><span class="sy-cap">Server said no, nothing lost</span></li>
+      </ul>
     </div>
-    <div class="sy-appbar-demo">
-      <div class="appbar"><div class="league-sw"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
-      <div class="sy-syncbar"><span class="sy-sync sy-off" role="status" aria-live="polite" id="sy-sync-live"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span></div>
+    <div class="sy-pnl">
+      <div class="sy-pnl-h"><b>In context</b><span>Under the app bar, live demo</span></div>
+      <div class="sy-appbar-demo">
+        <div class="appbar"><div class="league-sw"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
+        <div class="sy-syncbar"><span class="sy-sync sy-off" role="status" aria-live="polite" id="sy-sync-live"><i data-lucide="wifi-off"></i>Offline, 2 matches saved here</span></div>
+        <ul class="sy-pend-l">
+          <li><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="sy-tx"><b>Mira beat You</b><span class="num">10 : 8, 12:41</span></span><span class="sy-wait"><i data-lucide="clock"></i>On this phone</span></li>
+          <li><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="sy-tx"><b>You beat Joe</b><span class="num">10 : 4, 12:25</span></span><span class="sy-wait"><i data-lucide="clock"></i>On this phone</span></li>
+          <li><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="sy-tx"><b>Dave beat Kim</b><span class="num">10 : 6, 11:58</span></span><span class="sy-done"><i data-lucide="check"></i></span></li>
+        </ul>
+      </div>
+      <button class="btn secondary sm" data-sy-sync-run style="align-self:flex-start"><i data-lucide="play"></i>Go back online</button>
     </div>
-    <div><button class="btn secondary sm" data-sy-sync-run><i data-lucide="play"></i>Go back online</button></div>
-    <p class="sy-note">Offline, syncing, synced, paused. Synced shows for 2 s and then the pill collapses.</p>
+    <div class="sy-pnl">
+      <div class="sy-pnl-h"><b>Timeline</b><span>What the user sees</span></div>
+      <ol class="sy-tl">
+        <li><span class="sy-tl-d"></span><span><b>Log offline</b>Match saved, rating shown as pending</span></li>
+        <li><span class="sy-tl-d"></span><span><b>Connection back</b>Pill switches to Syncing</span></li>
+        <li><span class="sy-tl-d"></span><span><b>Server confirms</b>All synced for 2 s, ratings update</span></li>
+        <li><span class="sy-tl-d"></span><span><b>Pill collapses</b>Height animates out, 280 ms</span></li>
+      </ol>
+      <p class="sy-note">If two phones log the same match, the first one wins and the second shows a quiet note in the match.</p>
+    </div>
   </div>
 
   <h3 class="sub">Update banner</h3>
-  <div class="demo stack">
-    <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Update available</b>Version 1.4 brings season history.</span><button class="btn primary sm">Update</button><button class="ibtn sm plain" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
-    <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Downloading update</b><span class="sy-prog"><span class="bar brand"><i style="width:64%"></i></span><span class="num">64%</span></span></span></div>
-    <div class="sy-update sy-must"><span class="sy-ic"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>A new version is needed</b>Your league moved to Liga 1.4. Update to keep logging matches.</span><button class="btn">Update now</button></div>
+  <div class="demo sy-g3">
+    <div class="sy-pnl">
+      <div class="sy-pnl-h"><b>Variants</b><span>Optional, downloading, required</span></div>
+      <div class="sy-upd-l">
+        <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Update available</b>Version 1.4 brings season history.</span><button class="btn primary sm">Update</button><button class="ibtn sm plain" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+        <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Downloading update</b><span class="sy-prog"><span class="bar brand"><i style="width:64%"></i></span><span class="num">64%</span></span></span></div>
+        <div class="sy-update sy-must"><span class="sy-ic"><i data-lucide="sparkles"></i></span><span class="sy-tx"><b>A new version is needed</b>Your league moved to Liga 1.4. Update to keep logging matches.</span><button class="btn">Update now</button></div>
+      </div>
+    </div>
+    <div class="sy-pnl">
+      <div class="sy-pnl-h"><b>In context</b><span>Top of Home, once per version</span></div>
+      <div class="sy-mini-home">
+        <div class="appbar"><div class="league-sw"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Season 4, week 43</span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
+        <div class="sy-update"><span class="sy-ic"><i data-lucide="download"></i></span><span class="sy-tx"><b>Update available</b>Version 1.4 brings season history.</span><button class="btn primary sm">Update</button><button class="ibtn sm plain" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+        <ul class="list">
+          <li><div class="row first"><span class="rank">1</span><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="main"><b>Mira 👑</b><span>Streak W4</span></span><span class="elo">1 302</span></div></li>
+          <li><div class="row"><span class="rank">2</span><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="main"><b>Dave</b><span>Streak W1</span></span><span class="elo">1 248</span></div></li>
+          <li><div class="row me"><span class="rank">3</span><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="main"><b>You</b><span>Streak L1</span></span><span class="elo">1 237</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="sy-dd">
+      <div class="do"><b><i data-lucide="check-circle-2"></i>Do</b><ul><li>Say what the update brings in one line</li><li>Let people dismiss an optional update</li><li>Use the brand fill only when it is required</li></ul></div>
+      <div class="dont"><b><i data-lucide="x-circle"></i>Don't</b><ul><li>Block logging for an optional update</li><li>Show the banner again after a dismiss</li><li>Stack two banners on Home</li></ul></div>
+    </div>
   </div>
 
   <h3 class="sub">Tooltip</h3>
-  <div class="demo">
-    <div class="sy-tipdemo">
-      <span class="sy-tipwrap"><button class="ibtn" aria-label="Filter" aria-describedby="sy-tip1"><i data-lucide="sliders-horizontal"></i></button><span class="sy-tip" role="tooltip" id="sy-tip1">Filter matches</span></span>
-      <span class="sy-tipwrap"><button class="ibtn" aria-label="Rating info"><i data-lucide="info"></i></button><span class="sy-tip sy-start" role="tooltip">Rating moves more for upsets</span></span>
-      <span class="sy-tipwrap"><button class="btn secondary sm" aria-describedby="sy-tip3">Hover me</button><span class="sy-tip sy-hover" role="tooltip" id="sy-tip3">Shows on hover and focus</span></span>
-    </div>
-    <p class="sy-note">Above by default, below when there is no room. Long press on touch, hover and focus on desktop. One short line, no buttons.</p>
+  <div class="demo sy-g3 sy-tipgrid">
+    <div class="sy-tile"><div class="sy-tile-stage"><span class="sy-tipwrap"><button class="ibtn" aria-label="Filter" aria-describedby="sy-tip1"><i data-lucide="sliders-horizontal"></i></button><span class="sy-tip" role="tooltip" id="sy-tip1">Filter matches</span></span></div><span class="sy-cap"><b>Above</b>Default placement, centred</span></div>
+    <div class="sy-tile"><div class="sy-tile-stage sy-top-stage"><span class="sy-tipwrap"><button class="ibtn" aria-label="Sort" aria-describedby="sy-tip2"><i data-lucide="arrow-down-up"></i></button><span class="sy-tip sy-below" role="tooltip" id="sy-tip2">Sort by rating</span></span></div><span class="sy-cap"><b>Below</b>When there is no room above</span></div>
+    <div class="sy-tile"><div class="sy-tile-stage sy-left-stage"><span class="sy-tipwrap"><button class="ibtn" aria-label="Rating info"><i data-lucide="info"></i></button><span class="sy-tip sy-start" role="tooltip">Rating moves more for upsets</span></span></div><span class="sy-cap"><b>Start aligned</b>Near the screen edge</span></div>
+    <div class="sy-tile"><div class="sy-tile-stage"><span class="sy-tipwrap"><button class="btn secondary sm" aria-describedby="sy-tip3">Hover me</button><span class="sy-tip sy-hover" role="tooltip" id="sy-tip3">Shows on hover and focus</span></span></div><span class="sy-cap"><b>Interactive</b>Hover, focus or long press, 180 ms fade</span></div>
+    <div class="sy-tile sy-span2"><div class="sy-tile-stage sy-ctx-stage">
+      <div class="sy-statc"><span class="sy-tx"><span>Your rating</span><b class="num">1 237</b></span><span class="delta up num">+14</span><span class="sy-tipwrap"><button class="ibtn sm plain" aria-label="What is rating"><i data-lucide="info"></i></button><span class="sy-tip" role="tooltip">Win against higher rated players to climb faster</span></span></div>
+      <div class="sy-statc"><span class="sy-tx"><span>Win rate</span><b class="num">61%</b></span><span class="sy-tipwrap"><button class="ibtn sm plain" aria-label="What is win rate"><i data-lucide="info"></i></button></span></div>
+    </div><span class="sy-cap"><b>In context</b>Stat tiles explain their terms with an info button</span></div>
   </div>
 
   <h3 class="sub">Coach mark</h3>
-  <div class="sy-phones">
+  <div class="demo sy-stage">
     <div class="sy-phone"><div class="sy-scr sy-coach" id="sy-coach">
       <div class="sy-home">
         <div class="appbar"><div class="league-sw" data-sy-cm="1"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
@@ -233,6 +348,37 @@
         <div class="sy-cm-f"><span class="sy-note num" data-sy-cmn>1 of 3</span><button class="btn ghost sm" data-sy-cmskip>Skip</button><button class="btn primary sm" data-sy-cmnext>Next</button></div>
       </div>
     </div><span class="sy-step">Coach mark, three steps on first visit</span></div>
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Three steps</b><span>First visit to the ladder</span></div>
+        <ol class="sy-steps">
+          <li><span class="sy-mk">1</span><span class="sy-tx"><b>Log a match here</b><span>Target: plus button, round spotlight</span></span></li>
+          <li><span class="sy-mk">2</span><span class="sy-tx"><b>Switch leagues</b><span>Target: league name in the app bar</span></span></li>
+          <li><span class="sy-mk">3</span><span class="sy-tx"><b>This is you</b><span>Target: your row, card flips above</span></span></li>
+        </ol>
+      </div>
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Card anatomy</b><span>Fixed width, 16 px from the screen edge</span></div>
+        <div class="sy-cm sy-cm-static" aria-hidden="true">
+          <b>Switch leagues</b>
+          <p>Your teams and leagues live behind the league name.</p>
+          <div class="sy-cm-f"><span class="sy-note num">2 of 3</span><span class="btn ghost sm">Skip</span><span class="btn primary sm">Next</span></div>
+        </div>
+        <ul class="sy-kv">
+          <li><span>Title</span><b>Inter 600, 17 px, one line</b></li>
+          <li><span>Body</span><b>One sentence, what and why</b></li>
+          <li><span>Footer</span><b>Count, Skip, Next or Got it</b></li>
+          <li><span>Spotlight</span><b>Scrim cut out, 6 px padding</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="sy-col">
+      <div class="sy-dd sy-dd-col">
+        <div class="do"><b><i data-lucide="check-circle-2"></i>Do</b><ul><li>Point at one real control per step</li><li>Keep Skip visible on every step</li><li>Show once, store that it was seen</li></ul></div>
+        <div class="dont"><b><i data-lucide="x-circle"></i>Don't</b><ul><li>Run more than three steps</li><li>Cover the control you explain</li><li>Start a tour during a live match</li></ul></div>
+      </div>
+      <p class="sy-note">Motion: the spotlight moves and resizes with ease in out, 280 ms. Reduced motion jumps straight to the next target.</p>
+    </div>
   </div>
 
   <table class="spec">
@@ -308,7 +454,7 @@
   <p class="lead">One account can be in many teams, each team runs one or more leagues. The switcher sheet nests leagues under their team. Roles are plain pills: only the Owner is filled. Deleting an account is calm and explicit: what happens, type to confirm, done.</p>
 
   <h3 class="sub">Team and league switcher</h3>
-  <div class="demo stack">
+  <div class="demo sy-stage sy-stage-sheet">
     <div class="sy-sheet" role="dialog" aria-label="Switch league">
       <div class="grab"></div>
       <div class="sheet-h"><span class="t-head">Switch league</span><button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button></div>
@@ -333,31 +479,90 @@
         </div>
       </div>
     </div>
-    <button class="btn secondary sm" data-open="sy-switcher"><i data-lucide="panel-bottom-open"></i>Open as sheet</button>
+
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>League row</b><span>Every state</span></div>
+        <div class="sy-rowvars">
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row" aria-current="true"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Office foosball</b><span>Rank 3, 12 members</span></span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">Current, brand icon and solid check</span></div>
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Darts Friday</b><span>Not ranked yet</span></span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">Default</span></div>
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row sy-hov"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Darts Friday</b><span>Not ranked yet</span></span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">Pressed</span></div>
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Table tennis</b><span>Rank 7, 9 members</span></span><span class="pill live"><span class="live-dot"></span>Live</span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">A match is live</span></div>
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row"><span class="sy-li"><i data-lucide="trophy"></i></span><span class="sy-tx"><b>Padel nights</b><span>3 unread in chat</span></span><span class="sy-cnt num">3</span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">Unread activity</span></div>
+          <div class="sy-rv"><div class="sy-leagues sy-solo"><div class="sy-lg-row sy-arch"><span class="sy-li"><i data-lucide="archive"></i></span><span class="sy-tx"><b>Chess club</b><span>Archived, read only</span></span><span class="sy-ck"><i data-lucide="check"></i></span></div></div><span class="sy-cap">Archived</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Where it opens</b><span>Tap the league name</span></div>
+        <div class="sy-appbar-demo sy-ab-ctx">
+          <div class="appbar"><div class="league-sw sy-ring"><span class="lg"><i data-lucide="trophy"></i></span><div style="min-width:0"><b>Office foosball</b><span>Acme Studio <i data-lucide="chevron-down" style="width:14px;height:14px"></i></span></div></div><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button></div>
+        </div>
+        <button class="btn secondary sm" data-open="sy-switcher" style="align-self:flex-start"><i data-lucide="panel-bottom-open"></i>Open as sheet</button>
+      </div>
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Team header</b><span>Your role on the right</span></div>
+        <div class="sy-thv">
+          <div class="sy-team-h"><span class="sy-tl">FC</span><span class="sy-tx"><b>Friday crew</b><span>1 league, 6 members</span></span><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></div>
+          <div class="sy-team-h"><span class="sy-tl">AS</span><span class="sy-tx"><b>Acme Studio</b><span>3 leagues, 24 members</span></span><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></div>
+          <div class="sy-team-h"><span class="sy-tl">RC</span><span class="sy-tx"><b>Run club</b><span>2 leagues, 41 members</span></span><span class="sy-role sy-member">Member</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <h3 class="sub">Roles and members</h3>
-  <div class="demo">
-    <div class="sy-btn-row">
-      <span class="sy-role sy-owner sy-lg"><i data-lucide="key-round"></i>Owner</span>
-      <span class="sy-role sy-admin sy-lg"><i data-lucide="shield"></i>Admin</span>
-      <span class="sy-role sy-member sy-lg">Member</span>
-      <span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span>
-      <span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span>
-      <span class="sy-role sy-member">Member</span>
+  <div class="demo sy-g2">
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Role pill</b><span>Two sizes, never a coloured tint</span></div>
+        <div class="sy-rolegrid">
+          <span class="sy-role sy-owner sy-lg"><i data-lucide="key-round"></i>Owner</span>
+          <span class="sy-role sy-admin sy-lg"><i data-lucide="shield"></i>Admin</span>
+          <span class="sy-role sy-member sy-lg">Member</span>
+          <span class="sy-cap">Large, 28 px, profile</span>
+          <span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span>
+          <span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span>
+          <span class="sy-role sy-member">Member</span>
+          <span class="sy-cap">Small, 22 px, rows</span>
+        </div>
+      </div>
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Who can do what</b><span>Per league</span></div>
+        <table class="sy-perm" aria-label="Permissions by role">
+          <thead><tr><th></th><th>Owner</th><th>Admin</th><th>Member</th></tr></thead>
+          <tbody>
+            <tr><td>Log and confirm matches</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td></tr>
+            <tr><td>Invite members</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td></tr>
+            <tr><td>Fix or void a result</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="minus" class="sy-n"></i></td></tr>
+            <tr><td>Change roles, remove members</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="minus" class="sy-n"></i></td></tr>
+            <tr><td>Start or end a season</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="minus" class="sy-n"></i></td></tr>
+            <tr><td>Billing and Pro</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="minus" class="sy-n"></i></td><td><i data-lucide="minus" class="sy-n"></i></td></tr>
+            <tr><td>Transfer ownership, delete league</td><td><i data-lucide="check" class="sy-y"></i></td><td><i data-lucide="minus" class="sy-n"></i></td><td><i data-lucide="minus" class="sy-n"></i></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="sy-mlist" data-sy-members>
-      <div class="sy-mrow"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="sy-tx"><span class="sy-nm"><b>You</b><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></span><span>Created the league in March</span></span><button class="ibtn" aria-label="No options for the owner" disabled><i data-lucide="ellipsis"></i></button></div>
-      <div class="sy-mrow"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="sy-tx"><span class="sy-nm"><b>Dave</b><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></span><span>148 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Dave" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
-      <div class="sy-mrow"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="sy-tx"><span class="sy-nm"><b>Mira</b><span class="sy-role sy-member">Member</span></span><span>212 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Mira" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
-      <div class="sy-mrow"><span class="av" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span><span class="sy-tx"><span class="sy-nm"><b>Kim</b><span class="sy-role sy-member">Member</span></span><span>31 matches, joined Sep 2026</span></span><button class="ibtn" aria-label="Options for Kim" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
-      <div class="sy-mrow"><span class="sy-pend"><i data-lucide="mail"></i></span><span class="sy-tx"><span class="sy-nm"><b>Ann</b><span class="pill neutral" style="height:22px;padding:0 8px;font-size:11px">Invited</span></span><span>Sent 2 days ago</span></span><button class="btn ghost sm">Resend</button></div>
+    <div class="sy-col">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Members</b><span>Tap the menu on Dave, Mira or Kim</span></div>
+        <div class="sy-mlist" data-sy-members>
+          <div class="sy-mrow"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="sy-tx"><span class="sy-nm"><b>You</b><span class="sy-role sy-owner"><i data-lucide="key-round"></i>Owner</span></span><span>Created the league in March</span></span><button class="ibtn" aria-label="No options for the owner" disabled><i data-lucide="ellipsis"></i></button></div>
+          <div class="sy-mrow"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="sy-tx"><span class="sy-nm"><b>Dave</b><span class="sy-role sy-admin"><i data-lucide="shield"></i>Admin</span></span><span>148 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Dave" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+          <div class="sy-mrow"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="sy-tx"><span class="sy-nm"><b>Mira</b><span class="sy-role sy-member">Member</span></span><span>212 matches, joined Mar 2026</span></span><button class="ibtn" aria-label="Options for Mira" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+          <div class="sy-mrow"><span class="av" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span><span class="sy-tx"><span class="sy-nm"><b>Kim</b><span class="sy-role sy-member">Member</span></span><span>31 matches, joined Sep 2026</span></span><button class="ibtn" aria-label="Options for Kim" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+          <div class="sy-mrow"><span class="av yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="sy-tx"><span class="sy-nm"><b>Sam</b><span class="sy-role sy-member">Member</span></span><span>96 matches, joined Apr 2026</span></span><button class="ibtn" aria-label="Options for Sam" aria-haspopup="menu" aria-expanded="false" data-sy-menu><i data-lucide="ellipsis"></i></button></div>
+          <div class="sy-mrow"><span class="sy-pend"><i data-lucide="mail"></i></span><span class="sy-tx"><span class="sy-nm"><b>Ann</b><span class="pill neutral" style="height:22px;padding:0 8px;font-size:11px">Invited</span></span><span>Sent 2 days ago</span></span><button class="btn ghost sm">Resend</button></div>
+        </div>
+        <p class="sy-note">Owner has no menu on their own row. Admins can change roles and remove members, only the Owner can transfer ownership.</p>
+      </div>
     </div>
-    <p class="sy-note">Owner has no menu on their own row. Admins can change roles and remove members, only the Owner can transfer ownership.</p>
   </div>
 
   <h3 class="sub">Delete account</h3>
-  <div class="sy-phones">
+  <div class="demo sy-delgrid">
     <div class="sy-phone"><div class="sy-scr">
       <div class="sy-top"><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button><span></span></div>
       <div class="sy-del-h"><span class="sy-danger-ic"><i data-lucide="trash-2"></i></span><span><h3 class="t-section">Delete account</h3><span class="t-small">Here's what happens</span></span></div>
@@ -424,6 +629,20 @@
       </div>
       <div class="sy-foot"><button class="btn primary block lg">Close</button></div>
     </div><span class="sy-step">3 Done</span></div>
+    <div class="sy-col sy-delside">
+      <div class="sy-pnl">
+        <div class="sy-pnl-h"><b>Danger button</b><span>Only on the last step</span></div>
+        <div class="sy-states">
+          <div><button class="btn danger block lg" disabled>Delete account</button><span class="sy-cap">Disabled until DELETE is typed</span></div>
+          <div><button class="btn danger block lg">Delete account</button><span class="sy-cap">Ready</span></div>
+          <div><button class="btn danger block lg" aria-disabled="true" tabindex="-1"><span class="spin"></span>Deleting</button><span class="sy-cap">Working, about 1 s</span></div>
+        </div>
+      </div>
+      <div class="sy-dd sy-dd-col">
+        <div class="do"><b><i data-lucide="check-circle-2"></i>Do</b><ul><li>Make Keep the primary button first</li><li>Offer the data download before deleting</li><li>Say who owns their teams next</li></ul></div>
+        <div class="dont"><b><i data-lucide="x-circle"></i>Don't</b><ul><li>Guilt people into staying</li><li>Hide the option deep in settings</li></ul></div>
+      </div>
+    </div>
   </div>
 
   <table class="spec">

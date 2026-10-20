@@ -98,3 +98,38 @@
     }
   });
 })();
+
+/* Round 6: live @mention filter and share format switch */
+(() => {
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  // Filter the suggestion list from the @word being typed
+  document.addEventListener('input', (e) => {
+    const box = e.target.closest && e.target.closest('[data-so-mention]');
+    if (!box) return;
+    const wrap = box.parentElement;
+    const list = wrap.querySelector('[data-so-suggest]');
+    if (!list) return;
+    const m = e.target.value.match(/@(\w*)$/);
+    list.hidden = !m;
+    if (!m) return;
+    const q = m[1].toLowerCase();
+    const all = [['Mira', 'orange', '1 302', 'M', 5], ['Dave', 'blue', '1 248', 'D', 7], ['Sam', 'yellow', '1 186', 'S', 1], ['Kim', 'purple', '1 102', 'K', 4], ['Joe', 'red', '1 064', 'J', 3], ['Ann', 'maroon', '1 020', 'A', 2]];
+    const hits = all.filter((p) => p[0].toLowerCase().startsWith(q)).slice(0, 5);
+    const rows = hits.map((p, i) => `<button class="so-sg" role="option" aria-selected="${i === 0}" data-name="${p[0]}"><span class="av sm${p[1] === 'yellow' ? ' yellow' : ''}" style="--c:var(--pc-${p[1]})" aria-hidden="true"><span class="ring"></span><span class="face">${p[3]}</span><span class="no">${p[4]}</span></span><span class="so-sg-n" style="color:var(--pct-${p[1]})"><mark>${p[0].slice(0, q.length)}</mark>${p[0].slice(q.length)}</span><span class="so-sg-r">${p[2]}</span></button>`).join('');
+    const bad = m[1].replace(/[&<>"]/g, '');
+    list.innerHTML = '<span class="so-sg-h">Players</span>' + (rows || `<div class="so-sg-empty"><i data-lucide="search"></i>No player called ${bad}</div>`);
+    if (!rows && window.lucide) window.lucide.createIcons();
+  });
+  // After a pick the list closes
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-so-suggest] .so-sg');
+    if (t) setTimeout(() => { const l = t.closest('[data-so-suggest]'); if (l) l.hidden = true; }, 0);
+    const f = e.target.closest('[data-so-fmtsw] button');
+    if (f) {
+      const sheet = f.closest('[data-so-fmt]');
+      sheet.dataset.soFmt = f.dataset.f;
+      const size = sheet.querySelector('[data-so-size]');
+      if (size) size.textContent = { story: '1080 by 1920', square: '1080 by 1080', link: '1200 by 630' }[f.dataset.f];
+    }
+  });
+})();

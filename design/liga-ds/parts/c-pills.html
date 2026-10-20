@@ -1,0 +1,183 @@
+<section class="sec" id="pills" data-title="Pills and chips">
+  <h2 class="t-title">Pills and chips</h2>
+  <p class="lead">Pills show state and are never tappable. Chips are tappable filters with a 44 px hit area. Both are solid: a meaning or an active state is a solid fill with contrasting text, never a pale tint with a coloured border.</p>
+
+  <div class="demo cp-top">
+    <div class="cp-anat-card">
+      <div class="cp-stage">
+        <div class="cp-anat">
+          <span class="pill crown cp-spec"><i data-lucide="crown"></i>Crown</span>
+          <span class="cp-mk t" style="--x:4%;--h:46px"><b>1</b></span>
+          <span class="cp-mk t" style="--x:31%;--h:64px"><b>2</b></span>
+          <span class="cp-mk b" style="--x:66%;--h:64px"><b>3</b></span>
+          <span class="cp-mk b" style="--x:100%;--h:46px"><b>4</b></span>
+        </div>
+      </div>
+      <ol class="cp-legend">
+        <li><b>1</b><span>Padding</span><code>12 px sides, 6 px gap</code></li>
+        <li><b>2</b><span>Icon, optional</span><code>14 px, stroke 2.25</code></li>
+        <li><b>3</b><span>Label</span><code>Inter 13, 600, one line</code></li>
+        <li><b>4</b><span>Container</span><code>28 px tall, pill radius</code></li>
+      </ol>
+    </div>
+
+    <div class="cp-cat">
+      <div class="cp-grp cp-wide">
+        <div class="cp-gh"><b>Meaning</b><span>One colour, one meaning, always solid</span></div>
+        <div class="cp-cells">
+          <div class="cp-cell"><span class="pill win">Won</span><code>--win</code></div>
+          <div class="cp-cell"><span class="pill loss">Lost</span><code>--loss</code></div>
+          <div class="cp-cell"><span class="pill live"><span class="live-dot"></span>Live</span><code>--live</code></div>
+          <div class="cp-cell"><span class="pill crown"><i data-lucide="crown"></i>Crown</span><code>--crown</code></div>
+          <div class="cp-cell"><span class="pill warning"><i data-lucide="clock"></i>Ends in 2h</span><code>--warning</code></div>
+          <div class="cp-cell"><span class="pill info">New</span><code>--info</code></div>
+          <div class="cp-cell"><span class="pill brand">Pro</span><code>--brand</code></div>
+          <div class="cp-cell"><span class="pill neutral">Upset</span><code>--surface-2</code></div>
+          <div class="cp-cell"><span class="pill outline">Cup game</span><code>--line-strong</code></div>
+        </div>
+      </div>
+
+      <div class="cp-grp">
+        <div class="cp-gh"><b>Status</b><span>Where a player or match is right now</span></div>
+        <div class="cp-flow">
+          <span class="pill neutral"><span class="cp-sd on"></span>Online</span>
+          <span class="pill neutral"><span class="cp-sd live"></span>In a match</span>
+          <span class="pill neutral"><i data-lucide="hourglass"></i>Waiting for Mira</span>
+          <span class="pill win"><i data-lucide="check"></i>Confirmed</span>
+          <span class="pill warning"><i data-lucide="alert-triangle"></i>Disputed</span>
+          <span class="pill outline"><i data-lucide="moon"></i>Dormant</span>
+        </div>
+      </div>
+
+      <div class="cp-grp">
+        <div class="cp-gh"><b>Counts</b><span>Numbers are tabular and never wrap</span></div>
+        <div class="cp-flow">
+          <span class="pill neutral">Matches<span class="cp-n">48</span></span>
+          <span class="pill live">3 new</span>
+          <span class="cp-badge">7</span>
+          <span class="cp-badge live">99+</span>
+          <span class="pill win num">+14</span>
+          <span class="pill loss num">−11</span>
+          <span class="pill neutral num"><span class="coin"></span>240</span>
+        </div>
+      </div>
+
+      <div class="cp-grp">
+        <div class="cp-gh"><b>With icon</b><span>Icon first, 14 px, same colour as the label</span></div>
+        <div class="cp-flow">
+          <span class="pill neutral"><i data-lucide="flame"></i>W4 streak</span>
+          <span class="pill neutral"><i data-lucide="swords"></i>Challenge</span>
+          <span class="pill crown"><i data-lucide="trophy"></i>Cup final</span>
+          <span class="pill neutral"><i data-lucide="calendar"></i>Fri 18:00</span>
+          <span class="pill neutral"><i data-lucide="users"></i>2v2</span>
+          <span class="pill brand"><i data-lucide="sparkles"></i>Season 4</span>
+        </div>
+      </div>
+
+      <div class="cp-grp">
+        <div class="cp-gh"><b>Sizes</b><span>Medium is the default</span></div>
+        <div class="cp-sizes">
+          <div class="cp-cell"><span class="pill win cp-sm">Won</span><code>Small 24</code></div>
+          <div class="cp-cell"><span class="pill win">Won</span><code>Medium 28</code></div>
+          <div class="cp-cell"><span class="pill win cp-lg">Won</span><code>Large 32</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo cp-filter">
+    <div class="cp-dh"><h3>Filter chip bar</h3><span class="t-small">Tap a format, tap a chip with a cross to remove it. The count follows along.</span></div>
+    <div class="cp-bar" data-cp-bar>
+      <button class="chip cp-fbtn" aria-pressed="false"><i data-lucide="sliders-horizontal"></i>Filters<span class="cp-fc num" data-cp-count>3</span></button>
+      <span class="cp-sep" aria-hidden="true"></span>
+      <div class="cp-fmt" role="group" aria-label="Format" data-single>
+        <button class="chip" aria-pressed="true">All</button>
+        <button class="chip" aria-pressed="false">1v1<span class="cp-cc num">31</span></button>
+        <button class="chip" aria-pressed="false">2v2<span class="cp-cc num">17</span></button>
+        <button class="chip" aria-pressed="false">Cup<span class="cp-cc num">6</span></button>
+        <button class="chip" aria-pressed="false"><span class="live-dot cp-ld"></span>Live<span class="cp-cc num">1</span></button>
+      </div>
+      <span class="cp-sep" aria-hidden="true"></span>
+      <div class="cp-rm" data-cp-removables>
+        <button class="chip cp-x" aria-pressed="true" aria-label="Remove filter This season">This season<i data-lucide="x" class="x"></i></button>
+        <button class="chip cp-x" aria-pressed="true" aria-label="Remove filter Office foosball">Office foosball<i data-lucide="x" class="x"></i></button>
+        <button class="chip cp-x" aria-pressed="true" aria-label="Remove filter With Mira">With Mira<i data-lucide="x" class="x"></i></button>
+      </div>
+      <button class="btn ghost sm cp-clear" data-cp-clear>Clear all</button>
+    </div>
+    <div class="cp-res">
+      <span class="t-label"><b class="num" data-cp-res>18</b> matches</span>
+      <button class="btn secondary sm" data-cp-reset hidden><i data-lucide="rotate-ccw"></i>Bring filters back</button>
+    </div>
+  </div>
+
+  <div class="demo cp-ctx">
+    <div class="cp-dh"><h3>In context</h3><span class="t-small">A match feed and the filter sheet that narrows it.</span></div>
+    <div class="cp-ctx-grid">
+      <div class="cp-feed">
+        <div class="cp-mrow">
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span></span>
+          <span class="cp-mm"><b>You vs Dave</b><span>Today 12:40, Office foosball</span></span>
+          <span class="cp-tags"><span class="pill win">Won</span><span class="pill neutral">Upset</span></span>
+          <span class="cp-score num">10 : 7</span>
+        </div>
+        <div class="cp-mrow">
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span></span>
+          <span class="cp-mm"><b>Mira vs Sam</b><span>Started 6 min ago</span></span>
+          <span class="cp-tags"><span class="pill live"><span class="live-dot"></span>Live</span><span class="pill crown"><i data-lucide="crown"></i>Crown</span></span>
+          <span class="cp-score num">8 : 6</span>
+        </div>
+        <div class="cp-mrow">
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span></span>
+          <span class="cp-mm"><b>Kim and Joe vs Ann and You</b><span>Yesterday 17:15, 2v2</span></span>
+          <span class="cp-tags"><span class="pill loss">Lost</span><span class="pill outline">Cup game</span></span>
+          <span class="cp-score num">6 : 10</span>
+        </div>
+        <div class="cp-mrow">
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="av sm" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span></span>
+          <span class="cp-mm"><b>Dave vs Ann</b><span>Mon 13:05, waiting for Ann</span></span>
+          <span class="cp-tags"><span class="pill warning"><i data-lucide="alert-triangle"></i>Disputed</span></span>
+          <span class="cp-score num">10 : 9</span>
+        </div>
+        <div class="cp-mrow">
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span></span>
+          <span class="cp-mm"><b>You vs Kim</b><span>Fri 18:00, challenge</span></span>
+          <span class="cp-tags"><span class="pill neutral"><i data-lucide="calendar"></i>Fri 18:00</span><span class="pill neutral num"><span class="coin"></span>40</span></span>
+          <span class="cp-score cp-dim">Soon</span>
+        </div>
+      </div>
+
+      <div class="cp-sheet" role="group" aria-label="Filter matches">
+        <span class="cp-grab"></span>
+        <div class="cp-sh"><b>Filter matches</b><button class="btn ghost sm">Reset</button></div>
+        <div class="cp-sg"><span class="t-label">Format</span>
+          <div class="cp-wrap" data-single><button class="chip" aria-pressed="false">All</button><button class="chip" aria-pressed="true">1v1</button><button class="chip" aria-pressed="false">2v2</button><button class="chip" aria-pressed="false">Cup</button></div>
+        </div>
+        <div class="cp-sg"><span class="t-label">Players</span>
+          <div class="cp-wrap" data-toggle-group>
+            <button class="chip cp-avc" aria-pressed="true"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span>Mira</button>
+            <button class="chip cp-avc" aria-pressed="false"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span>Dave</button>
+            <button class="chip cp-avc" aria-pressed="false"><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span>Sam</button>
+            <button class="chip cp-avc" aria-pressed="false"><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span>Kim</button>
+          </div>
+        </div>
+        <div class="cp-sg"><span class="t-label">Period</span>
+          <div class="cp-wrap" data-single><button class="chip" aria-pressed="false">This week</button><button class="chip" aria-pressed="true">This season</button><button class="chip" aria-pressed="false">All time</button></div>
+        </div>
+        <button class="btn primary block">Show 18 matches</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dodont">
+    <div class="do"><b><i data-lucide="check"></i>Do</b><ul><li>Keep a pill to one or two words and one meaning colour.</li><li>Show at most two pills per row, the most important first.</li><li>Make active chips a solid primary fill with a cross to remove.</li></ul></div>
+    <div class="dont"><b><i data-lucide="x"></i>Don't</b><ul><li>Make a pill tappable. If it does something, it is a chip or a button.</li><li>Use a pale tint with a coloured border for any state.</li><li>Use meaning colours for decoration, green always means a win.</li></ul></div>
+  </div>
+  <table class="spec">
+    <tr><th>Part</th><th>Size</th><th>Use</th></tr>
+    <tr><td>Pill</td><td class="num">24, 28, 32</td><td>Read only state: result, live, crown, deadline, plan. 13 px label, 600.</td></tr>
+    <tr><td>Chip</td><td class="num">36, hit 44</td><td>Filters. Pressed is primary fill with on primary text. Counts sit inside on surface 3.</td></tr>
+    <tr><td>Removable chip</td><td class="num">36, hit 44</td><td>An applied filter. The whole chip removes it, label says what will go.</td></tr>
+    <tr><td>Count badge</td><td class="num">20</td><td>Unread or pending numbers. Over 99 shows 99+.</td></tr>
+  </table>
+</section>

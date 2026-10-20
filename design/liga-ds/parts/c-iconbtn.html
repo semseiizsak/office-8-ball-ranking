@@ -1,0 +1,175 @@
+<section class="sec" id="iconbuttons" data-title="Icon buttons and FAB">
+  <h2 class="t-title">Icon buttons and FAB</h2>
+  <p class="lead">Round, 44 px by default, 36 px small with a 44 px hit area. Every icon button has an accessible name. The log button floats above the tab bar, folds to a circle while you scroll and opens a short menu for the core loop.</p>
+
+  <div class="ci-two">
+    <div class="demo ci-panel">
+      <div class="ci-ph"><b>Variants and states</b><span>Surface for most, ghost in bars, primary for the one key action, brand once</span></div>
+      <div class="ci-matrix" role="table" aria-label="Icon button variants by state">
+        <div class="ci-mrow ci-mhead" role="row">
+          <span role="columnheader">Variant</span><span role="columnheader">Default</span><span role="columnheader">Pressed</span><span role="columnheader">Disabled</span><span role="columnheader">Small 36</span>
+        </div>
+        <div class="ci-mrow" role="row">
+          <div class="ci-vname" role="rowheader"><b>Surface</b><span>Default, on any background</span></div>
+          <div class="ci-cell" role="cell"><button class="ibtn" aria-label="Search"><i data-lucide="search"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn ci-pressed" aria-label="Search, pressed" tabindex="-1"><i data-lucide="search"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn" aria-label="Search" disabled><i data-lucide="search"></i></button></div>
+          <div class="ci-cell" role="cell"><span class="ci-hit"><button class="ibtn sm" aria-label="Search"><i data-lucide="search"></i></button></span></div>
+        </div>
+        <div class="ci-mrow" role="row">
+          <div class="ci-vname" role="rowheader"><b>Ghost</b><span>App bars, rows, toasts</span></div>
+          <div class="ci-cell" role="cell"><button class="ibtn plain" aria-label="More"><i data-lucide="more-horizontal"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn plain ci-pressed" aria-label="More, pressed" tabindex="-1"><i data-lucide="more-horizontal"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn plain" aria-label="More" disabled><i data-lucide="more-horizontal"></i></button></div>
+          <div class="ci-cell" role="cell"><span class="ci-hit"><button class="ibtn plain sm" aria-label="More"><i data-lucide="more-horizontal"></i></button></span></div>
+        </div>
+        <div class="ci-mrow" role="row">
+          <div class="ci-vname" role="rowheader"><b>Primary</b><span>Add, log, send</span></div>
+          <div class="ci-cell" role="cell"><button class="ibtn primary" aria-label="Add"><i data-lucide="plus"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn primary ci-pressed" aria-label="Add, pressed" tabindex="-1"><i data-lucide="plus"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn primary" aria-label="Add" disabled><i data-lucide="plus"></i></button></div>
+          <div class="ci-cell" role="cell"><span class="ci-hit"><button class="ibtn primary sm" aria-label="Add"><i data-lucide="plus"></i></button></span></div>
+        </div>
+        <div class="ci-mrow" role="row">
+          <div class="ci-vname" role="rowheader"><b>Brand</b><span>One brand moment, invite, upgrade</span></div>
+          <div class="ci-cell" role="cell"><button class="ibtn ci-brand" aria-label="Invite players"><i data-lucide="user-plus"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn ci-brand ci-pressed" aria-label="Invite players, pressed" tabindex="-1"><i data-lucide="user-plus"></i></button></div>
+          <div class="ci-cell" role="cell"><button class="ibtn ci-brand" aria-label="Invite players" disabled><i data-lucide="user-plus"></i></button></div>
+          <div class="ci-cell" role="cell"><span class="ci-hit"><button class="ibtn ci-brand sm" aria-label="Invite players"><i data-lucide="user-plus"></i></button></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo ci-panel">
+      <div class="ci-ph"><b>Sizes</b><span>The dashed ring is the touch target</span></div>
+      <div class="ci-sizes">
+        <div class="ci-sz"><span class="ci-hit"><button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button></span><b>36</b><span>Small, dense rows, 44 hit</span></div>
+        <div class="ci-sz"><button class="ibtn" aria-label="Notifications"><i data-lucide="bell"></i></button><b>44</b><span>Default</span></div>
+        <div class="ci-sz"><button class="fab ci-round" aria-label="Log match"><i data-lucide="plus"></i></button><b>56</b><span>FAB, collapsed</span></div>
+        <div class="ci-sz ci-sz-wide"><button class="fab"><i data-lucide="plus"></i>Log match</button><b>56</b><span>FAB, extended</span></div>
+      </div>
+      <div class="ci-badges">
+        <div class="ci-bh"><b>Badge counts</b><span>Live red, white numbers, 99+ cap</span></div>
+        <div class="ci-brow">
+          <div class="ci-bi"><button class="ibtn" aria-label="Notifications, 3 new"><i data-lucide="bell"></i><span class="dot-count">3</span></button><span>Count</span></div>
+          <div class="ci-bi"><button class="ibtn" aria-label="Chat, 12 unread"><i data-lucide="message-circle"></i><span class="dot-count">12</span></button><span>Two digits</span></div>
+          <div class="ci-bi"><button class="ibtn" aria-label="Inbox, more than 99 new"><i data-lucide="inbox"></i><span class="dot-count">99+</span></button><span>Capped</span></div>
+          <div class="ci-bi"><button class="ibtn" aria-label="Season, new activity"><i data-lucide="trophy"></i><span class="ci-dot"></span></button><span>Dot only</span></div>
+          <div class="ci-bi"><button class="ibtn plain" aria-label="Settings, update ready"><i data-lucide="settings"></i><span class="ci-dot"></span></button><span>On ghost</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo ci-panel">
+    <div class="ci-ph"><b>Toggled</b><span>Tap to try. On is a solid primary fill, the icon fills in, the label says what happens next</span></div>
+    <div class="ci-toggles">
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="true" aria-label="Following Mira"><i data-lucide="star"></i></button><b>Follow</b><span>Mira, on</span></div>
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="false" aria-label="Save match"><i data-lucide="bookmark"></i></button><b>Save</b><span>Match, off</span></div>
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="true" aria-label="Pin chat"><i data-lucide="pin"></i></button><b>Pin</b><span>Chat, on</span></div>
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="false" aria-label="Mute league"><i data-lucide="bell-off"></i></button><b>Mute</b><span>League, off</span></div>
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="false" aria-label="Like"><i data-lucide="heart"></i></button><b>Like</b><span>Post, off</span></div>
+      <div class="ci-tg"><button class="ibtn ci-tog" aria-pressed="true" aria-label="Sound on"><i data-lucide="volume-2"></i></button><b>Sound</b><span>Live, on</span></div>
+    </div>
+  </div>
+
+  <div class="ci-ctx">
+    <figure class="ci-fig">
+      <div class="ci-screen ci-bars">
+        <div class="appbar ci-ab">
+          <div class="league-sw"><span class="lg"><i data-lucide="trophy"></i></span><div><b>Office foosball</b><span>Season 4, week 43<i data-lucide="chevron-down"></i></span></div></div>
+          <button class="ibtn plain" aria-label="Search"><i data-lucide="search"></i></button>
+          <button class="ibtn" aria-label="Notifications, 3 new"><i data-lucide="bell"></i><span class="dot-count">3</span></button>
+        </div>
+        <div class="appbar ci-ab ci-ab2">
+          <span class="ci-hit"><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button></span>
+          <b class="ci-abt">Match</b>
+          <button class="ibtn plain" aria-label="Share"><i data-lucide="share"></i></button>
+          <button class="ibtn plain" aria-label="More"><i data-lucide="more-horizontal"></i></button>
+        </div>
+        <div class="ci-mini">
+          <div class="ci-mrowx"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><b>Mira</b><span class="ci-sc num">10</span></div>
+          <div class="ci-mrowx"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><b>You</b><span class="ci-sc num ci-lost">7</span></div>
+        </div>
+        <div class="ci-tiles">
+          <div><span>Rating</span><b class="num">1 237</b></div>
+          <div><span>Change</span><b class="num">−14</b></div>
+          <div><span>Length</span><b class="num">12 min</b></div>
+        </div>
+        <div class="ci-reacts"><span class="react">🔥 4</span><span class="react">👏 2</span><span class="react">😬 1</span></div>
+        <nav class="tabbar ci-tabbar" aria-label="Tabs">
+          <button aria-selected="true"><i data-lucide="list-ordered"></i>Ladder</button>
+          <button aria-selected="false"><i data-lucide="swords"></i>Matches<span class="dot-count">2</span></button>
+          <button class="ci-tlog" aria-label="Log match"><i data-lucide="plus"></i></button>
+          <button aria-selected="false"><i data-lucide="trophy"></i>Cup</button>
+          <button aria-selected="false"><i data-lucide="user"></i>Me</button>
+        </nav>
+      </div>
+      <figcaption><b>App bar and tab bar</b>Ghost icons in bars, surface for the one with a badge. Log sits in the middle of the tab bar as primary.</figcaption>
+    </figure>
+
+    <figure class="ci-fig">
+      <div class="ci-screen ci-scroll">
+        <div class="ci-sh"><b>Matches</b><span>Today</span></div>
+        <div class="ci-feed" tabindex="0" aria-label="Match feed, scroll to see the FAB fold">
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b>Mira beat Dave</b><span>10 to 7, 4 min ago</span></div><span class="pill win num">+14</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><div><b>You beat Sam</b><span>10 to 8, 21 min ago</span></div><span class="pill win num">+12</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><div><b>Kim beat Joe</b><span>10 to 4, 38 min ago</span></div><span class="pill win num">+9</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><div><b>Dave beat You</b><span>10 to 9, 1 h ago</span></div><span class="pill win num">+11</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><div><b>Sam and Ann won</b><span>2v2, 10 to 6, 2 h ago</span></div><span class="pill win num">+8</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span><div><b>Ann beat Kim</b><span>10 to 5, 3 h ago</span></div><span class="pill win num">+10</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span><div><b>Joe beat Mira</b><span>10 to 9, 4 h ago</span></div><span class="pill win num">+21</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b>Mira beat Sam</b><span>10 to 3, 5 h ago</span></div><span class="pill win num">+6</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><div><b>You and Dave won</b><span>2v2, 10 to 7, 6 h ago</span></div><span class="pill win num">+9</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><div><b>Kim beat Ann</b><span>10 to 8, 7 h ago</span></div><span class="pill win num">+11</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><div><b>Dave beat Joe</b><span>10 to 2, 8 h ago</span></div><span class="pill win num">+5</span></div>
+          <div class="ci-frow"><span class="av sm" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><div><b>Sam beat Kim</b><span>10 to 9, 9 h ago</span></div><span class="pill win num">+13</span></div>
+        </div>
+        <button class="fab ci-fab" aria-label="Log match"><i data-lucide="plus"></i><span class="ci-fl">Log match</span></button>
+      </div>
+      <figcaption><b>FAB on scroll</b>Scroll the feed. Going down folds it to a 56 px circle, going up opens it again.</figcaption>
+    </figure>
+
+    <figure class="ci-fig">
+      <div class="ci-screen ci-menu is-open">
+        <div class="ci-sh"><b>Ladder</b><span>Week 43</span></div>
+        <div class="ci-under">
+          <div class="ci-frow"><span class="num ci-rk">1</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b>Mira</b><span>Streak W4</span></div><span class="num ci-elo">1 302</span></div>
+          <div class="ci-frow"><span class="num ci-rk">2</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><div><b>Dave</b><span>Streak W1</span></div><span class="num ci-elo">1 248</span></div>
+          <div class="ci-frow"><span class="num ci-rk">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><div><b>You</b><span>Streak L1</span></div><span class="num ci-elo">1 237</span></div>
+          <div class="ci-frow"><span class="num ci-rk">4</span><span class="av sm" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><div><b>Sam</b><span>Streak W2</span></div><span class="num ci-elo">1 190</span></div>
+          <div class="ci-frow"><span class="num ci-rk">5</span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><div><b>Kim</b><span>Streak L3</span></div><span class="num ci-elo">1 102</span></div>
+          <div class="ci-frow"><span class="num ci-rk">6</span><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span><div><b>Joe</b><span>Dormant</span></div><span class="num ci-elo">1 001</span></div>
+        </div>
+        <span class="ci-scrim"></span>
+        <ul class="ci-items">
+          <li style="--i:3"><span>Log 1v1</span><button class="ibtn" aria-label="Log 1v1" tabindex="-1"><i data-lucide="user"></i></button></li>
+          <li style="--i:2"><span>Log 2v2</span><button class="ibtn" aria-label="Log 2v2" tabindex="-1"><i data-lucide="users"></i></button></li>
+          <li style="--i:1"><span>Challenge</span><button class="ibtn" aria-label="Challenge" tabindex="-1"><i data-lucide="swords"></i></button></li>
+          <li style="--i:0"><span>Start live</span><button class="ibtn ci-live" aria-label="Start live" tabindex="-1"><i data-lucide="radio"></i></button></li>
+        </ul>
+        <button class="fab ci-round ci-mfab" aria-label="Close menu" aria-expanded="true"><i data-lucide="plus"></i></button>
+      </div>
+      <figcaption><b>FAB menu</b>Tap the FAB. Four actions at most, labels on the left, the scrim closes it.</figcaption>
+    </figure>
+  </div>
+
+  <div class="ci-foot">
+    <div class="ci-ddt ci-do">
+      <div class="ci-dds"><button class="ibtn" aria-label="Notifications, 3 new" tabindex="-1"><i data-lucide="bell"></i><span class="dot-count">3</span></button><code>aria-label="Notifications, 3 new"</code></div>
+      <p><i data-lucide="check-circle-2"></i><span><b>Do</b> give every icon button a name that includes its badge.</span></p>
+    </div>
+    <div class="ci-ddt ci-dont">
+      <div class="ci-dds"><button class="fab ci-round" tabindex="-1" aria-label="Log match"><i data-lucide="plus"></i></button><button class="fab ci-round ci-brandfab" tabindex="-1" aria-label="Chat"><i data-lucide="message-circle"></i></button></div>
+      <p><i data-lucide="x-circle"></i><span><b>Don't</b> stack two FABs or float one over a sheet.</span></p>
+    </div>
+    <table class="spec ci-spec">
+      <tr><th>Part</th><th>Value</th></tr>
+      <tr><td>Icon button</td><td>44 round, icon 20, small 36 with icon 18</td></tr>
+      <tr><td>FAB</td><td>56 high, icon 20, 18 left and 22 right padding, float shadow</td></tr>
+      <tr><td>FAB position</td><td>16 from the right, 12 above the tab bar</td></tr>
+      <tr><td>Badge</td><td>18 high, Inter 700 11, live fill, 99+ max</td></tr>
+      <tr><td>Fold</td><td>280 ms ease in out, label width to zero</td></tr>
+    </table>
+  </div>
+</section>

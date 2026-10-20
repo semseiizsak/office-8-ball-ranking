@@ -1,0 +1,213 @@
+<section class="sec" id="motion" data-title="Motion">
+  <h2 class="t-title">Motion</h2>
+  <p class="lead">One curve, five durations. Everything eases in and out on cubic-bezier(.65, 0, .35, 1), never overshoots and never bounces. Everyday UI stays under 400 ms, celebrations may take a full scene of 1.2 s, and every animation has a calm reduced motion version.</p>
+
+  <div class="fm-bar">
+    <span class="fm-bar-tx">Every demo replays with its button. Tap Replay all to run the whole system at once.</span>
+    <button type="button" class="btn primary" data-fm-all><i data-lucide="rotate-ccw"></i>Replay all</button>
+  </div>
+
+  <div class="fm-top">
+    <div class="fm-card fm-curve" data-fm="curve">
+      <div class="fm-card-h">
+        <div><b>The curve</b><code>cubic-bezier(.65, 0, .35, 1)</code></div>
+        <button type="button" class="ibtn" aria-label="Replay curve" data-fm-play="curve"><i data-lucide="rotate-ccw"></i></button>
+      </div>
+      <div class="fm-curve-body">
+        <svg class="fm-graph" viewBox="0 0 340 340" role="img" aria-label="Easing curve, slow start, fast middle, slow end, never leaves the box">
+          <g class="fm-gridl">
+            <path d="M40 20V300M110 20V300M180 20V300M250 20V300M320 20V300M40 20H320M40 90H320M40 160H320M40 230H320M40 300H320"/>
+          </g>
+          <path class="fm-lin" d="M40 300L320 20"/>
+          <path class="fm-hdl" d="M40 300L222 300M320 20L138 20"/>
+          <circle class="fm-cp" cx="222" cy="300" r="6"/>
+          <circle class="fm-cp" cx="138" cy="20" r="6"/>
+          <path class="fm-ease" d="M40 300C222 300 138 20 320 20"/>
+          <line class="fm-guide" data-fm-gx x1="40" y1="300" x2="40" y2="300"/>
+          <line class="fm-guide" data-fm-gy x1="40" y1="300" x2="40" y2="300"/>
+          <rect class="fm-out-track" x="328" y="20" width="6" height="280" rx="3"/>
+          <rect class="fm-out" data-fm-out x="328" y="300" width="6" height="0" rx="3"/>
+          <circle class="fm-dot" data-fm-dot cx="40" cy="300" r="8"/>
+          <text x="40" y="324">0</text><text x="320" y="324" text-anchor="end">Time</text>
+          <text x="32" y="304" text-anchor="end">0</text><text x="32" y="24" text-anchor="end">1</text>
+        </svg>
+        <div class="fm-curve-side">
+          <div class="fm-readout">
+            <div class="stat"><span class="v num" data-fm-t>0.00</span><span class="k">Time</span></div>
+            <div class="stat"><span class="v num" data-fm-p>0.00</span><span class="k">Progress</span></div>
+          </div>
+          <div class="fm-lanes">
+            <div class="fm-lane"><span>Liga ease</span><div class="fm-lane-tr"><i data-fm-lane="ease"></i></div></div>
+            <div class="fm-lane fm-lane-off"><span>Linear, not used</span><div class="fm-lane-tr"><i data-fm-lane="lin"></i></div></div>
+          </div>
+          <div class="fm-watch">
+            <span>Watch at</span>
+            <div class="seg" role="group" aria-label="Curve demo duration" data-fm-dur>
+              <button type="button" aria-pressed="false" data-ms="280">280</button>
+              <button type="button" aria-pressed="false" data-ms="400">400</button>
+              <button type="button" aria-pressed="true" data-ms="1200">1200</button>
+            </div>
+          </div>
+          <ul class="fm-facts">
+            <li><i data-lucide="check"></i>Slow start, so the eye catches the move</li>
+            <li><i data-lucide="check"></i>Fast middle, so it never feels sluggish</li>
+            <li><i data-lucide="check"></i>Soft landing, no overshoot past 1</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="fm-card fm-scale" data-fm="scale">
+      <div class="fm-card-h">
+        <div><b>Duration scale</b><span>Bars grow in their own duration</span></div>
+        <button type="button" class="ibtn" aria-label="Replay duration scale" data-fm-play="scale"><i data-lucide="rotate-ccw"></i></button>
+      </div>
+      <div class="fm-chart">
+        <div class="fm-axis" aria-hidden="true"><span style="--x:0">0</span><span style="--x:.1667">200</span><span style="--x:.3333">400</span><span style="--x:.5">600</span><span style="--x:.6667">800</span><span style="--x:.8333">1000</span><span style="--x:1">1200 ms</span></div>
+        <div class="fm-rows">
+          <div class="fm-zone" aria-hidden="true"><span>Everyday UI</span></div>
+          <div class="fm-r" style="--ms:120"><div class="fm-r-l"><b>Press</b><code>--d-press</code></div><div class="fm-r-b"><i></i><span class="num">120</span></div></div>
+          <div class="fm-r" style="--ms:180"><div class="fm-r-l"><b>Fast</b><code>--d-fast</code></div><div class="fm-r-b"><i></i><span class="num">180</span></div></div>
+          <div class="fm-r" style="--ms:280"><div class="fm-r-l"><b>Base</b><code>--d-base</code></div><div class="fm-r-b"><i></i><span class="num">280</span></div></div>
+          <div class="fm-r" style="--ms:400"><div class="fm-r-l"><b>Slow</b><code>--d-slow</code></div><div class="fm-r-b"><i></i><span class="num">400</span></div></div>
+          <div class="fm-r fm-r-scene" style="--ms:1200"><div class="fm-r-l"><b>Scene</b><code>--d-scene</code></div><div class="fm-r-b"><i></i><span class="num">1200</span></div></div>
+        </div>
+      </div>
+      <div class="fm-scale-foot">
+        <div><b class="num">≤ 400 ms</b><span>Anything the user triggers and waits for</span></div>
+        <div><b class="num">1.2 s</b><span>Crown change, challenge sent, season end</span></div>
+        <div><b class="num">1.4 s</b><span>Hard ceiling for any celebration</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fm-live">
+    <div class="fm-tile" data-fm="press">
+      <div class="fm-tile-h"><div><b>Press</b><code>120 ms</code></div><button type="button" class="ibtn sm fm-rp" aria-label="Replay press" data-fm-play="press"><i data-lucide="rotate-ccw"></i></button></div>
+      <div class="fm-stage"><button type="button" class="btn primary lg fm-press-btn"><i data-lucide="plus"></i>Log match</button></div>
+      <p>Scale to .97 on press and back on release. Try it.</p>
+    </div>
+    <div class="fm-tile" data-fm="fast">
+      <div class="fm-tile-h"><div><b>Fast</b><code>180 ms</code></div><button type="button" class="ibtn sm fm-rp" aria-label="Replay colour" data-fm-play="fast"><i data-lucide="rotate-ccw"></i></button></div>
+      <div class="fm-stage fm-stage-col">
+        <div class="fm-chips"><span class="chip" data-fm-chip aria-pressed="true">Foosball</span><span class="chip">Darts</span></div>
+        <div class="fm-mini-toast" data-fm-toast><i data-lucide="circle-check"></i>Filter saved</div>
+      </div>
+      <p>Colour, hover and toasts. Short enough to feel instant.</p>
+    </div>
+    <div class="fm-tile" data-fm="base">
+      <div class="fm-tile-h"><div><b>Base</b><code>280 ms</code></div><button type="button" class="ibtn sm fm-rp" aria-label="Replay sheet" data-fm-play="base"><i data-lucide="rotate-ccw"></i></button></div>
+      <div class="fm-stage fm-screen open" data-fm-sheet>
+        <div class="fm-bgrows"><i></i><i></i><i></i><i></i></div>
+        <div class="fm-scrim"></div>
+        <div class="fm-sheet"><span class="fm-grab"></span><b>Log match</b><div class="fm-sheet-r"><span>You</span><span class="fm-vs">vs</span><span>Mira</span></div><span class="fm-sheet-btn">Save result</span></div>
+      </div>
+      <p>Sheets, toggles and the segmented indicator.</p>
+    </div>
+    <div class="fm-tile" data-fm="slow">
+      <div class="fm-tile-h"><div><b>Slow</b><code>400 ms</code></div><button type="button" class="ibtn sm fm-rp" aria-label="Replay progress" data-fm-play="slow"><i data-lucide="rotate-ccw"></i></button></div>
+      <div class="fm-stage fm-stage-col fm-prog">
+        <div class="fm-pg"><div class="fm-pg-h"><span>Season 4</span><b class="num"><span data-fm-n="72">72</span>%</b></div><div class="fm-pg-tr"><i style="--v:.72"></i></div></div>
+        <div class="fm-pg"><div class="fm-pg-h"><span>Weekly cup</span><b class="num"><span data-fm-n="40">40</span>%</b></div><div class="fm-pg-tr"><i style="--v:.40"></i></div></div>
+      </div>
+      <p>Progress bars and counters move together.</p>
+    </div>
+    <div class="fm-tile" data-fm="scene">
+      <div class="fm-tile-h"><div><b>Scene</b><code>1200 ms</code></div><button type="button" class="ibtn sm fm-rp" aria-label="Replay crown change" data-fm-play="scene"><i data-lucide="rotate-ccw"></i></button></div>
+      <div class="fm-stage fm-crown">
+        <div class="fm-cr fm-cr-a"><span class="rank num" data-fm-rank-a>2</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><b>Mira</b><span class="fm-cpill" aria-hidden="true"><i data-lucide="crown"></i></span><span class="num fm-cr-elo">1 302</span></div>
+        <div class="fm-cr fm-cr-b"><span class="rank num" data-fm-rank-b>1</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><b>Dave</b><span class="fm-cpill" aria-label="Leader"><i data-lucide="crown"></i></span><span class="num fm-cr-elo" data-fm-elo>1 316</span></div>
+      </div>
+      <p>Dave takes the crown. Celebrations only.</p>
+    </div>
+  </div>
+
+  <div class="fm-two">
+    <div class="fm-card" data-fm="chor">
+      <div class="fm-card-h">
+        <div><b>Choreography</b><span>40 ms stagger, 280 ms each</span></div>
+        <button type="button" class="ibtn" aria-label="Replay choreography" data-fm-play="chor"><i data-lucide="rotate-ccw"></i></button>
+      </div>
+      <div class="fm-chor">
+        <div class="list fm-chor-list">
+          <div class="row" style="--i:0"><span class="rank">1</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="main"><b>Mira 👑</b><span>Streak W4</span></span><span class="elo num">1 302</span></div>
+          <div class="row" style="--i:1"><span class="rank">2</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="main"><b>Dave</b><span>Streak W1</span></span><span class="elo num">1 248</span></div>
+          <div class="row" style="--i:2"><span class="rank">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="main"><b>You</b><span>Streak L1</span></span><span class="elo num">1 237</span></div>
+          <div class="row" style="--i:3"><span class="rank">4</span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="main"><b>Sam</b><span>Streak W2</span></span><span class="elo num">1 190</span></div>
+          <div class="row" style="--i:4"><span class="rank">5</span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="main"><b>Kim</b><span>Streak L3</span></span><span class="elo num">1 102</span></div>
+        </div>
+        <div class="fm-gantt" aria-hidden="true">
+          <div class="fm-g-axis"><span>0</span><span>200</span><span>440 ms</span></div>
+          <div class="fm-g-rows">
+            <div style="--i:0"><i></i></div><div style="--i:1"><i></i></div><div style="--i:2"><i></i></div><div style="--i:3"><i></i></div><div style="--i:4"><i></i></div>
+          </div>
+          <ul class="fm-rules">
+            <li>Rise 12 px and fade in, top to bottom</li>
+            <li>Stagger the first 5 items, the rest arrive together</li>
+            <li>The whole list settles within 500 ms</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="fm-card" data-fm="reduce">
+      <div class="fm-card-h">
+        <div><b>Reduced motion</b><span>Same meaning, no travel</span></div>
+        <button type="button" class="ibtn" aria-label="Replay reduced motion comparison" data-fm-play="reduce"><i data-lucide="rotate-ccw"></i></button>
+      </div>
+      <div class="fm-rd">
+        <div class="fm-rd-col">
+          <div class="fm-stage fm-screen open fm-rd-full" data-fm-sheet>
+            <div class="fm-bgrows"><i></i><i></i><i></i><i></i></div>
+            <div class="fm-scrim"></div>
+            <div class="fm-sheet"><span class="fm-grab"></span><b>Challenge sent</b><div class="fm-sheet-r"><span>You</span><span class="fm-vs">vs</span><span>Dave</span></div><span class="fm-sheet-btn">Done</span></div>
+          </div>
+          <b>Full motion</b><span>Sheet slides up, 280 ms</span>
+        </div>
+        <div class="fm-rd-col">
+          <div class="fm-stage fm-screen open fm-rd-red" data-fm-sheet>
+            <div class="fm-bgrows"><i></i><i></i><i></i><i></i></div>
+            <div class="fm-scrim"></div>
+            <div class="fm-sheet"><span class="fm-grab"></span><b>Challenge sent</b><div class="fm-sheet-r"><span>You</span><span class="fm-vs">vs</span><span>Dave</span></div><span class="fm-sheet-btn">Done</span></div>
+          </div>
+          <b>Reduced motion</b><span>Crossfade in place, 180 ms</span>
+        </div>
+      </div>
+      <table class="spec fm-rd-spec">
+        <thead><tr><th>Full</th><th>Reduced</th></tr></thead>
+        <tbody>
+          <tr><td>Slide, rise, scale</td><td>Crossfade in place</td></tr>
+          <tr><td>Counters and progress fill</td><td>Jump to the final value</td></tr>
+          <tr><td>Crown change scene</td><td>Static result with a short toast</td></tr>
+          <tr><td>Confetti and coin bursts</td><td>Off</td></tr>
+        </tbody>
+      </table>
+      <p class="fm-rd-note" data-fm-sys hidden>Your device asks for reduced motion, so these demos finish instantly.</p>
+    </div>
+  </div>
+
+  <div class="dodont">
+    <div class="do"><b><i data-lucide="circle-check"></i>Do</b><ul>
+      <li>Use the token durations and var(--ease) for every transition.</li>
+      <li>Animate transform and opacity of neutral surfaces, keep it at 60 fps.</li>
+      <li>Let one thing lead. The rest follows with a short stagger.</li>
+    </ul></div>
+    <div class="dont"><b><i data-lucide="circle-x"></i>Don't</b><ul>
+      <li>Use springs, overshoot or bounce, even in celebrations.</li>
+      <li>Fade a brand or meaning colour to make it lighter.</li>
+      <li>Make the user wait on a scene to keep going.</li>
+    </ul></div>
+  </div>
+
+  <table class="spec">
+    <thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>--ease</td><td>cubic-bezier(.65, 0, .35, 1)</td><td>Every transition and keyframe</td></tr>
+      <tr><td>--d-press</td><td>120 ms</td><td>Button scale on press and release</td></tr>
+      <tr><td>--d-fast</td><td>180 ms</td><td>Hover, colour, toast in and out</td></tr>
+      <tr><td>--d-base</td><td>280 ms</td><td>Sheets, toggles, segmented indicator, list items</td></tr>
+      <tr><td>--d-slow</td><td>400 ms</td><td>Progress, counters, list reorder</td></tr>
+      <tr><td>--d-scene</td><td>1200 ms</td><td>Crown change, challenge sent, season end</td></tr>
+    </tbody>
+  </table>
+</section>

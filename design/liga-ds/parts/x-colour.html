@@ -1,0 +1,214 @@
+<section class="sec" id="colour" data-title="Colour">
+  <h2 class="t-title">Colour</h2>
+  <p class="lead">Three layers. Primitives are raw values, semantic tokens say what a value is for and swap with the theme, components only read semantic tokens. Neutrals carry almost every screen, one violet accent marks the brand, and meaning colours stay rare so a win or a live match pops. Every colour is used solid, never tinted or transparent.</p>
+
+  <h3 class="sub">Brand</h3>
+  <div class="demo xk-hero">
+    <div class="xk-brand">
+      <div class="xk-brand-top">
+        <span class="xk-mark"><i data-lucide="trophy"></i></span>
+        <span class="xk-ratio">6.1:1 AA</span>
+      </div>
+      <span class="xk-aa">Aa</span>
+      <div class="xk-brand-b">
+        <b class="t-display">Liga violet</b>
+        <div class="xk-brand-codes"><code>--brand #5B3DF5</code><code>--brand-press #4A2FD6</code><code>--on-brand #FFFFFF</code></div>
+      </div>
+    </div>
+    <div class="xk-rules">
+      <div class="xk-rule"><span class="xk-ri ok"><i data-lucide="check"></i></span><div><b>Use it for</b><p>The app icon, the league mark, the unread dot, your own row marker, one hero action per screen, and brand moments like onboarding and the paywall.</p></div></div>
+      <div class="xk-rule"><span class="xk-ri no"><i data-lucide="x"></i></span><div><b>Never</b><p>As text on dark (3.0:1 is too low), tinted, faded, or as a win or live signal.</p></div></div>
+      <div class="xk-rule"><span class="xk-ri"><i data-lucide="mouse-pointer-click"></i></span><div><b>Primary actions</b><p>Stay white on dark and black on light. Violet is the accent, not the button colour. Text on violet is always white.</p></div></div>
+    </div>
+    <div class="xk-ctx">
+      <div class="xk-cell">
+        <span class="xk-appicon"><i data-lucide="trophy"></i></span>
+        <span class="t-caption">App icon</span>
+      </div>
+      <div class="xk-cell">
+        <span class="xk-bell"><i data-lucide="message-circle"></i><i class="xk-udot"></i></span>
+        <span class="t-caption">Unread dot</span>
+      </div>
+      <div class="xk-cell xk-wide">
+        <div class="list xk-me">
+          <div class="row me"><span class="rank">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="main"><b>You</b></span><span class="elo">1 237</span></div>
+        </div>
+        <span class="t-caption">Your row marker</span>
+      </div>
+      <div class="xk-cell xk-wide">
+        <button class="btn brand block">Start Season 4</button>
+        <span class="t-caption">One hero action</span>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">Neutrals</h3>
+  <p class="lead">Both themes are complete ramps. Layers get lighter as they rise in dark and stay white on a grey page in light. Text has three levels; Text 3 is for captions and hints only.</p>
+  <div class="xk-themes">
+    <div class="xk-theme" data-theme="dark">
+      <div class="xk-th-h"><span class="xk-th-ic"><i data-lucide="moon"></i></span><b>Dark</b><span class="t-caption">Default theme</span></div>
+      <div class="xk-th-body">
+        <ul class="xk-ramp">
+          <li><i style="background:var(--bg)"></i><b>Page</b><code>--bg</code><code class="xk-hex">#0A0A0A</code></li>
+          <li><i style="background:var(--surface)"></i><b>Surface</b><code>--surface</code><code class="xk-hex">#141414</code></li>
+          <li><i style="background:var(--overlay)"></i><b>Overlay</b><code>--overlay</code><code class="xk-hex">#171717</code></li>
+          <li><i style="background:var(--surface-2)"></i><b>Surface 2</b><code>--surface-2</code><code class="xk-hex">#222222</code></li>
+          <li><i style="background:var(--surface-3)"></i><b>Surface 3</b><code>--surface-3</code><code class="xk-hex">#2C2C2C</code></li>
+          <li><i style="background:var(--line)"></i><b>Line</b><code>--line</code><code class="xk-hex">#262626</code></li>
+          <li><i style="background:var(--line-strong)"></i><b>Line strong</b><code>--line-strong</code><code class="xk-hex">#3A3A3A</code></li>
+          <li><i style="background:var(--text-3)"></i><b>Text 3</b><code>--text-3</code><code class="xk-hex">#7A7A7A</code><span class="xk-cr">4.3:1</span></li>
+          <li><i style="background:var(--text-2)"></i><b>Text 2</b><code>--text-2</code><code class="xk-hex">#ADADAD</code><span class="xk-cr">8.2:1</span></li>
+          <li><i style="background:var(--text)"></i><b>Text</b><code>--text</code><code class="xk-hex">#FFFFFF</code><span class="xk-cr">18.4:1</span></li>
+        </ul>
+        <div class="xk-prev">
+          <div class="xk-pcard">
+            <div class="xk-prow"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b>Mira</b><span>Won 10 to 6</span></div><span class="xk-pnum">1 302</span></div>
+            <p class="xk-pcap">Office foosball, 2 min ago</p>
+            <div class="xk-pbtns"><button class="btn primary sm">Rematch</button><button class="btn secondary sm">Share</button></div>
+          </div>
+          <div class="xk-pinput"><i data-lucide="search"></i>Search players</div>
+          <div class="xk-plev"><b>Text, headings and numbers</b><span>Text 2, supporting lines</span><em>Text 3, captions and hints</em></div><div class="xk-pills"><span class="pill win">W +14</span><span class="pill loss">L −9</span><span class="pill neutral">Cup</span></div>
+          <span class="t-caption">Contrast measured on Surface</span>
+        </div>
+      </div>
+    </div>
+    <div class="xk-theme" data-theme="light">
+      <div class="xk-th-h"><span class="xk-th-ic"><i data-lucide="sun"></i></span><b>Light</b><span class="t-caption">Second theme, same tokens</span></div>
+      <div class="xk-th-body">
+        <ul class="xk-ramp">
+          <li><i style="background:var(--bg)"></i><b>Page</b><code>--bg</code><code class="xk-hex">#F5F5F5</code></li>
+          <li><i style="background:var(--surface)"></i><b>Surface</b><code>--surface</code><code class="xk-hex">#FFFFFF</code></li>
+          <li><i style="background:var(--overlay)"></i><b>Overlay</b><code>--overlay</code><code class="xk-hex">#FFFFFF</code></li>
+          <li><i style="background:var(--surface-2)"></i><b>Surface 2</b><code>--surface-2</code><code class="xk-hex">#F5F5F5</code></li>
+          <li><i style="background:var(--surface-3)"></i><b>Surface 3</b><code>--surface-3</code><code class="xk-hex">#EAEAEA</code></li>
+          <li><i style="background:var(--line)"></i><b>Line</b><code>--line</code><code class="xk-hex">#EAEAEA</code></li>
+          <li><i style="background:var(--line-strong)"></i><b>Line strong</b><code>--line-strong</code><code class="xk-hex">#D6D6D6</code></li>
+          <li><i style="background:var(--text-3)"></i><b>Text 3</b><code>--text-3</code><code class="xk-hex">#8A8984</code><span class="xk-cr">3.5:1</span></li>
+          <li><i style="background:var(--text-2)"></i><b>Text 2</b><code>--text-2</code><code class="xk-hex">#555450</code><span class="xk-cr">7.6:1</span></li>
+          <li><i style="background:var(--text)"></i><b>Text</b><code>--text</code><code class="xk-hex">#111111</code><span class="xk-cr">18.9:1</span></li>
+        </ul>
+        <div class="xk-prev">
+          <div class="xk-pcard">
+            <div class="xk-prow"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b>Mira</b><span>Won 10 to 6</span></div><span class="xk-pnum">1 302</span></div>
+            <p class="xk-pcap">Office foosball, 2 min ago</p>
+            <div class="xk-pbtns"><button class="btn primary sm">Rematch</button><button class="btn secondary sm">Share</button></div>
+          </div>
+          <div class="xk-pinput"><i data-lucide="search"></i>Search players</div>
+          <div class="xk-plev"><b>Text, headings and numbers</b><span>Text 2, supporting lines</span><em>Text 3, captions and hints</em></div><div class="xk-pills"><span class="pill win">W +14</span><span class="pill loss">L −9</span><span class="pill neutral">Cup</span></div>
+          <span class="t-caption">Contrast measured on Surface</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="demo xk-live">
+    <div class="xk-live-h"><b>Live values</b><span class="t-caption">Read from the page, they follow the theme switch</span></div>
+    <div class="swatches" data-swatches="--bg:Page,--surface:Surface,--surface-2:Surface 2,--surface-3:Surface 3,--overlay:Overlay,--line:Line,--line-strong:Line strong,--text:Text,--text-2:Text 2,--text-3:Text 3,--primary:Primary,--on-primary:On primary"></div>
+  </div>
+
+  <h3 class="sub">Meaning</h3>
+  <p class="lead">Each meaning colour has a fixed partner for text on top of it. Win, live, error, info and brand take white, crown and warning take black. Ratios are for that partner.</p>
+  <div class="xk-means">
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--win);color:var(--on-win)"><span class="xk-maa">Aa</span><div><b>Win</b><span>3.2:1 AA large</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--win</code><code data-var="--win"></code></div><p>Wins, positive results, success toasts, toggles on</p><div class="xk-msample"><span class="pill win">W +14</span><span class="xk-dsm" style="background:var(--win)"></span></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--loss);color:var(--on-loss)"><span class="xk-maa">Aa</span><div><b>Loss</b><span>11.4:1 dark, 13.4:1 light</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--loss</code><code data-var="--loss"></code></div><p>Neutral grey. A loss is not an error, never red</p><div class="xk-msample"><span class="pill loss">L −9</span></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--live);color:var(--on-live)"><span class="xk-maa">Aa</span><div><b>Live</b><span>4.2:1 AA large</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--live</code><code data-var="--live"></code></div><p>A match being played right now, unread counts</p><div class="xk-msample"><span class="pill live"><span class="xk-ldot"></span>Live</span><span class="xk-cnt">3</span></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--crown);color:var(--on-crown)"><span class="xk-maa">Aa</span><div><b>Crown</b><span>10.9:1 AAA</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--crown</code><code data-var="--crown"></code></div><p>Number one, bounty, coins, gold medals</p><div class="xk-msample"><span class="pill crown">👑 #1</span><span class="coin-pill"><span class="coin"></span>1 240</span></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--error);color:var(--on-error)"><span class="xk-maa">Aa</span><div><b>Error</b><span>4.2:1 AA large</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--error</code><code data-var="--error"></code></div><p>Failed actions and destructive buttons. Same red as live</p><div class="xk-msample"><button class="btn danger sm">Delete</button></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--warning);color:var(--on-warning)"><span class="xk-maa">Aa</span><div><b>Warning</b><span>9.7:1 AAA</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--warning</code><code data-var="--warning"></code></div><p>Deadlines and expiring challenges</p><div class="xk-msample"><span class="pill warning"><i data-lucide="clock"></i>2 h left</span></div></div>
+    </div>
+    <div class="xk-mean">
+      <div class="xk-mfill" style="background:var(--info);color:var(--on-info)"><span class="xk-maa">Aa</span><div><b>Info</b><span>4.6:1 AA</span></div></div>
+      <div class="xk-minfo"><div class="xk-mcodes"><code>--info</code><code data-var="--info"></code></div><p>Neutral system news and tips</p><div class="xk-msample"><span class="pill info"><i data-lucide="info"></i>Tip</span></div></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Player colours</h3>
+  <p class="lead">Every player picks a colour and a number, like a jersey. The base value fills the avatar ring and number tag; names in chat and lists use the text variant of the current theme so they stay readable.</p>
+  <div class="xk-jerseys">
+    <div class="xk-jt" style="--c:var(--pc-yellow);--ct:var(--pct-yellow)"><div class="xk-shirt dark-no"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>1</span></div><b>Sam</b><span class="xk-jn">Yellow</span><dl><dt>Fill</dt><dd>#F2B705</dd><dt>Text dark</dt><dd>#F2B705</dd><dt>Text light</dt><dd>#8A6A00</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-maroon);--ct:var(--pct-maroon)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>2</span></div><b>Ann</b><span class="xk-jn">Maroon</span><dl><dt>Fill</dt><dd>#7A1F2B</dd><dt>Text dark</dt><dd>#E0808C</dd><dt>Text light</dt><dd>#7A1F2B</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-red);--ct:var(--pct-red)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>3</span></div><b>Joe</b><span class="xk-jn">Red</span><dl><dt>Fill</dt><dd>#C8102E</dd><dt>Text dark</dt><dd>#FF6B7D</dd><dt>Text light</dt><dd>#C8102E</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-purple);--ct:var(--pct-purple)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>4</span></div><b>Kim</b><span class="xk-jn">Purple</span><dl><dt>Fill</dt><dd>#4B2A7B</dd><dt>Text dark</dt><dd>#B394E6</dd><dt>Text light</dt><dd>#4B2A7B</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-orange);--ct:var(--pct-orange)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>5</span></div><b>Mira</b><span class="xk-jn">Orange</span><dl><dt>Fill</dt><dd>#E8601C</dd><dt>Text dark</dt><dd>#F59A63</dd><dt>Text light</dt><dd>#B4460F</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-green);--ct:var(--pct-green)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>6</span></div><b>You</b><span class="xk-jn">Green</span><dl><dt>Fill</dt><dd>#146B3A</dd><dt>Text dark</dt><dd>#5FCB8C</dd><dt>Text light</dt><dd>#146B3A</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-blue);--ct:var(--pct-blue)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>7</span></div><b>Dave</b><span class="xk-jn">Blue</span><dl><dt>Fill</dt><dd>#1F3FA3</dd><dt>Text dark</dt><dd>#7D97F0</dd><dt>Text light</dt><dd>#1F3FA3</dd></dl></div>
+    <div class="xk-jt" style="--c:var(--pc-ink);--ct:var(--pct-ink)"><div class="xk-shirt"><svg viewBox="0 0 120 108" aria-hidden="true"><path d="M40 6 22 12 4 32l15 17 10-8v61h62V41l10 8 15-17-18-20-18-6c-3 9-11 15-20 15S43 15 40 6z"/></svg><span>8</span></div><b>Free</b><span class="xk-jn">Ink</span><dl><dt>Fill</dt><dd>#0A0A0A</dd><dt>Text dark</dt><dd>#FFFFFF</dd><dt>Text light</dt><dd>#111111</dd></dl></div>
+  </div>
+  <div class="demo xk-chat">
+    <div class="xk-chat-line"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><div><b style="color:var(--pct-orange)">Mira</b><p>Rematch at 3? Loser buys coffee</p></div></div>
+    <div class="xk-chat-line"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><div><b style="color:var(--pct-blue)">Dave</b><p>Only if Sam keeps score this time</p></div></div>
+    <div class="xk-chat-line"><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><div><b style="color:var(--pct-yellow)">Sam</b><p>Deal, table 2 is free</p></div></div>
+    <p class="xk-note">Names use <code>--pct-*</code>, rings use <code>--pc-*</code>. Yellow is the only fill that takes a black number.</p>
+  </div>
+
+  <h3 class="sub">Proportions</h3>
+  <div class="demo xk-usage">
+    <div class="xk-bar" role="img" aria-label="Colour share on a typical screen">
+      <span style="flex:68;background:var(--surface-3)"><b>68%</b></span>
+      <span style="flex:20;background:var(--text);color:var(--bg)"><b>20%</b></span>
+      <span style="flex:4;background:var(--brand);color:#fff"><b>4%</b></span>
+      <span style="flex:3;background:var(--win)"></span>
+      <span style="flex:2;background:var(--crown)"></span>
+      <span style="flex:2;background:var(--pc-orange)"></span>
+      <span style="flex:1;background:var(--live)"></span>
+    </div>
+    <div class="xk-legend">
+      <div><i style="background:var(--surface-3)"></i><b>Surfaces 68%</b><span>Page, cards, sheets, lines</span></div>
+      <div><i style="background:var(--text)"></i><b>Text 20%</b><span>Three text levels, icons, primary buttons</span></div>
+      <div><i style="background:var(--brand)"></i><b>Brand 4%</b><span>One mark, one hero action</span></div>
+      <div><i style="background:var(--win)"></i><b>Win 3%</b><span>Results and success</span></div>
+      <div><i style="background:var(--crown)"></i><b>Crown 2%</b><span>Leader, coins, medals</span></div>
+      <div><i style="background:var(--pc-orange)"></i><b>Players 2%</b><span>Rings, tags, names</span></div>
+      <div><i style="background:var(--live)"></i><b>Live 1%</b><span>Right now, unread</span></div>
+    </div>
+  </div>
+
+  <h3 class="sub">Medals and rarities</h3>
+  <div class="xk-medals">
+    <div class="xk-md"><span class="medal bronze">🥉</span><div><b>Bronze</b><code>#A8622C</code><span>Top 10, common cards</span></div></div>
+    <div class="xk-md"><span class="medal silver">🥈</span><div><b>Silver</b><code>#C9CCD1</code><span>Top 3, rare cards</span></div></div>
+    <div class="xk-md"><span class="medal gold">🥇</span><div><b>Gold</b><code>#F2B705</code><span>Winner, epic cards</span></div></div>
+    <div class="xk-md"><span class="medal diamond">💎</span><div><b>Diamond</b><code>#FFFFFF</code><span>Season champion</span></div></div>
+    <div class="xk-md"><span class="medal legend">👑</span><div><b>Legend</b><code>#0A0A0A</code><span>Three seasons on top</span></div></div>
+  </div>
+
+  <h3 class="sub">Do and don't</h3>
+  <div class="xk-dd">
+    <div class="xk-pair">
+      <div class="xk-do"><div class="xk-stage"><span class="pill win">W +14</span></div><b><i data-lucide="check"></i>White text on win green</b></div>
+      <div class="xk-dont"><div class="xk-stage"><span class="pill" style="background:var(--win);color:var(--on-crown)">W +14</span></div><b><i data-lucide="x"></i>Black text on green</b></div>
+    </div>
+    <div class="xk-pair">
+      <div class="xk-do"><div class="xk-stage"><span class="pill loss">L −9</span></div><b><i data-lucide="check"></i>A loss is neutral grey</b></div>
+      <div class="xk-dont"><div class="xk-stage"><span class="pill live">L −9</span></div><b><i data-lucide="x"></i>Red reads as an error</b></div>
+    </div>
+    <div class="xk-pair">
+      <div class="xk-do"><div class="xk-stage xk-stk"><button class="btn brand sm">Start season</button><button class="btn secondary sm">Later</button></div><b><i data-lucide="check"></i>One violet action per screen</b></div>
+      <div class="xk-dont"><div class="xk-stage xk-stk"><button class="btn brand sm">Start</button><button class="btn brand sm">Invite</button><button class="btn brand sm">Share</button></div><b><i data-lucide="x"></i>Violet everywhere means nothing</b></div>
+    </div>
+    <div class="xk-pair">
+      <div class="xk-do"><div class="xk-stage" data-theme="dark"><span class="xk-word" style="color:var(--text)">Liga</span><span class="xk-tag">Liga</span></div><b><i data-lucide="check"></i>White on violet, white on dark</b></div>
+      <div class="xk-dont"><div class="xk-stage" data-theme="dark"><span class="xk-word" style="color:var(--brand)">Liga</span></div><b><i data-lucide="x"></i>Violet text on dark, 3.0:1</b></div>
+    </div>
+    <div class="xk-pair">
+      <div class="xk-do"><div class="xk-stage" data-theme="dark"><span class="xk-word sm" style="color:var(--pct-blue)">Dave</span></div><b><i data-lucide="check"></i>Names use the text variant</b></div>
+      <div class="xk-dont"><div class="xk-stage" data-theme="dark"><span class="xk-word sm" style="color:var(--pc-blue)">Dave</span></div><b><i data-lucide="x"></i>Fill colour as text, 2.0:1</b></div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,200 @@
+<section class="sec" id="buttons" data-title="Buttons">
+  <h2 class="t-title">Buttons</h2>
+  <p class="lead">Always pill shaped, sentence case, a verb first. One primary per screen, at most one brand moment. Three heights, 52, 44 and 36, and every one of them is at least 44 px to the thumb.</p>
+
+  <div class="demo cb-box">
+    <div class="cb-matrix" role="table" aria-label="Button variants by state">
+      <div class="cb-mrow cb-mhead" role="row">
+        <span role="columnheader">Variant</span>
+        <span role="columnheader">Default</span>
+        <span role="columnheader">Pressed</span>
+        <span role="columnheader">Disabled</span>
+        <span role="columnheader">Loading</span>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Primary</b><span>The main action of a screen or sheet</span></div>
+        <div class="cb-cell" role="cell"><button class="btn primary">Log match</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn primary cb-pressed" tabindex="-1">Log match</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn primary" disabled>Log match</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn primary" aria-busy="true"><span class="spin"></span>Saving</button><span class="cb-st">Loading</span></div>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Secondary</b><span>Everything else, side by side with primary</span></div>
+        <div class="cb-cell" role="cell"><button class="btn secondary"><i data-lucide="swords"></i>Challenge</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn secondary cb-pressed" tabindex="-1"><i data-lucide="swords"></i>Challenge</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn secondary" disabled><i data-lucide="swords"></i>Challenge</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn secondary" aria-busy="true"><span class="spin"></span>Sending</button><span class="cb-st">Loading</span></div>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Brand</b><span>One brand moment, create, join, upgrade</span></div>
+        <div class="cb-cell" role="cell"><button class="btn brand">Create league</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn brand cb-pressed" tabindex="-1">Create league</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn brand" disabled>Create league</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn brand" aria-busy="true"><span class="spin"></span>Creating</button><span class="cb-st">Loading</span></div>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Ghost</b><span>Low priority, skip, show all, not now</span></div>
+        <div class="cb-cell" role="cell"><button class="btn ghost">Show all</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn ghost cb-pressed" tabindex="-1">Show all</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn ghost" disabled>Show all</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn ghost" aria-busy="true"><span class="spin"></span>Loading</button><span class="cb-st">Loading</span></div>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Danger</b><span>Destructive confirm, always inside a dialog</span></div>
+        <div class="cb-cell" role="cell"><button class="btn danger"><i data-lucide="trash-2"></i>Delete match</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn danger cb-pressed" tabindex="-1"><i data-lucide="trash-2"></i>Delete match</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn danger" disabled><i data-lucide="trash-2"></i>Delete match</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn danger" aria-busy="true"><span class="spin"></span>Deleting</button><span class="cb-st">Loading</span></div>
+      </div>
+      <div class="cb-mrow" role="row">
+        <div class="cb-vname" role="rowheader"><b>Live</b><span>Only to start or join a live match</span></div>
+        <div class="cb-cell" role="cell"><button class="btn live"><span class="live-dot"></span>Start live</button><span class="cb-st">Default</span></div>
+        <div class="cb-cell" role="cell"><button class="btn live cb-pressed" tabindex="-1"><span class="live-dot"></span>Start live</button><span class="cb-st">Pressed</span></div>
+        <div class="cb-cell" role="cell"><button class="btn live" disabled><span class="live-dot"></span>Start live</button><span class="cb-st">Disabled</span></div>
+        <div class="cb-cell" role="cell"><button class="btn live" aria-busy="true"><span class="spin"></span>Starting</button><span class="cb-st">Loading</span></div>
+      </div>
+    </div>
+    <p class="cb-note">Pressed scales to 97 percent in 120 ms. Neutral fills step one surface up and brand uses its press colour, meaning colours never get lighter or darker. Disabled turns every variant into the same quiet surface. Loading keeps the width and fill and swaps the icon for a spinner.</p>
+  </div>
+
+  <div class="cb-two">
+    <div class="demo cb-panel">
+      <div class="cb-ph"><b>Size scale</b><span>Guides show the drawn height, the dashed box is the touch target</span></div>
+      <div class="cb-sizes">
+        <div class="cb-size">
+          <div class="cb-meta"><b>Large</b><span>52 px, sheet and screen confirm</span></div>
+          <div class="cb-lane" style="--h:52px">
+            <button class="btn primary lg">Log match</button>
+            <button class="btn secondary lg"><i data-lucide="swords"></i>Challenge</button>
+            <span class="cb-hmark">52</span>
+          </div>
+        </div>
+        <div class="cb-size">
+          <div class="cb-meta"><b>Medium</b><span>44 px, the default everywhere</span></div>
+          <div class="cb-lane" style="--h:44px">
+            <button class="btn primary">Log match</button>
+            <button class="btn secondary"><i data-lucide="swords"></i>Challenge</button>
+            <span class="cb-hmark">44</span>
+          </div>
+        </div>
+        <div class="cb-size">
+          <div class="cb-meta"><b>Small</b><span>36 px drawn, 44 px hit area</span></div>
+          <div class="cb-lane cb-lane-sm" style="--h:36px">
+            <span class="cb-hit"><button class="btn primary sm">Rematch</button></span>
+            <span class="cb-hit"><button class="btn secondary sm"><i data-lucide="share"></i>Share</button></span>
+            <span class="cb-hmark">36</span>
+          </div>
+        </div>
+      </div>
+      <table class="spec cb-spec">
+        <tr><th>Size</th><th>Height</th><th>Side padding</th><th>Label</th><th>Icon</th></tr>
+        <tr><td>Large</td><td class="num">52</td><td class="num">24</td><td>Inter 700, 16</td><td class="num">20</td></tr>
+        <tr><td>Medium</td><td class="num">44</td><td class="num">20</td><td>Inter 700, 15</td><td class="num">18</td></tr>
+        <tr><td>Small</td><td class="num">36</td><td class="num">14</td><td>Inter 700, 14</td><td class="num">16</td></tr>
+      </table>
+    </div>
+
+    <div class="demo cb-panel">
+      <div class="cb-ph"><b>Anatomy</b><span>Large button with a leading icon</span></div>
+      <div class="cb-anat-stage">
+        <div class="cb-anat">
+          <button class="btn secondary lg" tabindex="-1"><i data-lucide="swords"></i>Challenge Dave</button>
+          <span class="cb-a cb-a-h"><i class="cb-n">1</i></span>
+          <span class="cb-a cb-a-pad"><i class="cb-n">2</i></span>
+          <span class="cb-a cb-a-ico"><i class="cb-n">3</i></span>
+          <span class="cb-a cb-a-gap"><i class="cb-n">4</i></span>
+          <span class="cb-a cb-a-lab"><i class="cb-n">5</i></span>
+          <span class="cb-a cb-a-rad"><i class="cb-n">6</i></span>
+        </div>
+      </div>
+      <ol class="cb-legend">
+        <li><i class="cb-n">1</i><b>Height</b><span>52 px, never stretched by content</span></li>
+        <li><i class="cb-n">2</i><b>Padding</b><span>24 px on each side, with or without an icon</span></li>
+        <li><i class="cb-n">3</i><b>Icon</b><span>20 px Lucide, leading, same colour as the label</span></li>
+        <li><i class="cb-n">4</i><b>Gap</b><span>8 px between icon and label</span></li>
+        <li><i class="cb-n">5</i><b>Label</b><span>Inter 700, one line, a verb first</span></li>
+        <li><i class="cb-n">6</i><b>Radius</b><span>Full pill, 999</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="cb-ctx">
+    <figure class="cb-fig">
+      <div class="cb-phone">
+        <div class="cb-pbar"><span class="cb-back"><i data-lucide="arrow-left"></i></span><b>Challenge</b><span class="cb-back"></span></div>
+        <div class="cb-vs">
+          <div class="cb-side"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><b>Dave</b><span class="num">1 248</span></div>
+          <span class="cb-vsx">VS</span>
+          <div class="cb-side"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><b>You</b><span class="num">1 237</span></div>
+        </div>
+        <div class="cb-stakes">
+          <div><span>Stake</span><b class="num">50 coins</b></div>
+          <div><span>Best of</span><b class="num">3</b></div>
+          <div><span>Expires</span><b class="num">23 h</b></div>
+        </div>
+        <div class="cb-h2h"><div><span>Head to head</span><b class="num">Dave 6, You 4</b></div><i><b style="width:60%"></b></i><span class="cb-h2hf">Last met Oct 9, Dave won 10 to 8</span></div>
+        <p class="cb-msg">“Loser buys coffee. Friday at 4?”</p>
+        <div class="cb-pfoot">
+          <button class="btn primary lg block">Accept challenge</button>
+          <button class="btn ghost block">Not now</button>
+        </div>
+      </div>
+      <figcaption><b>Full width</b>Screen confirm sits at the bottom, 16 px from the edges, ghost underneath for the way out.</figcaption>
+    </figure>
+
+    <figure class="cb-fig">
+      <div class="cb-sheetwrap"><div class="cb-frow"><span class="num">1</span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><b>Mira</b><span class="num">1 302</span></div><div class="cb-frow"><span class="num">2</span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><b>Dave</b><span class="num">1 248</span></div><div class="cb-frow"><span class="num">3</span><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><b>You</b><span class="num">1 237</span></div><div class="cb-frow"><span class="num">4</span><span class="av sm" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><b>Sam</b><span class="num">1 190</span></div><div class="cb-frow"><span class="num">5</span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><b>Kim</b><span class="num">1 102</span></div>
+      <div class="cb-sheet">
+        <span class="cb-grab"></span>
+        <div class="cb-sh-h"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><div><b>Mira logged a match</b><span>Mira 10, You 7, 12 min ago</span></div></div>
+        <p class="cb-sh-p">Confirm the score to update both ratings. You lose 14 and Mira gains 14.</p>
+        <div class="cb-pair">
+          <button class="btn secondary lg">Decline</button>
+          <button class="btn primary lg">Accept</button>
+        </div>
+      </div>
+      </div>
+      <figcaption><b>Sheet pair</b>Equal halves, 8 px gap. The way out on the left, the confirm on the right.</figcaption>
+    </figure>
+
+    <figure class="cb-fig">
+      <div class="cb-stack">
+        <div class="cb-dialog">
+          <b>Delete this match?</b>
+          <p>Ratings for Sam and Kim go back to before Oct 14.</p>
+          <div class="cb-pair">
+            <button class="btn secondary">Cancel</button>
+            <button class="btn danger">Delete</button>
+          </div>
+        </div>
+        <div class="cb-card">
+          <div class="cb-card-h"><span class="pill win">Won</span><span class="cb-card-t">You 10, Joe 6</span></div>
+          <div class="cb-card-a">
+            <button class="btn secondary sm"><i data-lucide="repeat"></i>Rematch</button>
+            <button class="btn ghost sm"><i data-lucide="share"></i>Share</button>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Dialog and card</b>Danger only after a question. Inside cards use small buttons, left aligned.</figcaption>
+    </figure>
+  </div>
+
+  <div class="cb-dd">
+    <div class="cb-ddt cb-do">
+      <div class="cb-dds"><div class="cb-pair cb-w"><button class="btn secondary" tabindex="-1">Decline</button><button class="btn primary" tabindex="-1">Accept</button></div></div>
+      <p><i data-lucide="check-circle-2"></i><span><b>Do</b> pair one primary with a secondary.</span></p>
+    </div>
+    <div class="cb-ddt cb-dont">
+      <div class="cb-dds"><div class="cb-pair cb-w"><button class="btn primary" tabindex="-1">Decline</button><button class="btn brand" tabindex="-1">Accept</button></div></div>
+      <p><i data-lucide="x-circle"></i><span><b>Don't</b> put two filled colours next to each other.</span></p>
+    </div>
+    <div class="cb-ddt cb-do">
+      <div class="cb-dds"><button class="btn primary" tabindex="-1">Log match</button></div>
+      <p><i data-lucide="check-circle-2"></i><span><b>Do</b> start with a verb that says what happens.</span></p>
+    </div>
+    <div class="cb-ddt cb-dont">
+      <div class="cb-dds"><button class="btn primary" tabindex="-1">OK</button><button class="btn primary" tabindex="-1">Click here</button></div>
+      <p><i data-lucide="x-circle"></i><span><b>Don't</b> use vague words that hide the outcome.</span></p>
+    </div>
+  </div>
+</section>

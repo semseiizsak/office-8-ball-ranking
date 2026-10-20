@@ -1,0 +1,117 @@
+<section class="sec" id="controls" data-title="Selection controls">
+  <h2 class="t-title">Selection controls</h2>
+  <p class="lead">Toggle for settings that apply instantly, checkbox for picking several, radio for one of many in a list, stepper for small numbers, choice card when the options need a description. Every control sits in a 44 px hit area, usually the whole row.</p>
+
+  <div class="demo cx-states">
+    <div class="cx-dh"><h3>States</h3><span class="t-small">Every control in every state. All of them work, tap to try.</span></div>
+    <div class="cx-grid" role="table" aria-label="Control states">
+      <div class="cx-hrow" role="row"><span role="columnheader">Control</span><span role="columnheader">On</span><span role="columnheader">Off</span><span role="columnheader">Disabled</span><span role="columnheader">Focus</span></div>
+
+      <div class="cx-row" role="row">
+        <div class="cx-name" role="rowheader"><span class="cx-ic"><i data-lucide="toggle-right"></i></span><span><b>Toggle</b><span>52 by 32, thumb 26, applies at once</span></span></div>
+        <div class="cx-c" role="cell"><button class="toggle" role="switch" aria-checked="true" aria-label="Toggle on" data-flip></button><code>On</code></div>
+        <div class="cx-c" role="cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Toggle off" data-flip></button><code>Off</code></div>
+        <div class="cx-c" role="cell"><span class="cx-pair"><button class="toggle" role="switch" aria-checked="true" aria-label="Toggle disabled on" disabled></button><button class="toggle" role="switch" aria-checked="false" aria-label="Toggle disabled off" disabled></button></span><code>Disabled</code></div>
+        <div class="cx-c" role="cell"><button class="toggle cx-fx" role="switch" aria-checked="true" aria-label="Toggle focused" data-flip></button><code>Focus ring</code></div>
+      </div>
+
+      <div class="cx-row" role="row">
+        <div class="cx-name" role="rowheader"><span class="cx-ic"><i data-lucide="square-check"></i></span><span><b>Checkbox</b><span>24 box, radius 7, pick several</span></span></div>
+        <div class="cx-c" role="cell"><button class="check" role="checkbox" aria-checked="true" aria-label="Checkbox on" data-flip><i data-lucide="check"></i></button><code>Checked</code></div>
+        <div class="cx-c" role="cell"><button class="check" role="checkbox" aria-checked="false" aria-label="Checkbox off" data-flip><i data-lucide="check"></i></button><code>Unchecked</code></div>
+        <div class="cx-c" role="cell"><span class="cx-pair"><button class="check" role="checkbox" aria-checked="true" aria-label="Checkbox disabled on" disabled><i data-lucide="check"></i></button><button class="check" role="checkbox" aria-checked="false" aria-label="Checkbox disabled off" disabled><i data-lucide="check"></i></button></span><code>Disabled</code></div>
+        <div class="cx-c" role="cell"><button class="check cx-fx" role="checkbox" aria-checked="false" aria-label="Checkbox focused" data-flip><i data-lucide="check"></i></button><code>Focus ring</code></div>
+      </div>
+
+      <div class="cx-row" role="row">
+        <div class="cx-name" role="rowheader"><span class="cx-ic"><i data-lucide="circle-dot"></i></span><span><b>Radio</b><span>24 circle, 7 px ring, one of many</span></span></div>
+        <div class="cx-c" role="cell"><span data-radio><button class="radio" role="radio" aria-checked="true" aria-label="Radio on"></button></span><code>Selected</code></div>
+        <div class="cx-c" role="cell"><span data-radio><button class="radio" role="radio" aria-checked="false" aria-label="Radio off"></button></span><code>Not selected</code></div>
+        <div class="cx-c" role="cell"><span class="cx-pair"><button class="radio" role="radio" aria-checked="true" aria-label="Radio disabled on" disabled></button><button class="radio" role="radio" aria-checked="false" aria-label="Radio disabled off" disabled></button></span><code>Disabled</code></div>
+        <div class="cx-c" role="cell"><span data-radio><button class="radio cx-fx" role="radio" aria-checked="true" aria-label="Radio focused"></button></span><code>Focus ring</code></div>
+      </div>
+
+      <div class="cx-row" role="row">
+        <div class="cx-name" role="rowheader"><span class="cx-ic"><i data-lucide="diff"></i></span><span><b>Stepper</b><span>44 tall, step 1, ends disable</span></span></div>
+        <div class="cx-c" role="cell"><div class="stepper" data-cx-stepper data-min="1" data-max="21"><button aria-label="Less" data-cx-step="-1"><i data-lucide="minus"></i></button><output class="num">10</output><button aria-label="More" data-cx-step="1"><i data-lucide="plus"></i></button></div><code>In range</code></div>
+        <div class="cx-c" role="cell"><div class="stepper" data-cx-stepper data-min="1" data-max="21"><button aria-label="Less" data-cx-step="-1"><i data-lucide="minus"></i></button><output class="num">1</output><button aria-label="More" data-cx-step="1"><i data-lucide="plus"></i></button></div><code>At minimum</code></div>
+        <div class="cx-c" role="cell"><div class="stepper cx-off"><button aria-label="Less" disabled><i data-lucide="minus"></i></button><output class="num">10</output><button aria-label="More" disabled><i data-lucide="plus"></i></button></div><code>Disabled</code></div>
+        <div class="cx-c" role="cell"><div class="stepper" data-cx-stepper data-min="1" data-max="21"><button aria-label="Less" data-cx-step="-1"><i data-lucide="minus"></i></button><output class="num">5</output><button class="cx-fx" aria-label="More" data-cx-step="1"><i data-lucide="plus"></i></button></div><code>Focus ring</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo cx-ctx">
+    <div class="cx-dh"><h3>In context</h3><span class="t-small">The whole row is the hit area, the control only shows the state.</span></div>
+    <div class="cx-cols">
+      <div class="cx-panel">
+        <div class="cx-ph"><b>Notifications</b><span class="t-caption">Saved as you go</span></div>
+        <div class="cx-list">
+          <div class="cx-srow"><span class="cx-lead"><i data-lucide="trophy"></i></span><span class="cx-tx"><b>Match results</b><span>When someone logs a match with you</span></span><button class="toggle" role="switch" aria-checked="true" aria-label="Match results" data-flip></button></div>
+          <div class="cx-srow"><span class="cx-lead"><i data-lucide="swords"></i></span><span class="cx-tx"><b>Challenges</b><span>New, accepted, expiring</span></span><button class="toggle" role="switch" aria-checked="true" aria-label="Challenges" data-flip></button></div>
+          <div class="cx-srow"><span class="cx-lead"><i data-lucide="calendar"></i></span><span class="cx-tx"><b>Weekly cup reminder</b><span>Fridays at 9:00</span></span><button class="toggle" role="switch" aria-checked="false" aria-label="Weekly cup reminder" data-flip></button></div>
+          <div class="cx-srow"><span class="cx-lead"><i data-lucide="message-circle"></i></span><span class="cx-tx"><b>Chat mentions</b><span>Only when someone tags you</span></span><button class="toggle" role="switch" aria-checked="true" aria-label="Chat mentions" data-flip></button></div>
+          <div class="cx-srow cx-dis"><span class="cx-lead"><i data-lucide="radio"></i></span><span class="cx-tx"><b>Live match alerts</b><span>Turn on match results first</span></span><button class="toggle" role="switch" aria-checked="false" aria-label="Live match alerts" disabled></button></div>
+        </div>
+        <div class="cx-list">
+          <div class="cx-srow"><span class="cx-lead"><i data-lucide="target"></i></span><span class="cx-tx"><b>Goals to win</b><span>For new matches</span></span><div class="stepper" data-cx-stepper data-min="1" data-max="21"><button aria-label="Fewer goals" data-cx-step="-1"><i data-lucide="minus"></i></button><output class="num">10</output><button aria-label="More goals" data-cx-step="1"><i data-lucide="plus"></i></button></div></div>
+        </div>
+      </div>
+
+      <div class="cx-panel">
+        <div class="cx-ph"><b>Pick your team</b><span class="t-caption" data-cx-picked>2 of 3 picked</span></div>
+        <div class="cx-list" data-cx-checks>
+          <button class="cx-crow" role="checkbox" aria-checked="true" data-flip><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="cx-tx"><b>Mira</b><span class="num">1 302, #1</span></span><span class="check" aria-hidden="true"><i data-lucide="check"></i></span></button>
+          <button class="cx-crow" role="checkbox" aria-checked="true" data-flip><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="cx-tx"><b>Dave</b><span class="num">1 248, #2</span></span><span class="check" aria-hidden="true"><i data-lucide="check"></i></span></button>
+          <button class="cx-crow" role="checkbox" aria-checked="false" data-flip><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="cx-tx"><b>Sam</b><span class="num">1 190, #4</span></span><span class="check" aria-hidden="true"><i data-lucide="check"></i></span></button>
+          <button class="cx-crow" role="checkbox" aria-checked="false" data-flip><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="cx-tx"><b>Kim</b><span class="num">1 102, #5</span></span><span class="check" aria-hidden="true"><i data-lucide="check"></i></span></button>
+          <button class="cx-crow" role="checkbox" aria-checked="false" disabled><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span><span class="cx-tx"><b>Joe</b><span>Dormant, 16 days</span></span><span class="check" aria-hidden="true"><i data-lucide="check"></i></span></button>
+        </div>
+      </div>
+
+      <div class="cx-panel">
+        <div class="cx-ph"><b>Match length</b><span class="t-caption">One choice</span></div>
+        <div class="cx-list" role="radiogroup" aria-label="Match length" data-cx-radio>
+          <button class="cx-rrow" role="radio" aria-checked="true"><span class="cx-tx"><b>First to 10</b><span>The office classic, about 8 min</span></span><span class="radio" aria-hidden="true"></span></button>
+          <button class="cx-rrow" role="radio" aria-checked="false"><span class="cx-tx"><b>First to 5</b><span>Quick game over lunch</span></span><span class="radio" aria-hidden="true"></span></button>
+          <button class="cx-rrow" role="radio" aria-checked="false"><span class="cx-tx"><b>Best of 3 sets</b><span>For cup finals</span></span><span class="radio" aria-hidden="true"></span></button>
+          <button class="cx-rrow" role="radio" aria-checked="false" disabled><span class="cx-tx"><b>Timed match</b><span>Coming with Pro</span></span><span class="pill brand cx-pro">Pro</span><span class="radio" aria-hidden="true"></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo cx-choice-demo">
+    <div class="cx-dh"><h3>Choice cards</h3><span class="t-small">When each option needs a sentence. Three across on wide screens, stacked on a phone.</span></div>
+    <div class="cx-choices" role="group" aria-label="League format" data-single>
+      <button class="cx-choice" aria-pressed="true">
+        <span class="cx-ct"><span class="cx-ci"><i data-lucide="user"></i></span><span class="cx-rd" aria-hidden="true"></span></span>
+        <span class="cx-ill"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="cx-vs">vs</span><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span></span>
+        <b>1v1 only</b><span class="cx-cd">Every match is one against one. One rating per player.</span>
+      </button>
+      <button class="cx-choice" aria-pressed="false">
+        <span class="cx-ct"><span class="cx-ci"><i data-lucide="users"></i></span><span class="cx-rd" aria-hidden="true"></span></span>
+        <span class="cx-ill"><span class="av-pair"><span class="av" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><span class="av" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span></span><span class="cx-vs">vs</span><span class="av-pair"><span class="av" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><span class="av" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span></span></span>
+        <b>2v2 only</b><span class="cx-cd">Pairs against pairs. Both players share the result.</span>
+      </button>
+      <button class="cx-choice" aria-pressed="false">
+        <span class="cx-ct"><span class="cx-ci"><i data-lucide="shuffle"></i></span><span class="cx-rd" aria-hidden="true"></span></span>
+        <span class="cx-ill"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="cx-vs">or</span><span class="av-pair"><span class="av yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span></span></span>
+        <b>Mixed</b><span class="cx-cd">Pick the format each time you log a match.</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="dodont">
+    <div class="do"><b><i data-lucide="check"></i>Do</b><ul><li>Make the whole row tappable and put the control at the end.</li><li>Say why a control is disabled in the row text.</li><li>Use a toggle only when the change applies at once.</li></ul></div>
+    <div class="dont"><b><i data-lucide="x"></i>Don't</b><ul><li>Use a toggle in a form that needs a Save button, use a checkbox.</li><li>Use radios for two options, use a segmented control.</li><li>Rely on colour alone, the thumb and tick move as well.</li></ul></div>
+  </div>
+  <table class="spec">
+    <tr><th>Control</th><th>Size</th><th>On state</th><th>Use</th></tr>
+    <tr><td>Toggle</td><td class="num">52 by 32, hit 44</td><td>Win green, thumb right</td><td>Settings that apply instantly.</td></tr>
+    <tr><td>Checkbox</td><td class="num">24, hit 44</td><td>Primary fill, tick</td><td>Several from a list, like teammates.</td></tr>
+    <tr><td>Radio</td><td class="num">24, hit 44</td><td>7 px primary ring</td><td>One of 3 or more in a list.</td></tr>
+    <tr><td>Stepper</td><td class="num">44 tall</td><td>Ends disable</td><td>Small numbers, goals or sets.</td></tr>
+    <tr><td>Choice card</td><td class="num">min 196 tall</td><td>2 px text ring, filled radio</td><td>Big decisions with a sentence each.</td></tr>
+  </table>
+</section>

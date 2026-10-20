@@ -1,0 +1,208 @@
+<section class="sec" id="feedback" data-title="Notifications and feedback">
+  <h2 class="t-title">Notifications and feedback</h2>
+  <p class="lead">Toasts confirm what you just did and leave after 4 s. Alerts stay while a state lasts. The inbox keeps the last 40 events. Push is only for what needs you now.</p>
+
+  <h3 class="sub">Toast</h3>
+  <div class="demo xf-toastd">
+    <div class="xf-tgrid">
+      <div class="xf-tcell">
+        <div class="toast ok xf-t"><i data-lucide="check-circle-2"></i><div class="tx"><b>Match saved</b>You gained 14 rating</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button><i class="xf-timer" aria-hidden="true"></i></div>
+        <div class="xf-meta"><b>Success</b><span>Win green, white text, 4 s</span></div>
+      </div>
+      <div class="xf-tcell">
+        <div class="toast er xf-t"><i data-lucide="alert-circle"></i><div class="tx"><b>Could not save</b>Check your connection and try again</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button><i class="xf-timer" aria-hidden="true"></i></div>
+        <div class="xf-meta"><b>Error</b><span>Red, white text, stays until closed</span></div>
+      </div>
+      <div class="xf-tcell">
+        <div class="toast wr xf-t"><i data-lucide="clock"></i><div class="tx"><b>Cup closes at noon</b>You have 30 minutes to sign up</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button><i class="xf-timer" aria-hidden="true"></i></div>
+        <div class="xf-meta"><b>Warning</b><span>Amber, black text, 4 s</span></div>
+      </div>
+      <div class="xf-tcell">
+        <div class="toast xf-in xf-t"><i data-lucide="info"></i><div class="tx"><b>Ratings update overnight</b>Your new rank shows at 06:00</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button><i class="xf-timer" aria-hidden="true"></i></div>
+        <div class="xf-meta"><b>Info</b><span>Blue, white text, 4 s</span></div>
+      </div>
+      <div class="xf-tcell">
+        <div class="toast dk xf-t xf-t6"><i data-lucide="undo-2"></i><div class="tx"><b>Challenge cancelled</b>Kim will not be notified</div><button class="btn sm xf-undo">Undo</button><i class="xf-timer" aria-hidden="true"></i></div>
+        <div class="xf-meta"><b>Undo</b><span>Inverse surface, 6 s, one action</span></div>
+      </div>
+      <div class="xf-tcell xf-live">
+        <div class="xf-livebox">
+          <span class="xf-liveic"><i data-lucide="play"></i></span>
+          <div><b>Try it</b><span>Slides in from the tab bar, leaves after 4 s</span></div>
+          <button class="btn primary sm" id="toastDemo">Show a toast</button>
+        </div>
+        <div class="xf-meta"><b>Live demo</b><span>Uses the page toast stack</span></div>
+      </div>
+    </div>
+
+    <div class="xf-trow">
+      <div class="xf-anat">
+        <div class="xf-an-stage">
+          <div class="xf-an-t">
+            <div class="toast ok xf-t xf-big"><i data-lucide="check-circle-2"></i><div class="tx"><b>Match saved</b>You beat Dave 10 to 7, +14 rating</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button><i class="xf-timer" aria-hidden="true"></i></div>
+            <span class="xf-mk" style="left:14px;top:-14px">1</span>
+            <span class="xf-mk" style="left:54px;top:-14px">2</span>
+            <span class="xf-mk" style="left:54px;bottom:-14px">3</span>
+            <span class="xf-mk" style="right:14px;top:-14px">4</span>
+            <span class="xf-mk" style="right:42%;bottom:-14px">5</span>
+          </div>
+        </div>
+        <ol class="xf-legend">
+          <li><span class="xf-n">1</span><b>Icon</b><span>Shows the meaning at a glance, 20 px</span></li>
+          <li><span class="xf-n">2</span><b>Title</b><span>What happened, 14 px semibold, one line</span></li>
+          <li><span class="xf-n">3</span><b>Detail</b><span>Optional, the result in numbers</span></li>
+          <li><span class="xf-n">4</span><b>Close or action</b><span>One only, 44 px hit area</span></li>
+          <li><span class="xf-n">5</span><b>Timer</b><span>4 s, pauses while pressed</span></li>
+          <li><span class="xf-n xf-n0"><i data-lucide="ruler"></i></span><b>Box</b><span>Radius 16, padding 12 16, max 380 wide</span></li>
+        </ol>
+      </div>
+
+      <div class="xf-place">
+        <div class="device-cap">
+          <div class="device sm" data-theme="dark"><div class="device-screen" data-xf-app>
+            <div class="toast xf-t xf-pos-top xf-in"><i data-lucide="swords"></i><div class="tx"><b>Mira accepted your challenge</b>Play by Thursday 18:00</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button></div>
+          </div></div>
+          <span>Top, for things that arrive while you use the app</span>
+        </div>
+        <div class="device-cap">
+          <div class="device sm" data-theme="dark"><div class="device-screen" data-xf-app>
+            <div class="toast ok xf-t xf-pos-bot"><i data-lucide="check-circle-2"></i><div class="tx"><b>Match saved</b>You gained 14 rating</div><button class="ibtn" aria-label="Close"><i data-lucide="x"></i></button></div>
+          </div></div>
+          <span>Above the tab bar, for the result of your own action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub">Alert</h3>
+  <div class="demo xf-alertd">
+    <div class="xf-agrid">
+      <div class="alert nt"><i data-lucide="info"></i><div class="tx"><b>Season ends Sunday</b>Ratings carry half of the lead above 1 000 into Season 5.</div></div>
+      <div class="alert ok"><i data-lucide="check-circle-2"></i><div class="tx"><b>All matches synced</b>12 matches from this week are on the board.</div><button class="ibtn xf-x" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+      <div class="alert wr"><i data-lucide="clock"></i><div class="tx"><b>Your cup game is due Friday 17:00</b>Tap Ready if you can play Sam.</div><button class="btn sm act xf-ab-dk">Ready</button></div>
+      <div class="alert er"><i data-lucide="wifi-off"></i><div class="tx"><b>You're offline</b>Matches will sync when you're back.</div><button class="btn sm act xf-ab">Retry</button></div>
+      <div class="alert in"><i data-lucide="refresh-cw"></i><div class="tx"><b>Ratings are being recalculated</b>Ranks may jump for a few minutes.</div></div>
+      <div class="alert br"><i data-lucide="sparkles"></i><div class="tx"><b>New: 2v2 matches</b>Turn them on in league settings.</div><button class="btn sm act xf-ab">Turn on</button><button class="ibtn xf-x" aria-label="Dismiss"><i data-lucide="x"></i></button></div>
+    </div>
+    <div class="xf-actx">
+      <div class="xf-ctxcard">
+        <div class="xf-ctxh"><b>Weekly cup</b><span class="pill live"><i data-lucide="radio"></i>Live</span></div>
+        <div class="alert wr xf-compact"><i data-lucide="clock"></i><div class="tx"><b>Your game is due Friday 17:00</b></div><button class="btn sm act xf-ab-dk">Ready</button></div>
+        <div class="xf-mrow"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><b>You</b><span class="xf-vs">vs</span><b>Sam</b><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span></div>
+        <div class="xf-mrow"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><b>Mira</b><span class="xf-sc">10 to 4</span><b>Joe</b><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span></div>
+        <div class="xf-mrow"><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><b>Dave</b><span class="xf-sc">8 to 10</span><b>Kim</b><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span></div>
+      </div>
+      <p class="xf-note">Inline in context. Sits at the top of the block it is about, never floats. Compact form when one line is enough.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Inbox</h3>
+  <div class="demo xf-inboxd">
+    <aside class="xf-panel xf-filt">
+      <b class="xf-ph">Show</b>
+      <div class="xf-fl" data-single>
+        <button aria-pressed="true" data-f="all"><i data-lucide="inbox"></i>All<span class="xf-c">8</span></button>
+        <button aria-pressed="false" data-f="ch"><i data-lucide="swords"></i>Challenges<span class="xf-c">2</span></button>
+        <button aria-pressed="false" data-f="mt"><i data-lucide="history"></i>Matches<span class="xf-c">3</span></button>
+        <button aria-pressed="false" data-f="cr"><i data-lucide="crown"></i>Crown<span class="xf-c">1</span></button>
+        <button aria-pressed="false" data-f="bd"><i data-lucide="medal"></i>Badges<span class="xf-c">2</span></button>
+        <button aria-pressed="false" data-f="cu"><i data-lucide="trophy"></i>Cup<span class="xf-c">0</span></button>
+      </div>
+      <div class="xf-quiet"><i data-lucide="moon"></i><div><b>Quiet hours</b><span>22:00 to 08:00, inbox only</span></div></div>
+    </aside>
+
+    <div class="xf-panel xf-list">
+      <div class="xf-lh"><b>Inbox</b><span class="xf-unread" id="xfUnread">3 new</span><button class="btn ghost sm" id="xfAllRead">Mark all read</button></div>
+      <div class="nhead xf-g" data-g="today"><span>Today</span></div>
+      <div class="xf-sw" data-k="ch"><button class="nrow" aria-current="true"><span class="ic live"><i data-lucide="swords"></i></span><span class="tx"><b>Mira challenged you</b>Win and you take 21 rating<time>2 min ago</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw" data-k="cr"><button class="nrow"><span class="ic crown"><i data-lucide="crown"></i></span><span class="tx"><b>Dave took the crown</b>Mira's 6 day reign is over<time>1 h ago</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw xf-swl" data-k="mt"><div class="xf-acts"><button class="xf-a xf-a-mute" aria-label="Mute"><i data-lucide="bell-off"></i>Mute</button><button class="xf-a xf-a-del" aria-label="Delete"><i data-lucide="trash-2"></i>Delete</button></div><button class="nrow"><span class="ic win"><i data-lucide="check"></i></span><span class="tx"><b>Sam logged your win</b>10 to 7, check the score<time>3 h ago</time></span><span class="ud"></span></button></div>
+      <div class="nhead xf-g" data-g="earlier"><span>Earlier</span></div>
+      <div class="xf-sw xf-swr" data-k="bd"><div class="xf-acts"><button class="xf-a xf-a-read" aria-label="Mark unread"><i data-lucide="mail"></i>Unread</button></div><button class="nrow read"><span class="ic brand"><i data-lucide="medal"></i></span><span class="tx"><b>New badge: Hat Trick</b>Three wins in a row<time>Yesterday</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw" data-k="mt"><button class="nrow read"><span class="ic"><i data-lucide="x"></i></span><span class="tx"><b>Kim logged a loss for you</b>8 to 10, you dropped 9 rating<time>Yesterday</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw" data-k="ch"><button class="nrow read"><span class="ic"><i data-lucide="swords"></i></span><span class="tx"><b>Joe's challenge expired</b>No rating changed hands<time>Monday</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw" data-k="bd"><button class="nrow read"><span class="ic brand"><i data-lucide="flame"></i></span><span class="tx"><b>New badge: Early Bird</b>Five matches before 10:00<time>Monday</time></span><span class="ud"></span></button></div>
+      <div class="xf-sw" data-k="mt"><button class="nrow read"><span class="ic"><i data-lucide="users"></i></span><span class="tx"><b>Ann joined Office foosball</b>Say hi and send a first challenge<time>Sunday</time></span><span class="ud"></span></button></div>
+      <div class="empty xf-none" hidden><span class="ill"><i data-lucide="trophy"></i></span><b>No cup news yet</b><p>The weekly cup opens on Monday at 09:00.</p></div>
+    </div>
+
+    <div class="xf-side">
+      <div class="xf-panel xf-detail">
+        <div class="xf-dh"><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><div><b>Mira challenged you</b><span>2 min ago, Office foosball</span></div></div>
+        <div class="xf-stakes"><div><span>Win</span><b class="xf-up">+21</b></div><div><span>Lose</span><b>−9</b></div><div><span>Expires</span><b>23 h</b></div></div>
+        <div class="xf-dacts"><button class="btn secondary">Decline</button><button class="btn primary">Accept</button></div>
+      </div>
+      <div class="xf-panel xf-emptyp">
+        <div class="empty"><span class="ill"><i data-lucide="bell"></i></span><b>You're all caught up</b><p>New challenges, crowns and badges land here.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="xf-notes">
+    <div><b>Grouping</b><span>Today, then Earlier. Each row keeps its own time.</span></div>
+    <div><b>Unread</b><span>Brand dot on the right, cleared when opened.</span></div>
+    <div><b>Swipe left</b><span>Mute or delete. Swipe right marks read or unread.</span></div>
+    <div><b>Empty</b><span>Friendly, says what will show up and when.</span></div>
+  </div>
+
+  <h3 class="sub">Push</h3>
+  <div class="demo xf-pushd">
+    <div class="xf-pphones">
+      <div class="device-cap">
+        <div class="device sm" data-theme="dark"><div class="device-screen xf-lock">
+          <div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+          <div class="xf-lk-top"><i data-lucide="lock"></i><span>Tuesday 20 October</span><b>9:41</b></div>
+          <div class="xf-lk-stack">
+            <div class="push"><span class="app"><i data-lucide="swords"></i></span><span class="tx"><span class="top"><b>Liga</b><span>now</span></span><b>Mira challenged you</b><br>Win and you take 21 rating. Expires in 24 h.</span></div>
+            <div class="push"><span class="app"><i data-lucide="crown"></i></span><span class="tx"><span class="top"><b>Liga</b><span>1 h ago</span></span><b>👑 Dave took the crown</b><br>Beat him to take it back.</span></div>
+            <div class="push"><span class="app"><i data-lucide="trophy"></i></span><span class="tx"><span class="top"><b>Liga</b><span>8:00</span></span><b>The weekly cup is open</b><br>Sign up before noon, the draw is at 12:00.</span></div>
+            <div class="xf-more"><span></span><span></span><b>2 more from Liga</b></div>
+          </div>
+          <div class="xf-lk-bot"><span><i data-lucide="flashlight"></i></span><span><i data-lucide="camera"></i></span></div>
+          <div class="homebar"></div>
+        </div></div>
+        <span>Lock screen, newest on top, grouped by app</span>
+      </div>
+      <div class="device-cap">
+        <div class="device sm" data-theme="dark"><div class="device-screen xf-home">
+          <div class="statusbar"><span>9:41</span><span class="sb-r"><i data-lucide="signal"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+          <div class="push xf-banner"><span class="app"><i data-lucide="check"></i></span><span class="tx"><span class="top"><b>Liga</b><span>now</span></span><b>Sam logged your win, 10 to 7</b><br>Check the score, you have 24 h to fix it.</span></div>
+          <div class="xf-apps" data-xf-apps></div>
+          <div class="xf-dock"><span><i data-lucide="phone"></i></span><span><i data-lucide="message-circle"></i></span><span><i data-lucide="compass"></i></span><span><i data-lucide="music"></i></span></div>
+          <div class="homebar"></div>
+        </div></div>
+        <span>Banner, drops over any app for 5 s</span>
+      </div>
+    </div>
+
+    <div class="xf-copy">
+      <div class="xf-rules">
+        <div><span class="xf-n">T</span><b>Title says what happened</b><span>Name the person, 40 characters max, no app name</span></div>
+        <div><span class="xf-n">B</span><b>Body says what to do</b><span>One action and its deadline, 90 characters max</span></div>
+        <div><span class="xf-n">!</span><b>Never blame or nag</b><span>No caps, no exclamation marks, one emoji at most</span></div>
+      </div>
+      <div class="xf-tw"><table class="spec xf-ptab">
+        <tr><th>Event</th><th>Title</th><th>Body</th><th>Sent</th></tr>
+        <tr><td>Challenge</td><td>Mira challenged you</td><td>Win and you take 21 rating. Expires in 24 h.</td><td>Now</td></tr>
+        <tr><td>Match logged</td><td>Sam logged your win, 10 to 7</td><td>Check the score, you have 24 h to fix it.</td><td>Now</td></tr>
+        <tr><td>Crown</td><td>👑 Dave took the crown</td><td>Beat him to take it back.</td><td>Now</td></tr>
+        <tr><td>Cup</td><td>The weekly cup is open</td><td>Sign up before noon, the draw is at 12:00.</td><td>Mon 08:00</td></tr>
+        <tr><td>Live</td><td>Mira and Dave are playing</td><td>Watch the score as it happens.</td><td>Followers</td></tr>
+      </table></div>
+      <div class="xf-gb">
+        <div class="xf-ex good"><b class="xf-exh"><i data-lucide="check-circle-2"></i>Good</b><div class="push"><span class="app"><i data-lucide="swords"></i></span><span class="tx"><span class="top"><b>Liga</b><span>now</span></span><b>Mira challenged you</b><br>Win and you take 21 rating. Expires in 24 h.</span></div><span class="xf-why">Who, what, the stakes and a deadline</span></div>
+        <div class="xf-ex bad"><b class="xf-exh"><i data-lucide="x-circle"></i>Bad</b><div class="push"><span class="app"><i data-lucide="bell"></i></span><span class="tx"><span class="top"><b>Liga</b><span>now</span></span><b>New notification</b><br>Open the app to see what happened.</span></div><span class="xf-why">Says nothing, forces an open</span></div>
+        <div class="xf-ex good"><b class="xf-exh"><i data-lucide="check-circle-2"></i>Good</b><div class="push"><span class="app"><i data-lucide="clock"></i></span><span class="tx"><span class="top"><b>Liga</b><span>9:00</span></span><b>Your cup game is due Friday 17:00</b><br>Tap Ready if you can play Sam.</span></div><span class="xf-why">Calm, one clear action</span></div>
+        <div class="xf-ex bad"><b class="xf-exh"><i data-lucide="x-circle"></i>Bad</b><div class="push"><span class="app"><i data-lucide="clock"></i></span><span class="tx"><span class="top"><b>Liga</b><span>9:00</span></span><b>DON'T MISS YOUR GAME!!!</b><br>Players who skip games get removed from the cup.</span></div><span class="xf-why">Shouting and a threat</span></div>
+      </div>
+    </div>
+  </div>
+
+  <table class="spec">
+    <tr><th>Component</th><th>When</th><th>Duration</th></tr>
+    <tr><td>Toast</td><td>Result of something you just did, or a short event while in the app</td><td>4 s, errors stay until closed</td></tr>
+    <tr><td>Undo toast</td><td>A destructive action that can be reversed</td><td>6 s</td></tr>
+    <tr><td>Alert</td><td>A state the screen is in: offline, deadline, season ending</td><td>Until the state changes</td></tr>
+    <tr><td>Inbox row</td><td>Something that happened to you while away</td><td>Last 40 kept</td></tr>
+    <tr><td>Push</td><td>Only what needs you now: challenge, live, cup, crown, your match logged</td><td>System, banner 5 s</td></tr>
+  </table>
+</section>

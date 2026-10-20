@@ -1,0 +1,110 @@
+<section class="sec" id="avatar" data-title="Avatar">
+  <h2 class="t-title">Avatar</h2>
+  <p class="lead">A player is always their colour and their number. The ring carries the player colour, the face shows a photo or the initial in Sora, the tag shows the number. Six sizes, six states, a pair for 2v2 and a stack for groups.</p>
+
+  <div class="demo ca-sizes"><div class="ca-size"><div class="ca-stage"><span class="av " style="--c:var(--pc-blue);--av:120px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span></div>
+<b>120</b><span>Profile header</span><span class="ca-what">Ring, initial or photo, number tag</span></div><div class="ca-size"><div class="ca-stage"><span class="av " style="--c:var(--pc-orange);--av:72px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span></div>
+<b>72</b><span>Match hero, podium</span><span class="ca-what">Ring, initial or photo, number tag</span></div><div class="ca-size"><div class="ca-stage"><span class="av " style="--c:var(--pc-green);--av:56px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span></div>
+<b>56</b><span>Match card, 1v1</span><span class="ca-what">Ring, initial or photo, number tag</span></div><div class="ca-size"><div class="ca-stage"><span class="av yellow " style="--c:var(--pc-yellow);--av:44px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span></div>
+<b>44</b><span>Rows, 2v2 card</span><span class="ca-what">Ring, initial or photo, number tag</span></div><div class="ca-size"><div class="ca-stage"><span class="av " style="--c:var(--pc-purple);--av:32px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span></span></div>
+<b>32</b><span>Chat, compact rows</span><span class="ca-what">Ring and initial, no number</span></div><div class="ca-size"><div class="ca-stage"><span class="av " style="--c:var(--pc-red);--av:24px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span></span></div>
+<b>24</b><span>Stacks, seen by</span><span class="ca-what">Ring and initial, no number</span></div></div>
+
+  <div class="ca-two">
+    <div class="demo ca-anat">
+      <div class="ca-anat-fig">
+        <span class="av " style="--c:var(--pc-blue);--av:120px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span>
+        <span class="ca-call c1"><i>1</i>Ring</span>
+        <span class="ca-call c2"><i>2</i>Gap</span>
+        <span class="ca-call c3"><i>3</i>Face</span>
+        <span class="ca-call c4"><i>4</i>Number tag</span>
+      </div>
+      <ol class="ca-notes">
+        <li><i>1</i><span><b>Ring</b>Solid player colour, 9% of the size. Never a tint.</span></li>
+        <li><i>2</i><span><b>Gap</b>2 px in the colour behind it, so rings never touch.</span></li>
+        <li><i>3</i><span><b>Face</b>Photo when the player set one, else the first letter in Sora 800.</span></li>
+        <li><i>4</i><span><b>Number tag</b>Player colour fill, 42% of the size, sits on the bottom right. Black text on yellow, white on all others.</span></li>
+      </ol>
+    </div>
+    <div class="demo ca-pvi">
+      <div class="ca-pvi-grid">
+        <div class="ca-cell"><div class="ca-stage sm"><span class="av " style="--c:var(--pc-orange);--av:72px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face ca-ph ca-ph-a"></span><span class="no">5</span></span></div><b>Photo</b><span>Cropped square, centred on the face.</span></div>
+        <div class="ca-cell"><div class="ca-stage sm"><span class="av " style="--c:var(--pc-orange);--av:72px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span></div><b>Initial</b><span>Default until a photo is added.</span></div>
+        <div class="ca-cell"><div class="ca-stage sm"><span class="av " style="--c:var(--pc-blue);--av:72px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face ca-ph ca-ph-b"></span><span class="no">7</span></span></div><b>Photo</b><span>Ring and tag stay, so colour still reads.</span></div>
+        <div class="ca-cell"><div class="ca-stage sm"><span class="av " style="--c:var(--pc-green);--av:72px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span></div><b>You</b><span>Your own initial, shown as Y in mockups.</span></div>
+      </div>
+      <p class="ca-note">Photos load over the initial. If a photo fails, the initial stays, so a row never shows an empty circle.</p>
+    </div>
+  </div>
+
+  <div class="demo ca-states"><div class="ca-cell"><div class="ca-stage sm"><span class="av " style="--c:var(--pc-blue);--av:72px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span></div><b>Default</b><span>Player colour ring, number tag.</span></div><div class="ca-cell"><div class="ca-stage sm"><span class="ca-st"><span class="av " style="--c:var(--pc-orange);--av:72px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="ca-dot" aria-label="Online"></span></span></div><b>Online</b><span>Green dot top right, opened the app in the last 5 minutes.</span></div><div class="ca-cell"><div class="ca-stage sm"><span class="ca-st ca-live"><span class="av " style="--c:var(--pc-red);--av:72px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><span class="ca-livetag">Live</span></span></div><b>Live</b><span>Red outer ring and a Live tag while a match runs.</span></div><div class="ca-cell"><div class="ca-stage sm"><span class="ca-st ca-crowned"><span class="av " style="--c:var(--pc-orange);--av:72px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span class="ca-crown" aria-label="Number 1"><i data-lucide="crown"></i></span></span></div><b>Crowned</b><span>Gold crown on top for the current #1 only.</span></div><div class="ca-cell"><div class="ca-stage sm"><span class="ca-st ca-dormant"><span class="av " style="--c:var(--pc-maroon);--av:72px" role="img" aria-label="Ann, number 2"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span><span class="ca-zz" aria-label="Dormant"><i data-lucide="moon"></i></span></span></div><b>Dormant</b><span>Grey ring, no colour, 14 days without a match.</span></div><div class="ca-cell"><div class="ca-stage sm"><span class="ca-st ca-invited"><span class="av" style="--av:72px" role="img" aria-label="Invited, not joined yet"><span class="ring"></span><span class="face"><i data-lucide="user-plus"></i></span></span></span></div><b>Invited</b><span>Dashed ring until the player joins.</span></div></div>
+
+  <div class="ca-two">
+    <div class="demo ca-pairs">
+      <div class="ca-pair-row">
+        <div class="ca-cell"><div class="ca-stage"><span class="ca-pair "><span class="av " style="--c:var(--pc-red);--av:72px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><span class="av " style="--c:var(--pc-purple);--av:72px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span></span></div><b>Pair, 72</b><span>Live 2v2 hero</span></div>
+        <div class="ca-cell"><div class="ca-stage"><span class="ca-pair "><span class="av yellow " style="--c:var(--pc-yellow);--av:56px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="av " style="--c:var(--pc-maroon);--av:56px" role="img" aria-label="Ann, number 2"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span></span></div><b>Pair, 56</b><span>Match card</span></div>
+        <div class="ca-cell"><div class="ca-stage"><span class="ca-pair "><span class="av " style="--c:var(--pc-blue);--av:44px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><span class="av " style="--c:var(--pc-green);--av:44px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span></span></div><b>Pair, 44</b><span>Rows</span></div>
+        <div class="ca-cell"><div class="ca-stage"><span class="ca-pair "><span class="av " style="--c:var(--pc-orange);--av:32px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span></span><span class="av " style="--c:var(--pc-purple);--av:32px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span></span></span></div><b>Pair, 32</b><span>Compact, no tags</span></div>
+      </div>
+      <div class="ca-dd">
+        <div class="dont"><b><i data-lucide="x-circle"></i>Tags on the same corner</b><div class="ca-dd-fig"><span class="av-pair"><span class="av " style="--c:var(--pc-red);--av:56px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><span class="av " style="--c:var(--pc-purple);--av:56px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span></span></div>Joe's 3 hides under Kim.</div>
+        <div class="do"><b><i data-lucide="check-circle"></i>Tags on the outer corners</b><div class="ca-dd-fig"><span class="ca-pair "><span class="av " style="--c:var(--pc-red);--av:56px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><span class="av " style="--c:var(--pc-purple);--av:56px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span></span></div>Left tag bottom left, right tag bottom right. 28% overlap.</div>
+      </div>
+    </div>
+    <div class="demo ca-stacks">
+      <div class="ca-stack-row">
+        <div class="ca-cell"><div class="ca-stage sm"><span class="ca-stack"><span class="av " style="--c:var(--pc-orange);--av:32px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span></span><span class="av " style="--c:var(--pc-blue);--av:32px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span></span><span class="av yellow " style="--c:var(--pc-yellow);--av:32px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span></span><span class="av " style="--c:var(--pc-purple);--av:32px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span></span><span class="ca-more" style="--av:32px">+3</span></span></div><b>Stack, 32</b><span>Cup entrants, max 4 then a count</span></div>
+        <div class="ca-cell"><div class="ca-stage sm"><span class="ca-stack"><span class="av " style="--c:var(--pc-red);--av:24px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span></span><span class="av " style="--c:var(--pc-maroon);--av:24px" role="img" aria-label="Ann, number 2"><span class="ring"></span><span class="face">A</span></span><span class="av " style="--c:var(--pc-green);--av:24px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span></span><span class="ca-more" style="--av:24px">+3</span></span></div><b>Stack, 24</b><span>Seen by, reactions</span></div>
+      </div>
+      <div class="ca-stack-demo">
+        <div class="ca-sd-row"><span class="ca-stack"><span class="av " style="--c:var(--pc-orange);--av:32px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span></span><span class="av " style="--c:var(--pc-blue);--av:32px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span></span><span class="av " style="--c:var(--pc-green);--av:32px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span></span><span class="av yellow " style="--c:var(--pc-yellow);--av:32px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span></span><span class="ca-more" style="--av:32px">+3</span></span><span class="ca-sd-txt"><b>7 players in the weekly cup</b><span>Draw on Friday, 17:00</span></span></div>
+        <div class="ca-sd-row"><span class="ca-stack"><span class="av " style="--c:var(--pc-purple);--av:24px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span></span><span class="av " style="--c:var(--pc-red);--av:24px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span></span></span><span class="ca-sd-txt"><b>Kim and Joe are watching</b><span>Live, Table 1</span></span></div>
+      </div>
+      <p class="ca-note">Each avatar overlaps the one before by 25% and gets a 2 px gap ring. The count chip uses surface 3 and the same size.</p>
+    </div>
+  </div>
+
+  <div class="demo ca-ctx">
+    <div class="ca-ctx-col">
+      <b class="ca-ctx-t">Leaderboard row, 44</b>
+      <ul class="list">
+        <li><div class="row first"><span class="rank">1</span><span class="ca-st ca-crowned sm"><span class="av " style="--c:var(--pc-orange);--av:44px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span></span><span class="main"><b>Mira</b><span>Streak 5</span></span><span class="elo">1 312</span></div></li>
+        <li><div class="row"><span class="rank">2</span><span class="av " style="--c:var(--pc-blue);--av:44px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face ca-ph ca-ph-b"></span><span class="no">7</span></span><span class="main"><b>Dave</b><span>Streak 2</span></span><span class="elo">1 276</span></div></li>
+        <li><div class="row me"><span class="rank">3</span><span class="ca-st"><span class="av " style="--c:var(--pc-green);--av:44px" role="img" aria-label="You, number 6"><span class="ring"></span><span class="face">Y</span><span class="no">6</span></span><span class="ca-dot sm" aria-label="Online"></span></span><span class="main"><b>You</b><span>Online</span></span><span class="elo">1 248</span></div></li>
+        <li><div class="row"><span class="rank">4</span><span class="ca-st ca-live sm"><span class="av yellow " style="--c:var(--pc-yellow);--av:44px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span></span><span class="main"><b>Sam</b><span>Playing now</span></span><span class="elo">1 203</span></div></li>
+        <li><div class="row"><span class="rank">7</span><span class="ca-st ca-dormant"><span class="av " style="--c:var(--pc-maroon);--av:44px" role="img" aria-label="Ann, number 2"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span></span><span class="main"><b>Ann</b><span>Dormant, 16 days</span></span><span class="elo">1 102</span></div></li>
+      </ul>
+    </div>
+    <div class="ca-ctx-col">
+      <b class="ca-ctx-t">Match card, 56 and pair 44</b>
+      <div class="ca-mini">
+        <div class="ca-mini-sides"><div><span class="av " style="--c:var(--pc-blue);--av:56px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span><b>Dave</b></div><span class="ca-mini-sc">10 : 7</span><div><span class="av " style="--c:var(--pc-orange);--av:56px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><b class="lo">Mira</b></div></div>
+      </div>
+      <div class="ca-mini">
+        <div class="ca-mini-sides"><div><span class="ca-pair "><span class="av yellow " style="--c:var(--pc-yellow);--av:44px" role="img" aria-label="Sam, number 1"><span class="ring"></span><span class="face">S</span><span class="no">1</span></span><span class="av " style="--c:var(--pc-maroon);--av:44px" role="img" aria-label="Ann, number 2"><span class="ring"></span><span class="face">A</span><span class="no">2</span></span></span><b>Sam and Ann</b></div><span class="ca-mini-sc">10 : 8</span><div><span class="ca-pair "><span class="av " style="--c:var(--pc-red);--av:44px" role="img" aria-label="Joe, number 3"><span class="ring"></span><span class="face">J</span><span class="no">3</span></span><span class="av " style="--c:var(--pc-purple);--av:44px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span><span class="no">4</span></span></span><b class="lo">Joe and Kim</b></div></div>
+      </div>
+    </div>
+    <div class="ca-ctx-col">
+      <b class="ca-ctx-t">Chat, 32 and 24</b>
+      <div class="ca-chat">
+        <div class="ca-msg"><span class="av " style="--c:var(--pc-blue);--av:32px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span></span><div class="ca-bub"><b style="color:var(--pct-blue)">Dave</b>Rematch at 3?</div></div>
+        <div class="ca-msg"><span class="av " style="--c:var(--pc-orange);--av:32px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span></span><div class="ca-bub"><b style="color:var(--pct-orange)">Mira</b>Only if Kim refs this time</div></div>
+        <div class="ca-msg mine"><div class="ca-bub">I'm in, Table 1</div></div>
+        <div class="ca-seen"><span class="ca-stack"><span class="av " style="--c:var(--pc-blue);--av:24px" role="img" aria-label="Dave, number 7"><span class="ring"></span><span class="face">D</span></span><span class="av " style="--c:var(--pc-orange);--av:24px" role="img" aria-label="Mira, number 5"><span class="ring"></span><span class="face">M</span></span><span class="av " style="--c:var(--pc-purple);--av:24px" role="img" aria-label="Kim, number 4"><span class="ring"></span><span class="face">K</span></span></span>Seen by 3</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ca-specw"><table class="spec">
+    <thead><tr><th>Size</th><th>Token</th><th>Face</th><th>Number tag</th><th>States</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td>120</td><td><code>.av.xl</code></td><td>Photo or initial, 41 px</td><td>Yes, 50 px</td><td>All</td><td>Profile header</td></tr>
+      <tr><td>72</td><td><code>.av.lg</code></td><td>Photo or initial, 24 px</td><td>Yes, 30 px</td><td>All</td><td>Live hero, podium, 2v2 hero</td></tr>
+      <tr><td>56</td><td><code>--av:56px</code></td><td>Photo or initial, 19 px</td><td>Yes, 24 px</td><td>All</td><td>Match card</td></tr>
+      <tr><td>44</td><td><code>.av</code></td><td>Photo or initial, 15 px</td><td>Yes, 18 px</td><td>All</td><td>List rows, 2v2 card</td></tr>
+      <tr><td>32</td><td><code>.av.sm</code></td><td>Initial, 11 px</td><td>Hidden</td><td>Online, live</td><td>Chat, compact rows, stacks</td></tr>
+      <tr><td>24</td><td><code>--av:24px</code></td><td>Initial, 8 px</td><td>Hidden</td><td>None</td><td>Seen by, reaction stacks</td></tr>
+    </tbody>
+  </table></div>
+</section>

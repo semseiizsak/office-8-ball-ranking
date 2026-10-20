@@ -1,0 +1,36 @@
+<section class="sec" id="log" data-title="Log a match">
+  <h2 class="t-title">Log a match</h2>
+  <p class="lead">The core loop. Three taps from anywhere: the log button, the opponent, the winner. Format switch only when the league is mixed. The result screen shows what changed.</p>
+  <div class="phones">
+    <div class="phone"><div class="scr">
+      <div class="sheet-h"><span class="t-head">Log a match</span><button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button></div>
+      <div class="seg block" data-single style="margin-bottom:16px"><button aria-pressed="true">1v1</button><button aria-pressed="false">2v2</button></div>
+      <div class="search" style="margin-bottom:12px"><i data-lucide="search"></i><input class="input" placeholder="Opponent"></div>
+      <div class="t-caption" style="margin:4px 0 8px">Recent</div>
+      <ul class="list" id="recent"></ul>
+    </div><span class="step">1 Opponent</span></div>
+    <div class="phone"><div class="scr">
+      <div class="sheet-h"><span class="t-head">Who won?</span><button class="ibtn sm" aria-label="Back"><i data-lucide="arrow-left"></i></button></div>
+      <div class="win-pick" data-single>
+        <button class="choice" aria-pressed="false"><span class="av lg" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">Y</span><span class="no">7</span></span><span><b>You</b><span class="t-small">+21 if you win</span></span></button>
+        <button class="choice" aria-pressed="true"><span class="av lg" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no">5</span></span><span><b>Mira</b><span class="t-small">+11 if she wins</span></span></button>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Score, optional</label><input class="input" placeholder="10 : 7"></div>
+      <div class="field" style="margin-top:10px"><label>Played as</label><div class="row-wrap" data-toggle-group><button class="chip" aria-pressed="true">Friendly</button><button class="chip" aria-pressed="false">Challenge</button><button class="chip" aria-pressed="false">Cup</button></div></div>
+      <div class="list" style="margin-top:10px"><div class="row"><span class="main"><b>Ask Mira to confirm</b><span>She gets a push</span></span><span class="end"><button class="toggle" role="switch" aria-checked="true" aria-label="Ask Mira to confirm" data-flip></button></span></div></div>
+      <button class="btn primary block lg" style="margin-top:14px">Save match</button>
+    </div><span class="step">2 Winner</span></div>
+    <div class="phone"><div class="scr" style="text-align:center;justify-content:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <span class="t-caption">Rating</span>
+      <span class="t-hero">1 237</span>
+      <span class="delta down" style="font-size:20px">−11</span>
+      <div class="tile" style="width:100%;margin-top:12px;display:flex;justify-content:space-between"><span class="t-small">Coins</span><span style="display:flex;gap:6px;align-items:center;font-weight:800"><span class="coin"></span>+20</span></div>
+      <div class="tile" style="width:100%;display:flex;justify-content:space-between"><span class="t-small">Rank</span><span style="font-weight:800">3 → 4</span></div>
+      <div class="tile" style="width:100%;display:flex;justify-content:space-between"><span class="t-small">Head to head with Mira</span><span style="font-weight:800">4 : 11</span></div>
+      <div class="tile" style="width:100%;display:flex;align-items:center;gap:10px;text-align:left"><span style="font-size:28px;line-height:1">🎢</span><span style="flex:1"><b style="display:block;font:var(--t-body-strong);font-size:14px">New badge: Rollercoaster</b><span class="t-small">Won and lost on the same day</span></span></div>
+      <div class="tile" style="width:100%;text-align:left"><span class="t-small">This week</span><div class="row-sb" style="margin-top:6px"><span class="form"><i class="w"></i><i class="w"></i><i></i><i class="w"></i><i></i></span><span style="font-weight:800">3 W 2 L</span></div></div>
+      <button class="btn primary block" style="margin-top:12px">Done</button>
+      <button class="btn ghost block">Rematch</button>
+    </div><span class="step">3 Result</span></div>
+  </div>
+</section>

@@ -1,0 +1,140 @@
+<section class="sec" id="seg" data-title="Segmented control and tabs">
+  <h2 class="t-title">Segmented control and tabs</h2>
+  <p class="lead">A segmented control switches a view in place, 2 to 4 options of equal width with centred labels. Tabs split a screen into sections, like a profile, and may scroll. Both move one solid indicator, 280 ms ease in out.</p>
+
+  <div class="demo cs-top">
+    <div class="cs-anat-card">
+      <div class="cs-stage">
+        <div class="cs-anat">
+          <div class="seg cs-seg cs-spec" role="group" aria-label="Leaderboard sort" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="true">Rating</button><button aria-pressed="false">Coins</button><button aria-pressed="false">All time</button></div>
+          <span class="cs-mk t" style="--x:2%;--h:50px"><b>1</b></span>
+          <span class="cs-mk t" style="--x:20%;--h:66px"><b>2</b></span>
+          <span class="cs-mk b" style="--x:50%;--h:58px"><b>3</b></span>
+          <span class="cs-mk b" style="--x:84%;--h:66px"><b>4</b></span>
+        </div>
+      </div>
+      <ol class="cs-legend">
+        <li><b>1</b><span>Track</span><code>Surface 2, 4 px inset, pill</code></li>
+        <li><b>2</b><span>Indicator</span><code>Primary, slides 280 ms</code></li>
+        <li><b>3</b><span>Label</span><code>Inter 14, 600, centred</code></li>
+        <li><b>4</b><span>Segment</span><code>Equal width, 36 px, hit 44</code></li>
+      </ol>
+    </div>
+
+    <div class="cs-vars">
+      <div class="cs-cell">
+        <div class="cs-cv"><div class="seg cs-seg" role="group" aria-label="Format" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="true">1v1</button><button aria-pressed="false">2v2</button></div></div>
+        <div class="cs-cap"><b>Two options</b><span>Equal halves, sized to the longest label</span></div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-cv"><div class="seg cs-seg" role="group" aria-label="Sort" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="false">Rating</button><button aria-pressed="true">Coins</button><button aria-pressed="false">All time</button></div></div>
+        <div class="cs-cap"><b>Three options</b><span>The most common case</span></div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-cv"><div class="seg cs-seg" role="group" aria-label="Period" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="false">Day</button><button aria-pressed="true">Week</button><button aria-pressed="false">Season</button><button aria-pressed="false">All</button></div></div>
+        <div class="cs-cap"><b>Four options</b><span>The maximum, use tabs beyond this</span></div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-cv"><div class="seg cs-seg" role="group" aria-label="Layout" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="true"><i data-lucide="list"></i>List</button><button aria-pressed="false"><i data-lucide="layout-grid"></i>Cards</button></div></div>
+        <div class="cs-cap"><b>With icons</b><span>Icon 16 px before the label</span></div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-cv"><div class="seg cs-seg" role="group" aria-label="Format" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="true">1v1</button><button aria-pressed="false" disabled>2v2</button><button aria-pressed="false">Cup</button></div></div>
+        <div class="cs-cap"><b>Disabled option</b><span>This league plays 1v1 only</span></div>
+      </div>
+      <div class="cs-cell">
+        <div class="cs-cv cs-cv-fill"><div class="seg cs-seg cs-fill" role="group" aria-label="Result" data-single data-cs-seg><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="false">I won</button><button aria-pressed="true">I lost</button></div></div>
+        <div class="cs-cap"><b>Full width</b><span>In sheets, capped at 420 px</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo cs-tabsdemo">
+    <div class="cs-dh"><h3>Tabs</h3><span class="t-small">The underline slides to the tapped tab. Tabs that do not fit scroll sideways.</span></div>
+    <div class="cs-tgrid">
+      <div class="cs-tcell">
+        <div class="cs-tbox">
+          <div class="tabs cs-tabs" role="tablist" aria-label="Profile" data-tabs data-cs-tabs><button role="tab" aria-selected="true">Overview</button><button role="tab" aria-selected="false">Stats</button><button role="tab" aria-selected="false">Rivals</button><button role="tab" aria-selected="false">Badges</button><span class="cs-tind" aria-hidden="true"></span></div>
+        </div>
+        <div class="cs-cap"><b>Underline tabs</b><span>15 px, 600, 20 px gap, 2 px indicator in text colour</span></div>
+      </div>
+      <div class="cs-tcell">
+        <div class="cs-tbox cs-phonew">
+          <div class="cs-scroll">
+            <div class="tabs cs-tabs cs-ctabs" role="tablist" aria-label="Match history" data-tabs data-cs-tabs><button role="tab" aria-selected="true">All<span class="cs-cnt num">48</span></button><button role="tab" aria-selected="false">Wins<span class="cs-cnt num">31</span></button><button role="tab" aria-selected="false">Losses<span class="cs-cnt num">17</span></button><button role="tab" aria-selected="false">Cup<span class="cs-cnt num">6</span></button><button role="tab" aria-selected="false">Live<span class="cs-cnt live num">1</span></button><button role="tab" aria-selected="false">Challenges<span class="cs-cnt num">4</span></button><button role="tab" aria-selected="false">Friendlies<span class="cs-cnt num">9</span></button><span class="cs-tind" aria-hidden="true"></span></div>
+          </div>
+        </div>
+        <div class="cs-cap"><b>Scrollable with counts</b><span>Phone width, the tapped tab scrolls into view</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo cs-ctx">
+    <div class="cs-dh"><h3>In context</h3><span class="t-small">Tabs under a profile header, a segmented control above a leaderboard.</span></div>
+    <div class="cs-ctx-grid">
+      <div class="cs-prof">
+        <div class="cs-ph">
+          <span class="av lg" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no">7</span></span>
+          <div class="cs-pn"><b>Dave</b><span>#2 in Office foosball, Acme Studio</span></div>
+          <button class="btn secondary sm cs-chal"><i data-lucide="swords"></i>Challenge</button>
+        </div>
+        <div class="cs-pstats">
+          <div class="stat"><span class="v num">1 248</span><span class="k">Rating</span></div>
+          <div class="stat"><span class="v num">31</span><span class="k">Wins</span></div>
+          <div class="stat"><span class="v num">65%</span><span class="k">Win rate</span></div>
+          <div class="stat"><span class="v num">W1</span><span class="k">Streak</span></div>
+        </div>
+        <div class="tabs cs-tabs cs-ptabs" role="tablist" aria-label="Dave's profile" data-tabs data-cs-tabs data-cs-panels="cs-pp"><button role="tab" aria-selected="true">Overview</button><button role="tab" aria-selected="false">Stats</button><button role="tab" aria-selected="false">Rivals</button><button role="tab" aria-selected="false">Badges</button><span class="cs-tind" aria-hidden="true"></span></div>
+        <div class="cs-panels" id="cs-pp">
+          <div class="cs-panel" role="tabpanel">
+            <div class="cs-form"><span class="t-label">Last 10</span><span class="form"><i class="w"></i><i class="w"></i><i></i><i class="w"></i><i class="w"></i><i class="w"></i><i></i><i class="w"></i><i></i><i class="w"></i></span></div>
+            <div class="cs-mini"><span class="pill win">Won</span><b>Dave vs Sam</b><span class="num">10 : 4</span><span class="delta up num">+12</span></div>
+            <div class="cs-mini"><span class="pill loss">Lost</span><b>Dave vs Mira</b><span class="num">8 : 10</span><span class="delta down num">−9</span></div>
+            <div class="cs-mini"><span class="pill win">Won</span><b>Dave vs Kim</b><span class="num">10 : 6</span><span class="delta up num">+8</span></div>
+          </div>
+          <div class="cs-panel" role="tabpanel" hidden>
+            <div class="cs-tiles">
+              <div class="tile stat"><span class="v num">48</span><span class="k">Matches</span></div>
+              <div class="tile stat"><span class="v num">1 302</span><span class="k">Best rating</span></div>
+              <div class="tile stat"><span class="v num">7</span><span class="k">Longest streak</span></div>
+              <div class="tile stat"><span class="v num">4</span><span class="k">Cups won</span></div>
+              <div class="tile stat"><span class="v num">+3.4</span><span class="k">Avg margin</span></div>
+              <div class="tile stat"><span class="v num">720</span><span class="k">Coins</span></div>
+            </div>
+          </div>
+          <div class="cs-panel" role="tabpanel" hidden>
+            <div class="cs-rival"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><b>Mira</b><span class="t-small">4 wins, 9 losses</span><span class="pill crown"><i data-lucide="crown"></i>Nemesis</span></div>
+            <div class="cs-rival"><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><b>Sam</b><span class="t-small">8 wins, 2 losses</span><span class="pill win">Favourite</span></div>
+            <div class="cs-rival"><span class="av sm" style="--c:var(--pc-green)"><span class="ring"></span><span class="face">Y</span></span><b>You</b><span class="t-small">5 wins, 5 losses</span><span class="pill neutral">Even</span></div>
+          </div>
+          <div class="cs-panel" role="tabpanel" hidden>
+            <div class="cs-badges">
+              <div class="badge-tile"><span class="em">🔥</span><b>Hot hand</b><span>W5 streak</span></div>
+              <div class="badge-tile"><span class="em">🏆</span><b>Cup winner</b><span>Week 41</span></div>
+              <div class="badge-tile"><span class="em">🎯</span><b>Sharpshooter</b><span>10 : 0 win</span></div>
+              <div class="badge-tile locked"><span class="em">👑</span><b>King</b><span>Hold the crown</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cs-board">
+        <div class="cs-bh"><b>Leaderboard</b><span class="t-caption">Season 4, week 43</span></div>
+        <div class="seg cs-seg cs-fill" role="group" aria-label="Sort leaderboard" data-single data-cs-seg data-cs-board><span class="cs-ind" aria-hidden="true"></span><button aria-pressed="true">Rating</button><button aria-pressed="false">Coins</button><button aria-pressed="false">All time</button></div>
+        <ol class="cs-lb" data-cs-lb></ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="dodont">
+    <div class="do"><b><i data-lucide="check"></i>Do</b><ul><li>Give every segment the same width and centre the label.</li><li>Keep labels to one or two short words.</li><li>Use tabs with counts when the content is a list.</li></ul></div>
+    <div class="dont"><b><i data-lucide="x"></i>Don't</b><ul><li>Stretch a segmented control across a wide screen, cap it at 420 px.</li><li>Put more than 4 options in a segmented control.</li><li>Use a segmented control to navigate to another screen.</li></ul></div>
+  </div>
+  <table class="spec">
+    <tr><th>Part</th><th>Size</th><th>Behaviour</th></tr>
+    <tr><td>Segmented control</td><td class="num">44 tall, 36 segments</td><td>2 to 4 equal segments, min 72 px each, max 420 px wide. Indicator slides 280 ms ease in out.</td></tr>
+    <tr><td>Underline tabs</td><td class="num">44 tall</td><td>Indicator in text colour, width follows the label, slides 280 ms.</td></tr>
+    <tr><td>Scrollable tabs</td><td class="num">44 tall</td><td>Scroll sideways with a soft edge, the active tab scrolls into view.</td></tr>
+    <tr><td>Tab count</td><td class="num">20</td><td>Surface 3, primary fill when active, live red only for live matches.</td></tr>
+  </table>
+</section>

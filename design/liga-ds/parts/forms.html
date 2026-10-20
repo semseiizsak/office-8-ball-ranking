@@ -1,9 +1,9 @@
 <section class="sec" id="fx-datetime" data-title="Date, time and sliders">
   <h2 class="t-title">Date, time and sliders</h2>
-  <p class="lead">Scheduling a match or ending a season uses an inline month grid, never a system wheel for the date. Past days are greyed out and cannot be picked. Times are a short list of chips, taken slots are struck out. Sliders always show their value in a bubble above the thumb.</p>
+  <p class="lead">Scheduling a match or ending a season uses an inline month grid, never a system wheel for the date. Past days are greyed out and cannot be picked, times are a short list of chips with taken slots struck out. Sliders always show their value in a bubble above the thumb.</p>
 
   <h3 class="sub">Date and time picker</h3>
-  <div class="demo fx-grid" data-fx-sched>
+  <div class="demo fx-c3" data-fx-sched>
     <div class="fx-col">
       <div class="seg block" role="group" aria-label="What are you scheduling" data-fx-mode>
         <button aria-pressed="true" data-mode="match">Match</button>
@@ -20,7 +20,7 @@
         <div class="fx-cal-wd" aria-hidden="true"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
         <div class="fx-cal-g" role="group" data-fx-cal-grid></div>
       </div>
-      <p class="fx-note">Today has a ring, the picked day is a solid fill, a dot means a match is already planned. Arrow keys move between days, Page up and Page down change the month.</p>
+      <p class="fx-note">Arrow keys move between days, Page up and Page down change the month.</p>
     </div>
     <div class="fx-col">
       <div class="fx-col" data-fx-times-wrap>
@@ -34,95 +34,264 @@
           <button class="fx-time num" disabled aria-label="16:30, taken">16:30</button>
           <button class="fx-time num" aria-pressed="false">17:00</button>
           <button class="fx-time num" aria-pressed="false">17:30</button>
+          <button class="fx-time num" aria-pressed="false">18:00</button>
+          <button class="fx-time num" disabled aria-label="18:30, taken">18:30</button>
+          <button class="fx-time num" aria-pressed="false">19:00</button>
+          <button class="fx-time num" aria-pressed="false">19:30</button>
         </div>
         <p class="fx-note">Struck out times already have a match on the table.</p>
       </div>
       <div class="fx-when" aria-live="polite">
         <span class="fx-when-ic"><i data-lucide="calendar-check"></i></span>
-        <span class="fx-when-tx"><b data-fx-when>Wed 21 October, 12:30</b><span data-fx-when-sub>Dave gets a reminder an hour before</span></span>
+        <span class="fx-when-tx"><b data-fx-when>Thu 22 October, 12:30</b><span data-fx-when-sub>Dave gets a reminder an hour before</span></span>
+      </div>
+      <div class="fx-c2 fx-tight">
+        <div class="fx-col"><span class="fx-lbl">Table</span><div class="seg block" data-single role="group" aria-label="Table"><button aria-pressed="true">Table 1</button><button aria-pressed="false">Table 2</button></div></div>
+        <div class="fx-col"><span class="fx-lbl">Reminder</span><div class="seg block" data-single role="group" aria-label="Reminder"><button aria-pressed="false">Off</button><button aria-pressed="true">1 hour</button></div></div>
       </div>
       <button class="btn primary block lg" data-fx-sched-go>Schedule match</button>
+    </div>
+    <div class="fx-col fx-pan">
+      <b class="fx-ph">Day cell states</b>
+      <div class="fx-specs" aria-hidden="true">
+        <div class="fx-sp"><span class="fx-day"><span>23</span></span><span class="fx-cap">Free</span></div>
+        <div class="fx-sp"><span class="fx-day today"><span>20</span></span><span class="fx-cap">Today</span></div>
+        <div class="fx-sp"><span class="fx-day busy"><span>25</span></span><span class="fx-cap">Match planned</span></div>
+        <div class="fx-sp"><span class="fx-day fx-on"><span>22</span></span><span class="fx-cap">Picked</span></div>
+        <div class="fx-sp"><span class="fx-day fx-on busy"><span>30</span></span><span class="fx-cap">Picked, planned</span></div>
+        <div class="fx-sp"><span class="fx-day fx-past"><span>14</span></span><span class="fx-cap">Past</span></div>
+        <div class="fx-sp"><span class="fx-day fx-foc"><span>27</span></span><span class="fx-cap">Keyboard focus</span></div>
+        <div class="fx-sp"><span class="fx-day fx-hov"><span>28</span></span><span class="fx-cap">Hover</span></div>
+        <div class="fx-sp"><span class="fx-day today fx-on"><span>20</span></span><span class="fx-cap">Today, picked</span></div>
+      </div>
+      <b class="fx-ph">Time chip states</b>
+      <div class="fx-specs" aria-hidden="true">
+        <div class="fx-sp"><span class="fx-time num">17:00</span><span class="fx-cap">Free</span></div>
+        <div class="fx-sp"><span class="fx-time num fx-on">12:30</span><span class="fx-cap">Picked</span></div>
+        <div class="fx-sp"><span class="fx-time num fx-off">13:00</span><span class="fx-cap">Taken</span></div>
+      </div>
+      <p class="fx-note">Picked is always a solid fill with contrasting text. Taken slots stay visible so people see the table is busy, not missing.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">In context</h3>
+  <div class="demo fx-c3">
+    <div class="fx-col">
+      <span class="fx-ph">Challenge card</span>
+      <div class="fx-app">
+        <div class="fx-app-h">
+          <span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no num">7</span></span>
+          <span class="fx-app-t"><b>Dave challenged you</b><span>Best of 3, Office foosball</span></span>
+          <span class="pill neutral num"><i data-lucide="coins"></i>10</span>
+        </div>
+        <span class="fx-lbl">Pick a day</span>
+        <div class="fx-week" data-single role="group" aria-label="Day">
+          <button class="fx-wd" disabled aria-label="Monday 19, past"><span>Mon</span><b class="num">19</b></button>
+          <button class="fx-wd today" aria-pressed="false"><span>Tue</span><b class="num">20</b></button>
+          <button class="fx-wd" aria-pressed="true"><span>Wed</span><b class="num">21</b></button>
+          <button class="fx-wd busy" aria-pressed="false"><span>Thu</span><b class="num">22</b></button>
+          <button class="fx-wd" aria-pressed="false"><span>Fri</span><b class="num">23</b></button>
+          <button class="fx-wd" aria-pressed="false"><span>Sat</span><b class="num">24</b></button>
+          <button class="fx-wd" aria-pressed="false"><span>Sun</span><b class="num">25</b></button>
+        </div>
+        <span class="fx-lbl">Start time</span>
+        <div class="fx-times" data-single role="group" aria-label="Start time">
+          <button class="fx-time num" aria-pressed="false">12:00</button>
+          <button class="fx-time num" aria-pressed="true">12:30</button>
+          <button class="fx-time num" disabled aria-label="13:00, taken">13:00</button>
+          <button class="fx-time num" aria-pressed="false">17:00</button>
+        </div>
+        <div class="acts-2"><button class="btn secondary">Not now</button><button class="btn primary">Accept</button></div>
+      </div>
+    </div>
+    <div class="fx-col">
+      <span class="fx-ph">Upcoming matches</span>
+      <div class="list">
+        <div class="row"><span class="fx-dt today"><span>Tue</span><b class="num">20</b></span><span class="main"><b>You vs Mira</b><span class="num">17:30, table 1</span></span><span class="pill brand">Today</span></div>
+        <div class="row"><span class="fx-dt"><span>Wed</span><b class="num">21</b></span><span class="main"><b>You vs Dave</b><span class="num">12:30, best of 3</span></span><i data-lucide="bell" class="fx-ic3"></i></div>
+        <div class="row"><span class="fx-dt"><span>Fri</span><b class="num">23</b></span><span class="main"><b>Weekly cup draw</b><span class="num">17:00, 8 players</span></span><i data-lucide="trophy" class="fx-ic3"></i></div>
+        <div class="row"><span class="fx-dt"><span>Mon</span><b class="num">26</b></span><span class="main"><b>Sam and Kim vs You and Ann</b><span class="num">13:30, 2v2</span></span><i data-lucide="users" class="fx-ic3"></i></div>
+        <div class="row"><span class="fx-dt"><span>Sun</span><b class="num">29</b></span><span class="main"><b>Season 4 ends</b><span>Ratings lock at midnight</span></span><i data-lucide="flag" class="fx-ic3"></i></div>
+      </div>
+      <p class="fx-note">The date tile repeats the picker: today is a ring, never a fill.</p>
+    </div>
+    <div class="fx-col">
+      <span class="fx-ph">Season settings</span>
+      <div class="fx-app">
+        <div class="list fx-set">
+          <button class="row"><span class="lead"><i data-lucide="flag"></i></span><span class="main"><b>Season ends</b><span>Sun 29 November</span></span><i data-lucide="chevron-right" class="fx-ic3"></i></button>
+          <button class="row"><span class="lead"><i data-lucide="trophy"></i></span><span class="main"><b>Cup draw</b><span class="num">Every Friday, 17:00</span></span><i data-lucide="chevron-right" class="fx-ic3"></i></button>
+          <button class="row"><span class="lead"><i data-lucide="bell"></i></span><span class="main"><b>Reminders</b><span>1 hour before a match</span></span><i data-lucide="chevron-right" class="fx-ic3"></i></button>
+        </div>
+        <div class="fx-col">
+          <div class="row-sb"><span class="fx-lbl" id="fx-sl-ctx">Season length</span><span class="t-caption">Weeks</span></div>
+          <div class="fx-sl" data-fx-slider>
+            <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+            <output class="fx-bub num" aria-hidden="true">6</output>
+            <input type="range" min="2" max="16" step="1" value="6" aria-labelledby="fx-sl-ctx">
+          </div>
+          <div class="fx-sl-ends num"><span>2</span><span>16</span></div>
+        </div>
+        <button class="btn primary block">Save season</button>
+      </div>
     </div>
   </div>
 
   <h3 class="sub">Slider and range slider</h3>
-  <div class="demo fx-grid">
-    <div class="fx-col">
-      <div class="row-sb"><span class="fx-lbl" id="fx-k-l">K factor</span><span class="t-caption" data-fx-k-desc>Balanced</span></div>
-      <div class="fx-sl" data-fx-slider>
-        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
-        <output class="fx-bub num" aria-hidden="true">32</output>
-        <input type="range" min="16" max="48" step="4" value="32" aria-labelledby="fx-k-l">
+  <div class="demo fx-c3">
+    <div class="fx-col fx-gap">
+      <div class="fx-col">
+        <div class="row-sb"><span class="fx-lbl" id="fx-k-l">K factor</span><span class="t-caption" data-fx-k-desc>Balanced</span></div>
+        <div class="fx-sl" data-fx-slider>
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num" aria-hidden="true">32</output>
+          <input type="range" min="16" max="48" step="4" value="32" aria-labelledby="fx-k-l">
+        </div>
+        <div class="fx-sl-ends num"><span>16</span><span>48</span></div>
+        <p class="fx-note">Higher K moves ratings faster after each match. Default 32.</p>
       </div>
-      <div class="fx-sl-ends num"><span>16</span><span>48</span></div>
-      <p class="fx-note">Higher K moves ratings faster after each match. Default 32.</p>
+      <div class="fx-col">
+        <div class="row-sb"><span class="fx-lbl" id="fx-sl-l">Season length</span><span class="t-caption">Weeks</span></div>
+        <div class="fx-sl" data-fx-slider>
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num" aria-hidden="true">8</output>
+          <input type="range" min="2" max="16" step="1" value="8" aria-labelledby="fx-sl-l">
+        </div>
+        <div class="fx-sl-ends num"><span>2</span><span>16</span></div>
+      </div>
     </div>
-    <div class="fx-col">
-      <div class="row-sb"><span class="fx-lbl" id="fx-rr-l">Who can join the cup</span><span class="t-caption num" data-fx-rr-out>Rating 1000 to 1300</span></div>
-      <div class="fx-sl fx-dual" data-fx-dual>
-        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
-        <output class="fx-bub num a" aria-hidden="true">1000</output>
-        <output class="fx-bub num b" aria-hidden="true">1300</output>
-        <input type="range" min="800" max="1600" step="10" value="1000" aria-label="Lowest rating" data-end="a">
-        <input type="range" min="800" max="1600" step="10" value="1300" aria-label="Highest rating" data-end="b">
+    <div class="fx-col fx-gap">
+      <div class="fx-col">
+        <div class="row-sb"><span class="fx-lbl" id="fx-rr-l">Who can join the cup</span><span class="t-caption num" data-fx-rr-out>Rating 1000 to 1300</span></div>
+        <div class="fx-sl fx-dual" data-fx-dual>
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num a" aria-hidden="true">1000</output>
+          <output class="fx-bub num b" aria-hidden="true">1300</output>
+          <input type="range" min="800" max="1600" step="10" value="1000" aria-label="Lowest rating" data-end="a">
+          <input type="range" min="800" max="1600" step="10" value="1300" aria-label="Highest rating" data-end="b">
+        </div>
+        <div class="fx-sl-ends num"><span>800</span><span>1600</span></div>
+        <p class="fx-note">Two thumbs never cross, they stop 50 apart.</p>
       </div>
-      <div class="fx-sl-ends num"><span>800</span><span>1600</span></div>
-      <p class="fx-note">Two thumbs never cross, they stop 50 apart.</p>
+      <div class="fx-col">
+        <div class="row-sb"><span class="fx-lbl" id="fx-sl-d">K factor, locked</span><span class="t-caption">Mid season</span></div>
+        <div class="fx-sl is-off" data-fx-slider>
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num" aria-hidden="true">24</output>
+          <input type="range" min="16" max="48" step="4" value="24" disabled aria-labelledby="fx-sl-d">
+        </div>
+        <p class="fx-note">Disabled: rating settings unlock when the season ends.</p>
+      </div>
     </div>
-    <div class="fx-col">
-      <div class="row-sb"><span class="fx-lbl" id="fx-sl-l">Season length</span><span class="t-caption">Weeks</span></div>
-      <div class="fx-sl" data-fx-slider>
-        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
-        <output class="fx-bub num" aria-hidden="true">8</output>
-        <input type="range" min="2" max="16" step="1" value="8" aria-labelledby="fx-sl-l">
+    <div class="fx-col fx-pan">
+      <b class="fx-ph">Anatomy</b>
+      <div class="fx-anat" aria-hidden="true">
+        <div class="fx-sl fx-static" style="--p:.625">
+          <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
+          <output class="fx-bub num">36</output>
+          <span class="fx-thumb"></span>
+          <span class="fx-mk up" style="left:calc(14px + .625*(100% - 28px) + 34px);top:-26px">1</span>
+          <span class="fx-mk dn" style="left:calc(14px + .625*(100% - 28px))">2</span>
+          <span class="fx-mk dn" style="left:30%">3</span>
+          <span class="fx-mk dn" style="left:84%">4</span>
+        </div>
+        <div class="fx-sl-ends num"><span>16</span><span>48</span></div>
       </div>
-      <div class="fx-sl-ends num"><span>2</span><span>16</span></div>
-    </div>
-    <div class="fx-col">
-      <div class="row-sb"><span class="fx-lbl" id="fx-sl-d">K factor, locked</span><span class="t-caption">Mid season</span></div>
-      <div class="fx-sl is-off" data-fx-slider>
-        <div class="fx-sl-track"><i class="fx-sl-fill"></i></div>
-        <output class="fx-bub num" aria-hidden="true">24</output>
-        <input type="range" min="16" max="48" step="4" value="24" disabled aria-labelledby="fx-sl-d">
-      </div>
-      <p class="fx-note">Disabled: rating settings unlock when the season ends.</p>
+      <ol class="fx-legend">
+        <li><span class="fx-mk">1</span><span><b>Value bubble</b>Solid primary, always visible, follows the thumb</span></li>
+        <li><span class="fx-mk">2</span><span><b>Thumb</b>28 px white disc inside a 44 px hit area</span></li>
+        <li><span class="fx-mk">3</span><span><b>Fill</b>Text colour, from the start to the thumb</span></li>
+        <li><span class="fx-mk">4</span><span><b>Track</b>6 px, surface 3, ends labelled below</span></li>
+      </ol>
     </div>
   </div>
   <table class="spec">
     <tr><th>Component</th><th>Use</th><th>Rule</th></tr>
     <tr><td>Date grid</td><td>Match date, season end, cup draw</td><td>Monday first, past days disabled, 44 px cells</td></tr>
+    <tr><td>Week strip</td><td>Quick pick inside a card or sheet</td><td>Seven days from Monday, same states as the grid</td></tr>
     <tr><td>Time chips</td><td>Short lists of start times</td><td>Up to 12 chips, taken slots disabled with a strike</td></tr>
     <tr><td>Slider</td><td>A number in a known range</td><td>Value bubble always visible, ends labelled below</td></tr>
     <tr><td>Range slider</td><td>A band, like a rating window</td><td>Thumbs keep a minimum gap, both reachable by keyboard</td></tr>
   </table>
 </section>
-
 <section class="sec" id="fx-profile" data-title="Colour, number and photo">
   <h2 class="t-title">Colour, number and photo</h2>
-  <p class="lead">A player is recognised by colour first, then number, then photo. The preview avatar updates live as you pick. Numbers can be shared, the hint only says who else wears it.</p>
+  <p class="lead">A player is recognised by colour first, then number, then photo. Every avatar on this panel updates live as you pick, so you see the leaderboard row and every size before you save. Numbers can be shared, the hint only says who else wears it.</p>
+
+  <h3 class="sub">Colour and number</h3>
   <div class="demo fx-prof" data-fx-prof>
     <div class="fx-prof-prev">
       <span class="av xl" style="--c:var(--pc-blue)" data-fx-av><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span>
       <b class="t-section" data-fx-pname style="color:var(--pct-blue)">You</b>
       <span class="t-caption" data-fx-pdesc>Blue, number 23</span>
-    </div>
-    <div class="fx-col">
-      <span class="fx-lbl" id="fx-col-l">Colour</span>
-      <div class="fx-swatches" role="radiogroup" aria-labelledby="fx-col-l" data-fx-swatches></div>
-      <p class="fx-note">Arrow keys move through colours. The selected one gets a ring and a tick.</p>
-      <span class="fx-lbl" id="fx-num-l" style="margin-top:8px">Number</span>
-      <div class="fx-num">
-        <button aria-label="Lower number" data-fx-num="-1"><i data-lucide="minus"></i></button>
-        <input class="num" inputmode="numeric" maxlength="2" value="23" aria-labelledby="fx-num-l" data-fx-num-in>
-        <button aria-label="Higher number" data-fx-num="1"><i data-lucide="plus"></i></button>
+      <div class="fx-prof-stats">
+        <span><b class="num">1 248</b>Rating</span>
+        <span><b class="num">#3</b>Rank</span>
+        <span><b class="num">64%</b>Wins</span>
       </div>
-      <p class="fx-note" data-fx-num-hint aria-live="polite">Nobody else wears 23.</p>
+    </div>
+    <div class="fx-col fx-gap">
+      <div class="fx-col">
+        <span class="fx-lbl" id="fx-col-l">Colour</span>
+        <div class="fx-swatches" role="radiogroup" aria-labelledby="fx-col-l" data-fx-swatches></div>
+        <p class="fx-note">Arrow keys move through colours. The selected one gets a ring and a tick.</p>
+      </div>
+      <div class="fx-col">
+        <span class="fx-lbl" id="fx-num-l">Number</span>
+        <div class="fx-num-row">
+          <div class="fx-num">
+            <button aria-label="Lower number" data-fx-num="-1"><i data-lucide="minus"></i></button>
+            <input class="num" inputmode="numeric" maxlength="2" value="23" aria-labelledby="fx-num-l" data-fx-num-in>
+            <button aria-label="Higher number" data-fx-num="1"><i data-lucide="plus"></i></button>
+          </div>
+          <p class="fx-note" data-fx-num-hint aria-live="polite">Nobody else wears 23.</p>
+        </div>
+      </div>
+      <div class="fx-col">
+        <span class="fx-lbl">In a match</span>
+        <div class="fx-mrow">
+          <span class="fx-mside"><span class="av" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span><b data-fx-mirror-name style="color:var(--pct-blue)">You</b></span>
+          <span class="fx-mscore num"><b>10</b><span>Final</span><b>8</b></span>
+          <span class="fx-mside r"><b style="color:var(--pct-blue)">Dave</b><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no num">7</span></span></span>
+        </div>
+        <p class="fx-note">Same colour as Dave? The number and initial still tell you apart.</p>
+      </div>
+      <div class="fx-col">
+        <span class="fx-lbl">Worn in this league</span>
+        <div class="fx-taken">
+          <span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span><b class="num">1</b></span>
+          <span><span class="av sm" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span><b class="num">2</b></span>
+          <span><span class="av sm" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span></span><b class="num">3</b></span>
+          <span><span class="av sm" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span></span><b class="num">4</b></span>
+          <span><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><b class="num">5</b></span>
+          <span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><b class="num">7</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="fx-col fx-gap">
+      <div class="fx-col">
+        <span class="fx-ph">On the leaderboard</span>
+        <div class="list">
+          <div class="row first"><span class="rank">1</span><span class="av" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span><span class="no num">5</span></span><span class="main"><b>Mira</b><span>12 wins in a row</span></span><span class="elo num">1 302</span></div>
+          <div class="row"><span class="rank">2</span><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no num">7</span></span><span class="main"><b>Dave</b><span>3 wins this week</span></span><span class="elo num">1 271</span></div>
+          <div class="row me"><span class="rank">3</span><span class="av" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span><span class="main"><b data-fx-mirror-name style="color:var(--pct-blue)">You</b><span>Up 2 places</span></span><span class="elo num">1 248</span></div>
+        </div>
+      </div>
+      <div class="fx-col">
+        <span class="fx-ph">Sizes</span>
+        <div class="fx-sizes">
+          <span><span class="av lg" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span><span class="fx-cap num">72, profile</span></span>
+          <span><span class="av" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span><span class="no num">23</span></span><span class="fx-cap num">44, rows</span></span>
+          <span><span class="av sm" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span></span><span class="fx-cap num">32, chips</span></span>
+          <span class="fx-vs"><span class="av-pair"><span class="av sm" style="--c:var(--pc-blue)" data-fx-mirror><span class="ring"></span><span class="face">Y</span></span><span class="av sm" style="--c:var(--pc-maroon)"><span class="ring"></span><span class="face">A</span></span></span><span class="fx-cap">2v2 pair</span></span>
+        </div>
+      </div>
     </div>
   </div>
 
   <h3 class="sub">Photo cropper</h3>
-  <div class="demo fx-grid">
-    <div class="fx-crop" data-fx-crop>
+  <div class="demo fx-photo" data-fx-crop>
+    <div class="fx-crop">
       <div class="fx-crop-frame" tabindex="0" role="img" aria-label="Photo crop area. Drag or use the arrow keys to move the photo, plus and minus to zoom.">
         <div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div>
         <div class="fx-crop-mask" aria-hidden="true"></div>
@@ -143,82 +312,187 @@
         <button class="btn primary">Use photo</button>
       </div>
     </div>
-    <div class="fx-col">
-      <b class="t-head">How it works</b>
-      <p class="t-small">The frame is 4:5, the size of a player card. The circle shows what your round avatar will keep. Drag to move, use the slider to zoom up to 3×.</p>
-      <p class="t-small">The grid appears only while you drag. Reset brings the photo back to the centre.</p>
-      <p class="fx-note">Placeholder: a neutral gradient until a photo loads.</p>
+    <div class="fx-col fx-gap">
+      <span class="fx-ph">Live result</span>
+      <div class="fx-res">
+        <div class="fx-pcard" aria-hidden="true">
+          <div class="fx-pcard-ph"><div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div></div>
+          <div class="fx-pcard-f"><span class="fx-pcard-no num">23</span><span><b>You</b><span class="num">1 248, rank 3</span></span></div>
+        </div>
+        <div class="fx-col fx-res-avs" aria-hidden="true">
+          <div class="fx-pv" style="--s:132px"><div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div></div>
+          <div class="fx-res-sm">
+            <div class="fx-pv" style="--s:72px"><div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div></div>
+            <div class="fx-pv" style="--s:48px"><div class="fx-crop-img"><span class="fx-crop-head"></span><span class="fx-crop-body"></span></div></div>
+          </div>
+          <span class="fx-cap">The circle keeps what is inside the ring</span>
+        </div>
+      </div>
+      <p class="fx-note">The frame is 4:5, the size of a player card. Drag to move, zoom up to 3×. The grid appears only while you drag.</p>
+    </div>
+    <div class="fx-col fx-gap">
+      <span class="fx-ph">States</span>
+      <div class="fx-pst">
+        <span class="fx-pst-av"><span class="av lg" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">Y</span></span><span class="fx-pst-add"><i data-lucide="camera"></i></span></span>
+        <span class="fx-pst-tx"><b>No photo yet</b><span>Your initial on your colour. Tap to add one.</span></span>
+      </div>
+      <div class="fx-pst">
+        <span class="fx-pst-av"><span class="av lg" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face"><span class="fx-face-ph"></span></span></span><span class="fx-pst-busy"><span class="fx-spin"></span></span></span>
+        <span class="fx-pst-tx"><b>Uploading</b><span class="num">Saving your photo, 68%</span></span>
+      </div>
+      <div class="alert wr">
+        <i data-lucide="image-off"></i>
+        <div class="tx"><b>This photo is a little small</b>Pick one at least 400 px wide so it stays sharp on your card.</div>
+      </div>
+      <div class="fx-row-btns"><button class="btn secondary"><i data-lucide="image"></i>Choose photo</button><button class="btn ghost">Remove photo</button></div>
     </div>
   </div>
 </section>
-
 <section class="sec" id="fx-search" data-title="Search and select">
   <h2 class="t-title">Search and select</h2>
-  <p class="lead">Search shows recent searches first, then live results grouped by type with the matching part underlined. Custom selects open a menu anchored to the field, same width, under it. Multi select keeps picks as chips inside the field.</p>
+  <p class="lead">Search shows recent searches first, then live results grouped by type with the matching part underlined. Custom selects open a menu anchored to the field, same width, right under it. Multi select keeps picks as chips inside the field.</p>
 
   <h3 class="sub">Search with results</h3>
-  <div class="demo">
+  <div class="demo fx-c3">
     <div class="fx-srch" data-fx-srch>
+      <span class="fx-ph">Live search</span>
       <div class="search">
         <i data-lucide="search"></i>
-        <input class="input" type="search" placeholder="Players and leagues" role="combobox" aria-expanded="true" aria-controls="fx-sr-list" aria-autocomplete="list" aria-label="Search players and leagues" autocomplete="off" data-fx-sq>
+        <input class="input" type="search" placeholder="Players and leagues" role="combobox" aria-expanded="true" aria-controls="fx-sr-list" aria-autocomplete="list" aria-label="Search players and leagues" autocomplete="off" value="da" data-fx-sq>
         <button class="ibtn plain fx-clear" aria-label="Clear search" hidden data-fx-sclear><i data-lucide="x"></i></button>
       </div>
       <div class="fx-sr-panel" data-fx-spanel></div>
       <p class="fx-sr" aria-live="polite" data-fx-slive></p>
-      <p class="fx-note">Try "da", "mi" or "pool". Arrow keys move through results, Enter opens one.</p>
+      <p class="fx-note">Try "da", "mi" or "pool". Arrow keys move through results, Enter opens one, Escape clears.</p>
+    </div>
+    <div class="fx-col fx-pan">
+      <b class="fx-ph">Field states</b>
+      <div class="fx-st">
+        <span class="fx-cap">Resting</span>
+        <div class="search" aria-hidden="true"><i data-lucide="search"></i><span class="input fx-fake ph">Players and leagues</span></div>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">Typing, clear button shows</span>
+        <div class="search" aria-hidden="true"><i data-lucide="search"></i><span class="input fx-fake fx-focus">Mira<span class="fx-caret"></span></span><span class="fx-fake-x"><i data-lucide="x"></i></span></div>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">Loading, after 300 ms</span>
+        <div class="fx-skel-rows" aria-hidden="true">
+          <div><span class="skel fx-sk-av"></span><span class="skel fx-sk-l"></span><span class="skel fx-sk-n"></span></div>
+          <div><span class="skel fx-sk-av"></span><span class="skel fx-sk-l s"></span><span class="skel fx-sk-n"></span></div>
+        </div>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">No results</span>
+        <div class="fx-nores" aria-hidden="true"><span class="fx-nores-ic"><i data-lucide="search-x"></i></span><span><b>Nobody called "Zed" yet</b><span>Check the spelling, or invite them.</span></span></div>
+      </div>
+    </div>
+    <div class="fx-col">
+      <span class="fx-ph">In a sheet, pick an opponent</span>
+      <div class="fx-app fx-sheet">
+        <span class="fx-grab"></span>
+        <div class="row-sb"><b class="t-head">New match</b><button class="ibtn sm" aria-label="Close"><i data-lucide="x"></i></button></div>
+        <div class="search"><i data-lucide="search"></i><input class="input" type="search" placeholder="Find a player" aria-label="Find a player"></div>
+        <div class="row-wrap" data-single role="group" aria-label="Filter">
+          <button class="chip" aria-pressed="true">All</button>
+          <button class="chip" aria-pressed="false">Played before</button>
+          <button class="chip" aria-pressed="false">Online</button>
+        </div>
+        <div class="list fx-pick" data-single role="group" aria-label="Opponent">
+          <button class="row" aria-pressed="true"><span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no num">7</span></span><span class="main"><b>Dave</b><span class="num">1 271, you lead 4 to 3</span></span><span class="radio" aria-hidden="true"></span></button>
+          <button class="row" aria-pressed="false"><span class="av" style="--c:var(--pc-purple)"><span class="ring"></span><span class="face">K</span><span class="no num">4</span></span><span class="main"><b>Kim</b><span class="num">1 102, never played</span></span><span class="radio" aria-hidden="true"></span></button>
+          <button class="row" aria-pressed="false"><span class="av" style="--c:var(--pc-red)"><span class="ring"></span><span class="face">J</span><span class="no num">3</span></span><span class="main"><b>Joe</b><span class="num">1 001, Joe leads 2 to 1</span></span><span class="radio" aria-hidden="true"></span></button>
+        </div>
+        <button class="btn primary block">Start match</button>
+      </div>
     </div>
   </div>
 
   <h3 class="sub">Select and multi select</h3>
-  <div class="demo form-grid">
-    <div class="field">
-      <span class="fx-lbl" id="fx-dd1-l">Sport</span>
-      <div class="fx-dd" data-fx-dd>
-        <button class="input fx-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd1-l fx-dd1-v"><i data-lucide="target" data-fx-dd-ic></i><span class="fx-dd-v" id="fx-dd1-v">Foosball</span><i data-lucide="chevron-down"></i></button>
-        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd1-l" hidden>
-          <li role="option" aria-selected="true" data-icon="target"><i data-lucide="target"></i>Foosball<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false" data-icon="circle-dot"><i data-lucide="circle-dot"></i>Table tennis<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false" data-icon="disc"><i data-lucide="disc"></i>Pool<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false" data-icon="crosshair"><i data-lucide="crosshair"></i>Darts<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false" data-icon="gamepad-2"><i data-lucide="gamepad-2"></i>Video games<i data-lucide="check" class="tick"></i></li>
-        </ul>
-      </div>
-      <span class="hint">Default state, opens on click, Enter or arrow down.</span>
-    </div>
-    <div class="field">
-      <span class="fx-lbl" id="fx-dd2-l">Season length</span>
-      <div class="fx-dd" data-fx-dd data-required>
-        <button class="input fx-dd-btn invalid" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd2-l fx-dd2-v" aria-describedby="fx-dd2-e" aria-invalid="true"><span class="fx-dd-v ph" id="fx-dd2-v">Pick a length</span><i data-lucide="chevron-down"></i></button>
-        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd2-l" hidden>
-          <li role="option" aria-selected="false">2 weeks<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false">4 weeks<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false">8 weeks<i data-lucide="check" class="tick"></i></li>
-          <li role="option" aria-selected="false" aria-disabled="true">12 weeks, Pro leagues<i data-lucide="lock" class="tick" style="visibility:visible"></i></li>
-        </ul>
-      </div>
-      <span class="err" id="fx-dd2-e" data-fx-dd-err><i data-lucide="alert-circle"></i>Pick how long the season runs</span>
-    </div>
-    <div class="field">
-      <span class="fx-lbl" id="fx-dd3-l">Visibility</span>
-      <div class="fx-dd">
-        <button class="input fx-dd-btn" disabled aria-labelledby="fx-dd3-l fx-dd3-v"><i data-lucide="lock"></i><span class="fx-dd-v" id="fx-dd3-v">Private, invite only</span><i data-lucide="chevron-down"></i></button>
-      </div>
-      <span class="hint">Disabled: only the league admin can change this.</span>
-    </div>
-    <div class="field">
-      <span class="fx-lbl" id="fx-ms-l">2v2 players</span>
-      <div class="fx-ms" data-fx-ms data-max="3">
-        <div class="input fx-ms-box" data-fx-ms-box>
-          <button class="fx-ms-add" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-ms-l" aria-describedby="fx-ms-c" data-fx-ms-add>Add players</button>
+  <div class="demo fx-c3">
+    <div class="fx-col fx-gap">
+      <div class="field">
+        <span class="fx-lbl" id="fx-dd1-l">Sport</span>
+        <div class="fx-dd" data-fx-dd>
+          <button class="input fx-dd-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd1-l fx-dd1-v"><i data-lucide="target" data-fx-dd-ic></i><span class="fx-dd-v" id="fx-dd1-v">Foosball</span><i data-lucide="chevron-down"></i></button>
+          <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd1-l" hidden>
+            <li role="option" aria-selected="true" data-icon="target"><i data-lucide="target"></i>Foosball<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false" data-icon="circle-dot"><i data-lucide="circle-dot"></i>Table tennis<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false" data-icon="disc"><i data-lucide="disc"></i>Pool<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false" data-icon="crosshair"><i data-lucide="crosshair"></i>Darts<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false" data-icon="gamepad-2"><i data-lucide="gamepad-2"></i>Video games<i data-lucide="check" class="tick"></i></li>
+          </ul>
         </div>
-        <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-multiselectable="true" aria-labelledby="fx-ms-l" hidden data-fx-ms-menu></ul>
+        <span class="hint">Default, opens on click, Enter or arrow down.</span>
       </div>
-      <span class="hint num" id="fx-ms-c" data-fx-ms-count>2 of 3 picked</span>
+      <div class="field">
+        <span class="fx-lbl" id="fx-dd2-l">Season length</span>
+        <div class="fx-dd" data-fx-dd data-required>
+          <button class="input fx-dd-btn invalid" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-dd2-l fx-dd2-v" aria-describedby="fx-dd2-e" aria-invalid="true"><span class="fx-dd-v ph" id="fx-dd2-v">Pick a length</span><i data-lucide="chevron-down"></i></button>
+          <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-labelledby="fx-dd2-l" hidden>
+            <li role="option" aria-selected="false">2 weeks<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false">4 weeks<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false">8 weeks<i data-lucide="check" class="tick"></i></li>
+            <li role="option" aria-selected="false" aria-disabled="true">12 weeks, Pro leagues<i data-lucide="lock" class="tick" style="visibility:visible"></i></li>
+          </ul>
+        </div>
+        <span class="err" id="fx-dd2-e" data-fx-dd-err><i data-lucide="alert-circle"></i>Pick how long the season runs</span>
+      </div>
+    </div>
+    <div class="fx-col fx-gap">
+      <div class="field">
+        <span class="fx-lbl" id="fx-dd3-l">Visibility</span>
+        <div class="fx-dd">
+          <button class="input fx-dd-btn" disabled aria-labelledby="fx-dd3-l fx-dd3-v"><i data-lucide="lock"></i><span class="fx-dd-v" id="fx-dd3-v">Private, invite only</span><i data-lucide="chevron-down"></i></button>
+        </div>
+        <span class="hint">Disabled: only the league admin can change this.</span>
+      </div>
+      <div class="field">
+        <span class="fx-lbl" id="fx-ms-l">2v2 players</span>
+        <div class="fx-ms" data-fx-ms data-max="3">
+          <div class="input fx-ms-box" data-fx-ms-box>
+            <button class="fx-ms-add" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fx-ms-l" aria-describedby="fx-ms-c" data-fx-ms-add>Add players</button>
+          </div>
+          <ul class="menu fx-dd-menu" role="listbox" tabindex="-1" aria-multiselectable="true" aria-labelledby="fx-ms-l" hidden data-fx-ms-menu></ul>
+        </div>
+        <span class="hint num" id="fx-ms-c" data-fx-ms-count>2 of 3 picked</span>
+      </div>
+    </div>
+    <div class="fx-col fx-pan fx-row2">
+      <b class="fx-ph">Open menu anatomy</b>
+      <div class="fx-anat-menu" aria-hidden="true">
+        <span class="input fx-dd-btn fx-focus"><i data-lucide="circle-dot"></i><span class="fx-dd-v">Table tennis</span><i data-lucide="chevron-up"></i><span class="fx-mk r">1</span></span>
+        <div class="menu fx-static-menu">
+          <span class="fx-mopt"><i data-lucide="target"></i>Foosball<span class="fx-mk r">2</span></span>
+          <span class="fx-mopt on"><i data-lucide="circle-dot"></i>Table tennis<i data-lucide="check" class="tick"></i><span class="fx-mk r">3</span></span>
+          <span class="fx-mopt"><i data-lucide="disc"></i>Pool</span>
+          <span class="fx-mopt off"><i data-lucide="crosshair"></i>Darts, Pro leagues<i data-lucide="lock" class="tick"></i><span class="fx-mk r">4</span></span>
+        </div>
+      </div>
+      <ol class="fx-legend">
+        <li><span class="fx-mk">1</span><span><b>Field</b>2 px ring and flipped chevron while open</span></li>
+        <li><span class="fx-mk">2</span><span><b>Option</b>44 px tall, icon, label</span></li>
+        <li><span class="fx-mk">3</span><span><b>Selected</b>Bold with a tick, highlight follows keys</span></li>
+        <li><span class="fx-mk">4</span><span><b>Locked</b>Stays readable, says why</span></li>
+      </ol>
+    </div>
+    <div class="fx-col fx-span2">
+      <span class="fx-ph">Compact selects in a toolbar</span>
+      <div class="fx-tbar">
+        <button class="fx-fpill on" aria-haspopup="listbox"><i data-lucide="calendar"></i>Season 4<i data-lucide="chevron-down"></i></button>
+        <button class="fx-fpill" aria-haspopup="listbox"><i data-lucide="target"></i>Foosball<i data-lucide="chevron-down"></i></button>
+        <button class="fx-fpill" aria-haspopup="listbox"><i data-lucide="users"></i>All players<i data-lucide="chevron-down"></i></button>
+        <button class="fx-fpill" aria-haspopup="listbox"><i data-lucide="arrow-up-down"></i>Rating<i data-lucide="chevron-down"></i></button>
+        <button class="fx-fpill" disabled><i data-lucide="map-pin"></i>Any table<i data-lucide="chevron-down"></i></button>
+      </div>
+      <p class="fx-note">On phones a compact select opens a bottom sheet with the same options. A filter that differs from the default turns solid, so you always see what is on.</p>
     </div>
   </div>
+  <div class="dodont">
+    <div class="do"><b><i data-lucide="check-circle-2"></i>Do</b><ul><li>Show recent searches before anything is typed</li><li>Underline the part that matched</li><li>Keep the menu the same width as its field</li></ul></div>
+    <div class="dont"><b><i data-lucide="x-circle"></i>Don't</b><ul><li>Use a native select for players, it hides colours and ratings</li><li>Hide locked options, explain them instead</li><li>Blame the spelling in the empty state</li></ul></div>
+  </div>
 </section>
-
 <section class="sec" id="fx-swipe" data-title="Swipe, refresh, load more">
   <h2 class="t-title">Swipe, refresh, load more</h2>
   <p class="lead">Rows in your own match history swipe left to reveal two quick actions. Every action also lives in the long press menu, so swiping is never the only way. Feeds refresh with a pull from the top and load older items with a row at the bottom.</p>
@@ -304,15 +578,14 @@
     </div>
   </div>
 </section>
-
 <section class="sec" id="fx-validate" data-title="Codes and validation">
   <h2 class="t-title">Codes and validation</h2>
   <p class="lead">Invite codes are six boxes that advance on their own and accept a pasted code. Forms check a field when you leave it, show success inline, and on submit list what needs a look at the top, with links straight to each field.</p>
 
   <h3 class="sub">Invite code</h3>
-  <div class="demo fx-grid">
+  <div class="demo fx-c3">
     <div class="fx-col" data-fx-otp-wrap>
-      <span class="fx-lbl" id="fx-otp-l">Enter the 6 digit invite code</span>
+      <span class="fx-ph" id="fx-otp-l">Enter the 6 digit invite code</span>
       <div class="fx-otp" role="group" aria-labelledby="fx-otp-l" data-fx-otp>
         <input inputmode="numeric" autocomplete="one-time-code" aria-label="Digit 1 of 6">
         <input inputmode="numeric" autocomplete="off" aria-label="Digit 2 of 6">
@@ -322,20 +595,63 @@
         <input inputmode="numeric" autocomplete="off" aria-label="Digit 6 of 6">
       </div>
       <p class="fx-otp-msg" aria-live="polite" data-fx-otp-msg><span class="t-caption">The code is in the invite message.</span></p>
-      <div class="row-wrap"><button class="btn secondary sm" data-fx-otp-clear>Clear</button><span class="fx-note">Demo: 482913 joins, anything else shows the error.</span></div>
+      <div class="fx-row-btns"><button class="btn secondary" data-fx-otp-clear>Clear</button></div>
+      <p class="fx-note">Demo: 482913 joins, anything else shows the error. Pasting fills all six boxes at once.</p>
+      <span class="fx-ph fx-mt">Where the code comes from</span>
+      <div class="fx-invite">
+        <span class="av" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span><span class="no num">7</span></span>
+        <div class="fx-bubble">
+          <b>Dave</b>
+          <p>Join Office foosball on Liga, we play every lunch. Your code is</p>
+          <span class="fx-code num">482 913</span>
+          <span class="fx-cap num">Expires in 7 days</span>
+        </div>
+      </div>
+    </div>
+    <div class="fx-col fx-pan">
+      <b class="fx-ph">States</b>
+      <div class="fx-st">
+        <span class="fx-cap">Empty, first box focused</span>
+        <div class="fx-otp fx-otp-mini" aria-hidden="true"><span class="fx-focus"><span class="fx-caret"></span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">Checking</span>
+        <div class="fx-otp fx-otp-mini busy" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>3</span></div>
+        <p class="fx-otp-msg"><span class="fx-spin"></span>Checking the code</p>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">No match</span>
+        <div class="fx-otp fx-otp-mini err" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>1</span></div>
+        <p class="fx-otp-msg err"><i data-lucide="alert-circle"></i>No league uses this code. Ask for a fresh one.</p>
+      </div>
+      <div class="fx-st">
+        <span class="fx-cap">Joined</span>
+        <div class="fx-otp fx-otp-mini ok" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>3</span></div>
+        <p class="fx-otp-msg ok"><i data-lucide="check-circle-2"></i>You are in. Joining Office foosball.</p>
+      </div>
     </div>
     <div class="fx-col">
-      <span class="fx-lbl">States</span>
-      <div class="fx-otp fx-otp-mini err" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>1</span></div>
-      <p class="fx-otp-msg err"><i data-lucide="alert-circle"></i>No league uses this code. Ask for a fresh one.</p>
-      <div class="fx-otp fx-otp-mini ok" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>3</span></div>
-      <p class="fx-otp-msg ok"><i data-lucide="check-circle-2"></i>You are in. Joining Office foosball.</p>
+      <span class="fx-ph">In context, join screen</span>
+      <div class="fx-app fx-join">
+        <span class="fx-join-ic"><i data-lucide="ticket"></i></span>
+        <b class="t-section">Join a league</b>
+        <p class="t-small">Dave invited you to Office foosball at Acme Studio.</p>
+        <div class="fx-otp fx-otp-mini ok" aria-hidden="true"><span>4</span><span>8</span><span>2</span><span>9</span><span>1</span><span>3</span></div>
+        <div class="fx-join-league">
+          <span class="lead"><i data-lucide="target"></i></span>
+          <span class="main"><b>Office foosball</b><span class="num">14 players, season 4, week 43</span></span>
+          <span class="av-pair"><span class="av sm" style="--c:var(--pc-orange)"><span class="ring"></span><span class="face">M</span></span><span class="av sm" style="--c:var(--pc-blue)"><span class="ring"></span><span class="face">D</span></span><span class="av sm yellow" style="--c:var(--pc-yellow)"><span class="ring"></span><span class="face">S</span></span></span>
+        </div>
+        <button class="btn primary block lg">Join Office foosball</button>
+        <button class="btn ghost block">I have a link instead</button>
+      </div>
     </div>
   </div>
 
   <h3 class="sub">Form validation</h3>
-  <div class="demo">
+  <div class="demo fx-c2">
     <form class="fx-form" novalidate data-fx-form>
+      <span class="fx-ph">Create a league</span>
       <div class="alert er fx-sum" role="alert" tabindex="-1" hidden data-fx-sum></div>
       <div class="alert ok" role="status" tabindex="-1" hidden data-fx-done></div>
       <div class="field" data-fx-f="name">
@@ -353,9 +669,22 @@
         <textarea id="fx-f-desc" class="input" placeholder="What the league is about, house rules, where the table is" aria-describedby="fx-f-desc-c fx-f-desc-m" data-max="140"></textarea>
         <span class="fx-msg" id="fx-f-desc-m"></span>
       </div>
-      <div class="row-wrap"><button class="btn primary lg" type="submit">Create league</button><button class="btn ghost" type="reset">Start over</button></div>
-      <p class="fx-note">Submit empty to see the summary. A field turns green with a tick once it is good, the counter goes bold near the limit and red past it.</p>
+      <div class="fx-row-btns"><button class="btn primary lg" type="submit">Create league</button><button class="btn ghost" type="reset">Start over</button></div>
+      <p class="fx-note">Submit empty to see the summary. A field gets a green tick once it is good, the counter goes bold near the limit and red past it.</p>
     </form>
+    <div class="fx-col fx-pan">
+      <b class="fx-ph">Field states</b>
+      <div class="fx-fstates" aria-hidden="true">
+        <div class="field"><span class="fx-cap">Default</span><span class="input fx-fake ph">Friday darts</span><span class="hint">At least 3 characters</span></div>
+        <div class="field"><span class="fx-cap">Focused</span><span class="input fx-fake fx-focus">Lunch pool<span class="fx-caret"></span></span><span class="hint">At least 3 characters</span></div>
+        <div class="field"><span class="fx-cap">Valid</span><span class="input fx-fake fx-okf">Lunch pool<i data-lucide="check"></i></span><span class="fx-okmsg"><i data-lucide="check-circle-2"></i>Lunch pool is free</span></div>
+        <div class="field"><span class="fx-cap">Needs a look</span><span class="input fx-fake invalid">Office foosball</span><span class="err"><i data-lucide="alert-circle"></i>Acme Studio already has this name</span></div>
+        <div class="field"><span class="fx-cap">Disabled</span><span class="input fx-fake fx-dis">Acme Studio</span><span class="hint">Set by your team admin</span></div>
+        <div class="field"><span class="fx-cap">Counter</span><span class="fx-counts"><span class="fx-count num">12 of 140</span><span class="fx-count near num">128 of 140</span><span class="fx-count over num">146 of 140</span></span><span class="hint">Bold from 120, red past the limit</span></div>
+      </div>
+      <b class="fx-ph">Summary on submit</b>
+      <div class="alert er" aria-hidden="true"><i data-lucide="alert-circle"></i><div class="tx"><b>2 things need a look</b><span class="fx-sum-l"><u>League name</u><u>Invite by email</u></span></div></div>
+    </div>
   </div>
   <table class="spec">
     <tr><th>Component</th><th>When it checks</th><th>Copy</th></tr>

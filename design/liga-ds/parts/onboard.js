@@ -259,4 +259,32 @@
     (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(init));
     addEventListener('resize', () => requestAnimationFrame(() => { centre(cur < 0 ? 1 : cur, false); nearest(); }));
   });
+
+  /* ---------- Setup steps row ---------- */
+  $$('[data-ob-steps]').forEach((ol) => {
+    const steps = $$('[data-ob-step]', ol);
+    const LBL = { 'ob-s-done': 'Answered', 'ob-s-cur': 'Current question', 'ob-s-next': 'Up next' };
+    ol.addEventListener('click', (e) => {
+      const h = e.target.closest('.ob-step-h'); if (!h) return;
+      const n = steps.indexOf(h.closest('[data-ob-step]'));
+      steps.forEach((st, k) => {
+        const c = k < n ? 'ob-s-done' : k === n ? 'ob-s-cur' : 'ob-s-next';
+        st.classList.remove('ob-s-done', 'ob-s-cur', 'ob-s-next'); st.classList.add(c);
+        const sn = $('.ob-sn', st); sn.innerHTML = c === 'ob-s-done' ? '<i data-lucide="check"></i>' : String(k + 1);
+        $('.ob-sst', st).textContent = k === steps.length - 1 && c === 'ob-s-cur' ? 'Done' : LBL[c];
+        $('.ob-step-h', st).setAttribute('aria-current', c === 'ob-s-cur' ? 'step' : 'false');
+      });
+      icons();
+    });
+  });
+
+  /* ---------- Pricing table: move the highlight ---------- */
+  $$('[data-ob-ptab]').forEach((tab) => {
+    tab.addEventListener('click', (e) => {
+      const c = e.target.closest('.ob-pt-h[data-col]'); if (!c) return;
+      const k = c.dataset.col;
+      $$('[data-col]', tab).forEach((x) => x.classList.toggle('ob-on', x.dataset.col === k));
+      $$('[data-ob-pick]', tab).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.obPick === k)));
+    });
+  });
 })();

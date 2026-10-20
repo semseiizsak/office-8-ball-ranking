@@ -9,6 +9,7 @@
   const av = (c, letter, no, cls = '') =>
     `<span class="av ${cls} ${c === 'yellow' ? 'yellow' : ''}" style="--c:var(--pc-${c})"><span class="ring"></span><span class="face">${letter}</span>${no != null ? `<span class="no">${no}</span>` : ''}</span>`;
   let uid = 0;
+  const k3 = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
 
   /* ===== Date and time picker ===== */
   const sched = $('[data-fx-sched]');
@@ -185,6 +186,12 @@
       nameEl.style.color = `var(--pct-${col})`;
       desc.textContent = `${n}, number ${num}`;
       $$('[data-fx-num]', prof).forEach((b) => (b.disabled = (+b.dataset.fxNum < 0 && num <= 0) || (+b.dataset.fxNum > 0 && num >= 99)));
+      $$('[data-fx-mirror]', prof).forEach((m) => {
+        m.style.setProperty('--c', `var(--pc-${col})`);
+        m.classList.toggle('yellow', col === 'yellow');
+        const no = $('.no', m); if (no) no.textContent = num;
+      });
+      $$('[data-fx-mirror-name]', prof).forEach((m) => (m.style.color = `var(--pct-${col})`));
       hint.textContent = TAKEN[num] ? `${TAKEN[num]} wears ${num} too. That is fine, your colour tells you apart.` : `Nobody else wears ${num}.`;
     };
     const pick = (b) => {
@@ -224,7 +231,7 @@
       const r = frame.getBoundingClientRect();
       const mx = (r.width * (z - 1)) / 2, my = (r.height * (z - 1)) / 2;
       x = clamp(x, -mx, mx); y = clamp(y, -my, my);
-      img.style.setProperty('--x', x + 'px'); img.style.setProperty('--y', y + 'px'); img.style.setProperty('--z', z);
+      c.style.setProperty('--xp', (x / r.width) * 100); c.style.setProperty('--yp', (y / r.height) * 100); c.style.setProperty('--z', z);
     };
     zw.addEventListener('fx:change', (e) => { z = e.detail; apply(); });
     const setZoom = (v) => { zi.value = clamp(v, 1, 3); zw.fxUpdate(); };
@@ -234,10 +241,10 @@
       if (e.button) return;
       drag = { sx: e.clientX - x, sy: e.clientY - y };
       frame.setPointerCapture(e.pointerId);
-      frame.classList.add('drag');
+      frame.classList.add('drag'); c.classList.add('drag');
     });
     frame.addEventListener('pointermove', (e) => { if (!drag) return; x = e.clientX - drag.sx; y = e.clientY - drag.sy; apply(); });
-    const end = () => { drag = null; frame.classList.remove('drag'); };
+    const end = () => { drag = null; frame.classList.remove('drag'); c.classList.remove('drag'); };
     frame.addEventListener('pointerup', end); frame.addEventListener('pointercancel', end);
     frame.addEventListener('keydown', (e) => {
       const m = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[e.key];
@@ -336,7 +343,7 @@
     const count = ms.parentElement.querySelector('[data-fx-ms-count]');
     const picked = new Set(['Dave', 'Mira']);
     menu.innerHTML = PEOPLE.map(([n, c, no, elo]) =>
-      `<li role="option" aria-selected="false" data-n="${n}"><span class="check" aria-hidden="true"><i data-lucide="check"></i></span>${av(c, n[0], null, 'sm')}${n}<span class="elo">${elo}</span></li>`).join('');
+      `<li role="option" aria-selected="false" data-n="${n}"><span class="check" aria-hidden="true"><i data-lucide="check"></i></span>${av(c, n[0], null, 'sm')}${n}<span class="elo">${k3(elo)}</span></li>`).join('');
     const sync = () => {
       $$('.fx-tag', box).forEach((t) => t.remove());
       PEOPLE.filter((p) => picked.has(p[0])).forEach(([n, c]) => {
@@ -414,7 +421,7 @@
       let html = '<ul role="listbox" id="fx-sr-list" aria-label="Search results">';
       if (ps.length) {
         html += `<li role="presentation" class="fx-sr-gh"><span>Players</span><span class="num">${ps.length}</span></li>`;
-        html += ps.map(([n, c, no, elo]) => `<li class="row fx-opt" role="option" aria-selected="false" id="fx-sr-o${k++}" data-v="${n}">${av(c, n[0], no, 'sm')}<span class="main"><b>${hl(n, term)}</b></span><span class="elo">${elo}</span></li>`).join('');
+        html += ps.map(([n, c, no, elo]) => `<li class="row fx-opt" role="option" aria-selected="false" id="fx-sr-o${k++}" data-v="${n}">${av(c, n[0], no, 'sm')}<span class="main"><b>${hl(n, term)}</b></span><span class="elo">${k3(elo)}</span></li>`).join('');
       }
       if (ls.length) {
         html += `<li role="presentation" class="fx-sr-gh"><span>Leagues</span><span class="num">${ls.length}</span></li>`;
