@@ -156,16 +156,7 @@ export const PlayerCard: React.FC<{
       ) : (
         <span className={`pc-center${big ? ' big' : ''}`}>{initial}</span>
       );
-    if (card.type === 'player') {
-      if (card.rarity === 'common') center = <span className="pc-center">{initial}</span>;
-      else if (card.rarity === 'uncommon') center = <span className="pc-center">{n}</span>;
-      else center = withPhoto(card.rarity === 'epic');
-    } else if (card.type === 'crown' || card.type === 'cup') center = withPhoto(true);
-    else if (card.type === 'clown') center = <span className="pc-center">🤡</span>;
-    else if (card.type === 'moment') center = <span className="pc-center">8</span>;
-    else if (card.type === 'rivalry') center = <span className="pc-center">VS</span>;
-    else if (themed(card.type)) center = <span className="pc-center pc-emoji">{THEME[card.type].e}</span>;
-    else center = withPhoto();
+    center = withPhoto(card.type === 'crown' || card.type === 'cup' || (card.type === 'player' && card.rarity === 'epic'));
   }
 
   const style = {
