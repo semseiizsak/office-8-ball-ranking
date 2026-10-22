@@ -675,7 +675,7 @@ export const CollectionView: React.FC<CollectionViewProps> = ({
       )}
 
       {builder && <TradeBuilder me={currentPlayer} players={players} cards={cards} initial={builder} onSend={onOfferTrade} onClose={() => setBuilder(null)} />}
-      {opening && <PackOpening pack={opening} players={players} onOpen={onOpenPack} onClose={() => setOpening(null)} />}
+      {opening && <PackOpening pack={opening} allPacks={openable} players={players} onOpen={onOpenPack} onClose={() => setOpening(null)} />}
     </div>
   );
 };

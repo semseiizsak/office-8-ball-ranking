@@ -34,10 +34,12 @@ const CardBack: React.FC = () => (
  */
 export const PackOpening: React.FC<{
   pack: Pack;
+  /** Every unopened pack of yours, this one included; with more than one an "Open all" shows. */
+  allPacks?: Pack[];
   players: Player[];
   onOpen: (packId: string) => Promise<Card[]>;
   onClose: () => void;
-}> = ({ pack, players, onOpen, onClose }) => {
+}> = ({ pack, allPacks = [], players, onOpen, onClose }) => {
   const motion = !reduced();
   const [phase, setPhase] = useState<Phase>('sealed');
   const [tear, setTear] = useState(0);
@@ -70,6 +72,37 @@ export const PackOpening: React.FC<{
         setError(/quota|resource-exhausted/i.test(message) ? 'The app is out of database for today. Your pack is safe, open it after 9:00 tomorrow.' : message || 'The pack would not open.');
         setPhase('error');
       });
+  };
+
+  // Every pack in one go, one after the other, and one long list of what came out.
+  const [packCount, setPackCount] = useState(1);
+  const openAll = async () => {
+    if (opening.current) return;
+    opening.current = true;
+    setTear(1);
+    setPhase('ripping');
+    setPackCount(allPacks.length);
+    const started = Date.now();
+    const opened: Card[] = [];
+    let failure = '';
+    for (const each of allPacks) {
+      try {
+        opened.push(...(await onOpen(each.id)));
+      } catch (reason: unknown) {
+        const message = reason instanceof Error ? reason.message : '';
+        failure = /quota|resource-exhausted/i.test(message) ? 'The app is out of database for today. The rest are safe, open them after 9:00 tomorrow.' : message || 'A pack would not open.';
+        break;
+      }
+    }
+    if (opened.length === 0) {
+      setError(failure);
+      return setPhase('error');
+    }
+    setError(failure);
+    window.setTimeout(() => {
+      setCards([...opened].sort((a, b) => rank(b) - rank(a)));
+      setPhase('summary');
+    }, Math.max(0, (motion ? 900 : 0) - (Date.now() - started)));
   };
 
   // Tapping instead of dragging still tears it, just by itself.
@@ -187,7 +220,12 @@ export const PackOpening: React.FC<{
             </div>
             {phase === 'sealed' && tear === 0 && motion && <span aria-hidden="true" className="po2-finger" />}
           </div>
-          <p className="font-semibold text-white/70">{phase === 'sealed' ? 'Swipe along the top to tear it open.' : 'Here they come.'}</p>
+          <p className="font-semibold text-white/70">{phase === 'sealed' ? 'Swipe along the top to tear it open.' : packCount > 1 ? `Opening ${packCount} packs.` : 'Here they come.'}</p>
+          {phase === 'sealed' && allPacks.length > 1 && (
+            <button type="button" onClick={openAll} className="press h-12 rounded-full bg-white/12 px-7 text-[13px] font-extrabold uppercase tracking-[0.06em] text-white">
+              Open all {allPacks.length}
+            </button>
+          )}
         </div>
       )}
 
@@ -231,10 +269,11 @@ export const PackOpening: React.FC<{
 
       {phase === 'summary' && (
         <div className="relative z-10 grid w-full max-w-md justify-items-center gap-5">
-          <h1 className="text-[30px]">{best && rank(best) >= RARITIES.indexOf('legendary') ? 'What a pack!' : 'Your cards'}</h1>
-          <div className="flex w-full justify-center gap-2.5">
+          <h1 className="text-[30px]">{packCount > 1 ? `${cards.length} cards` : best && rank(best) >= RARITIES.indexOf('legendary') ? 'What a pack!' : 'Your cards'}</h1>
+          {error && <p className="font-semibold text-white/70">{error}</p>}
+          <div className={cards.length > 3 ? 'no-scrollbar grid max-h-[62vh] w-full grid-cols-3 content-start gap-2.5 overflow-y-auto' : 'flex w-full justify-center gap-2.5'}>
             {cards.map((c, i) => (
-              <span key={c.id} className="po2-land w-[calc((100%-20px)/3)] max-w-[130px]" style={{ animationDelay: `${i * 120}ms` }}>
+              <span key={c.id} className={`po2-land ${cards.length > 3 ? '' : 'w-[calc((100%-20px)/3)] max-w-[130px]'}`} style={{ animationDelay: `${Math.min(i, 8) * 100}ms` }}>
                 {card(c)}
               </span>
             ))}
