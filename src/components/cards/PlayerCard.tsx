@@ -47,6 +47,10 @@ export const RARITY_GLOW: Record<Rarity, string> = {
   mythic: '#F2B705',
 };
 
+/** A rarer print of the same player is a stronger card: the rating adds a step per rarity, up to 99. */
+const RATING_BONUS: Record<Rarity, number> = { common: 0, uncommon: 2, rare: 4, epic: 6, legendary: 8, mythic: 10 };
+export const ratingOf = (card: Pick<Card, 'rarity' | 'stats'>) => Math.min(99, card.stats.ovr + RATING_BONUS[card.rarity]);
+
 const first = (player: Pick<Player, 'name'> | null | undefined) => (player?.name ?? '?').split(' ')[0];
 const seasonLabel = (season: string) => (/^season/i.test(season) ? season : `Season ${season || 1}`);
 const seasonShort = (season: string) => `S${season.match(/\d+/)?.[0] ?? '1'}`;
@@ -70,7 +74,7 @@ const WIDTH: Record<CardSize, number> = { full: 300, medium: 150, mini: 0 };
  * uncommon stand still, rare and up lean with the pointer or the phone.
  */
 export const PlayerCard: React.FC<{
-  card: Pick<Card, 'type' | 'rarity' | 'serial' | 'season' | 'seasonId' | 'note' | 'photo' | 'photoId'>;
+  card: Pick<Card, 'type' | 'rarity' | 'stats' | 'serial' | 'season' | 'seasonId' | 'note' | 'photo' | 'photoId'>;
   player: Pick<Player, 'id' | 'name' | 'avatarUrl' | 'ball' | 'sponsor'> | null | undefined;
   /** The second player on a rivalry card. */
   other?: Pick<Player, 'id' | 'name' | 'ball'> | null;
@@ -129,7 +133,7 @@ export const PlayerCard: React.FC<{
     <div
       ref={ref}
       role="img"
-      aria-label={`${name}, ${flag || card.rarity}${prev ? `, last season ${prev.winPct}% wins, rank ${prev.rank}, ${prev.cups} cups` : ''}`}
+      aria-label={`${name}, ${flag || card.rarity}, ${ratingOf(card)} overall${prev ? `, last season ${prev.winPct}% wins, rank ${prev.rank}, ${prev.cups} cups` : ''}`}
       className={`pc pc-${card.rarity} pc-${size}${tilt ? ' pc-tiltable' : ''} ${className}`}
       style={style}
       onPointerMove={tilt ? move : undefined}
@@ -157,6 +161,10 @@ export const PlayerCard: React.FC<{
             <div className="pc-top">
               <span className="pc-ball">{n}</span>
               <span>{seasonShort(card.season)}</span>
+            </div>
+            <div className="pc-ovr">
+              <b>{ratingOf(card)}</b>
+              <span>OVR</span>
             </div>
             {prev && <span className="pc-rank">#{prev.rank}</span>}
             <div className="pc-bot">
