@@ -310,130 +310,87 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
 .cup-hold, .cup-hold * { animation-play-state: paused !important; }
 
 
-/* ---------- Player cards: the FIFA shield. Laid out on a 320 wide grid, scaled with the card (--k is one grid unit). ---------- */
-.pc { position: relative; container-type: inline-size; aspect-ratio: 320 / 458; flex: none; --c: #F2B705; --c2: #C8102E; --acc: #F2B705; --ink: #fff; --glow: transparent; }
-.pc-in { --k: calc(100cqw / 320); position: absolute; inset: 0; color: var(--ink); transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transform-style: preserve-3d; transition: transform 500ms var(--ease); }
+/* ---------- Player cards: a photo in a frame. Laid out on a 320 wide grid, scaled with the card (--k is one grid unit). ---------- */
+@property --pa { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+.pc { position: relative; container-type: inline-size; aspect-ratio: 320 / 458; flex: none; --c: #F2B705; --o: 0; }
+.pc-in { --k: calc(100cqw / 320); position: absolute; inset: 0; color: #fff; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 500ms var(--ease); }
 .pc.live .pc-in { transition: none; }
 .pc.gyro:not(.live) .pc-in { transition: transform 140ms linear; }
 .pc-tiltable { perspective: 1100px; cursor: grab; touch-action: pan-y; }
-.pc-sh { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); overflow: hidden; }
-.pc-inset { inset: calc(5 * var(--k)); }
-.pc-glow { animation: pc-breathe 3s var(--ease) infinite; }
-@keyframes pc-breathe { 0%, 100% { filter: drop-shadow(0 0 calc(12 * var(--k, 1px)) var(--glow)); } 50% { filter: drop-shadow(0 0 calc(26 * var(--k, 1px)) var(--glow)); } }
+.pc-fr { position: absolute; inset: 0; padding: calc(7 * var(--k)); box-sizing: border-box; background: var(--fr); }
+.pc-ph { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: #1a1a1a; background-image: linear-gradient(180deg, transparent 55%, rgba(8,8,10,.92)); background-size: cover; background-position: 50% 8%; background-repeat: no-repeat; }
+.pc-mono { position: absolute; inset: 0; display: grid; place-items: center; font: 800 calc(150 * var(--k)) / 1 var(--font-display); color: rgba(255,255,255,.85); margin-top: -18%; }
+.pc-hl, .pc-gl, .pc-sw, .pc-sparks { position: absolute; inset: 0; pointer-events: none; }
+.pc-hl { opacity: 0; mix-blend-mode: overlay; }
+.pc-gl { opacity: 0; background: radial-gradient(circle at var(--mx, 30%) var(--my, 20%), rgba(255,255,255,.55), transparent 38%); mix-blend-mode: soft-light; }
 
-.pc-text { position: absolute; inset: 0; transform: translateZ(12px); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); }
-.pc-corner { position: absolute; top: calc(40 * var(--k)); left: calc(30 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(6 * var(--k)); }
-.pc-ovr { font: 800 calc(50 * var(--k)) / calc(46 * var(--k)) var(--font-display); height: calc(46 * var(--k)); color: var(--acc); font-variant-numeric: tabular-nums; }
-.pc-pos { font: 800 calc(13 * var(--k)) / 1 var(--font-sans); letter-spacing: .14em; padding-left: .14em; }
-.pc-rule { width: calc(36 * var(--k)); height: calc(2 * var(--k)); background: var(--acc); }
-.pc-ball { width: calc(30 * var(--k)); height: calc(30 * var(--k)); border-radius: 50%; display: grid; place-items: center; font: 800 calc(12 * var(--k)) / 1 var(--font-display); color: #0A0A0A; background: radial-gradient(circle, #F4F1E8 0 40%, var(--c) 41%); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
-.pc-crest { position: absolute; top: calc(44 * var(--k)); right: calc(30 * var(--k)); width: calc(68 * var(--k)); display: grid; justify-items: center; gap: calc(12 * var(--k)); }
-.pc-gem { width: calc(30 * var(--k)); height: calc(30 * var(--k)); transform: rotate(45deg); border-radius: calc(6 * var(--k)); background: var(--gem, var(--acc)); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
-.pc-icon { width: calc(34 * var(--k)); height: calc(34 * var(--k)); border-radius: 50%; display: grid; place-items: center; background: var(--acc); color: var(--on-acc, #0A0A0A); box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A; }
-.pc-icon svg { width: 58%; height: 58%; }
-.pc-flag { font: 800 calc(9 * var(--k)) / 1 var(--font-sans); letter-spacing: .16em; padding-left: .16em; color: var(--acc); text-transform: uppercase; white-space: nowrap; }
-.pc-center { position: absolute; left: 50%; top: calc(166 * var(--k)); width: calc(124 * var(--k)); height: calc(124 * var(--k)); margin: calc(-62 * var(--k)) 0 0 calc(-62 * var(--k)); border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #0A0A0A 50% 35% / cover no-repeat; font: 800 calc(56 * var(--k)) / 1 var(--font-display); color: #fff; text-transform: uppercase; }
-.pc-center.big { top: calc(168 * var(--k)); width: calc(140 * var(--k)); height: calc(140 * var(--k)); margin: calc(-70 * var(--k)) 0 0 calc(-70 * var(--k)); }
-.pc-mono { position: absolute; left: 0; right: 0; top: calc(70 * var(--k)); height: calc(160 * var(--k)); display: grid; place-items: center; font: 800 calc(150 * var(--k)) / 1 var(--font-display); color: rgba(255,255,255,.9); text-transform: uppercase; }
-.pc-bottom { position: absolute; left: calc(22 * var(--k)); right: calc(22 * var(--k)); top: calc(246 * var(--k)); display: grid; justify-items: center; }
-.pc-name { font: 800 calc(32 * var(--k)) / calc(36 * var(--k)) var(--font-display); height: calc(36 * var(--k)); max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; text-align: center; letter-spacing: -.01em; }
-.pc-note { font: 700 calc(10 * var(--k)) / calc(14 * var(--k)) var(--font-sans); height: calc(14 * var(--k)); margin-top: calc(2 * var(--k)); max-width: calc(236 * var(--k)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--acc); text-align: center; }
-.pc-line { width: calc(220 * var(--k)); height: calc(2 * var(--k)); margin: calc(8 * var(--k)) 0 calc(10 * var(--k)); background: linear-gradient(90deg, transparent, var(--acc), transparent); }
-.pc-note + .pc-line { margin: calc(6 * var(--k)) 0 calc(8 * var(--k)); }
-.pc-stats { display: grid; grid-template-columns: calc(92 * var(--k)) calc(92 * var(--k)); column-gap: calc(28 * var(--k)); row-gap: calc(6 * var(--k)); justify-content: center; }
-.pc-stats span { display: grid; grid-template-columns: calc(30 * var(--k)) 1fr; align-items: baseline; column-gap: calc(8 * var(--k)); height: calc(22 * var(--k)); font: 800 calc(12 * var(--k)) / calc(22 * var(--k)) var(--font-sans); letter-spacing: .08em; }
-.pc-stats b { font: 800 calc(19 * var(--k)) / calc(22 * var(--k)) var(--font-display); text-align: right; font-variant-numeric: tabular-nums; }
-.pc-foot { display: flex; justify-content: center; gap: calc(12 * var(--k)); margin-top: calc(12 * var(--k)); font: 800 calc(9 * var(--k)) / 1 var(--font-sans); letter-spacing: .2em; padding-left: .2em; text-transform: uppercase; color: var(--acc); white-space: nowrap; }
+.pc-top { position: absolute; left: calc(18 * var(--k)); right: calc(18 * var(--k)); top: calc(16 * var(--k)); display: flex; justify-content: space-between; align-items: center; font: 700 calc(12 * var(--k)) / 1 var(--font-sans); letter-spacing: .14em; text-shadow: 0 1px 4px rgba(0,0,0,.65); }
+.pc-ball { width: calc(32 * var(--k)); height: calc(32 * var(--k)); border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #F4F1E8 0 42%, var(--c) 43%); color: #0A0A0A; font: 800 calc(13 * var(--k)) / 1 var(--font-sans); letter-spacing: 0; text-shadow: none; }
+.pc-rank { display: none; }
+.pc-bot { position: absolute; left: calc(24 * var(--k)); right: calc(24 * var(--k)); bottom: calc(30 * var(--k)); }
+.pc-flag { font: 700 calc(10 * var(--k)) / 1 var(--font-sans); letter-spacing: .16em; text-transform: uppercase; opacity: .8; margin-bottom: calc(6 * var(--k)); }
+.pc-name { font: 800 calc(46 * var(--k)) / 1 var(--font-display); text-transform: uppercase; letter-spacing: -.01em; text-shadow: 0 2px 10px rgba(0,0,0,.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-st { display: grid; grid-template-columns: 1.3fr 1fr 1fr; margin-top: calc(14 * var(--k)); padding-top: calc(10 * var(--k)); border-top: 1px solid rgba(255,255,255,.27); }
+.pc-st b { display: block; font: 800 calc(28 * var(--k)) / 1 var(--font-display); font-variant-numeric: tabular-nums; }
+.pc-st span, .pc-rk span { display: block; font: 600 calc(9 * var(--k)) / 1 var(--font-sans); letter-spacing: .14em; text-transform: uppercase; opacity: .65; }
+.pc-st div + div { border-left: 1px solid rgba(255,255,255,.2); padding-left: calc(12 * var(--k)); }
+.pc-rk { margin-top: calc(14 * var(--k)); padding-top: calc(10 * var(--k)); border-top: 1px solid rgba(255,255,255,.27); }
+.pc-rk b { display: block; font: italic 300 calc(30 * var(--k)) / 1 Georgia, serif; }
+.pc-rk span { margin-top: calc(6 * var(--k)); }
+.pc-sp-patch { position: absolute; left: 50%; top: calc(14 * var(--k)); transform: translateX(-50%); height: calc(26 * var(--k)); padding: calc(3 * var(--k)) calc(8 * var(--k)); border-radius: calc(5 * var(--k)); background: #fff; display: grid; place-items: center; }
+.pc-sp-patch.sharp { border-radius: 0; }
+.pc-sp-patch img { display: block; height: 100%; width: auto; max-width: calc(80 * var(--k)); object-fit: contain; }
 
-/* Rarities */
-.pc-common { --acc: #fff; --gem: #A8622C; }
-.pc-common .pc-bg { background: linear-gradient(160deg, #A8622C, #6e3c16); }
-.pc-common .pc-center { box-shadow: inset 0 0 0 calc(5 * var(--k)) var(--c); }
-.pc-uncommon { --ink: #0A0A0A; --acc: #0A0A0A; --gem: #C9CCD1; }
-.pc-uncommon .pc-bg { background: repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 2px, transparent 2px 6px), linear-gradient(160deg, #C9CCD1, #8d9096); }
-.pc-uncommon .pc-center { background: radial-gradient(circle, #F4F1E8 0 36%, var(--c) 37%) 50% 35% / cover no-repeat; box-shadow: inset 0 0 0 calc(5 * var(--k)) var(--c); color: #0A0A0A; font-size: calc(40 * var(--k)); }
-.pc-rare { --ink: #0A0A0A; --acc: #0A0A0A; --gem: #F2B705; --glow: rgba(242,183,5,.45); }
-.pc-rare .pc-bg { background: linear-gradient(160deg, #F2B705, #b88900); }
-.pc-rare .pc-center { box-shadow: inset 0 0 0 calc(5 * var(--k)) var(--c), inset 0 0 0 calc(9 * var(--k)) #0A0A0A; }
-.pc-epic { --acc: #F2B705; --ink: #F2B705; --gem: #F2B705; --glow: rgba(242,183,5,.5); }
-.pc-epic .pc-bg { --rim: #F2B705; --fill: radial-gradient(90% 60% at 50% 30%, #2a2208, #0A0A0A 70%); }
-/* A rim that follows the whole shield, slanted edges included: the shape is
-   painted in the rim colour and the fill sits inset on top. An inset shadow
-   would only draw the straight sides, since the clip cuts the corners away. */
-.pc-epic .pc-bg, .pc-t-crown .pc-bg, .pc-t-cup .pc-bg, .pc-t-totw .pc-bg, .pc-themed .pc-bg { background: var(--rim); }
-.pc-epic .pc-bg::after, .pc-t-crown .pc-bg::after, .pc-t-cup .pc-bg::after, .pc-t-totw .pc-bg::after, .pc-themed .pc-bg::after {
-  content: ""; position: absolute; inset: calc(2 * var(--k)); z-index: 0;
-  clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: var(--fill);
-}
-.pc-epic .pc-bg::before { z-index: 1; }
-.pc-epic .pc-bg::before { content: ""; position: absolute; inset: calc(4 * var(--k)); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); box-shadow: inset 0 0 0 calc(1.5 * var(--k)) #F2B705; }
-.pc-epic .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #F2B705; }
-.pc-legendary, .pc-mythic { --acc: #F2B705; }
-.pc-legendary { --glow: rgba(160,120,255,.55); --gem: conic-gradient(from 0deg, #ff0080, #ffcc00, #00ffaa, #00a2ff, #b400ff, #ff0080); }
-.pc-legendary .pc-bg { background: linear-gradient(160deg, #fff3b0 0%, #F2B705 22%, #8a6400 50%, #F2B705 78%, #fff3b0 100%); }
-.pc-legendary .pc-gem { animation: pc-gem 2.2s var(--ease) infinite; }
-@keyframes pc-gem { 0%, 100% { box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A, 0 0 calc(10 * var(--k)) rgba(180,0,255,.5); } 50% { box-shadow: 0 0 0 calc(2 * var(--k)) #0A0A0A, 0 0 calc(22 * var(--k)) rgba(255,204,0,.9); } }
-.pc-mythic { --glow: rgba(242,183,5,.65); --gem: #0A0A0A; }
-.pc-mythic .pc-gem { box-shadow: 0 0 0 calc(2 * var(--k)) #F2B705; }
-.pc-mythic .pc-bg { background: #000; }
-.pc-spin { position: absolute; left: 50%; top: 40%; width: 150%; aspect-ratio: 1; translate: -50% -50%; background: conic-gradient(from 0deg, #F2B705, #0A0A0A 20%, #C9CCD1 35%, #0A0A0A 50%, #F2B705 65%, #0A0A0A 80%, #F2B705); animation: pc-spin 6s linear infinite; }
+/* Common: plain bronze, square corners, stands still. */
+.pc-common { --fr: #9C5C2A; }
+/* Uncommon: plain silver, rounded corners, stands still. */
+.pc-uncommon { --fr: #C3C7CD; }
+.pc-uncommon .pc-fr { border-radius: calc(30 * var(--k)); }
+.pc-uncommon .pc-ph { border-radius: calc(24 * var(--k)); }
+/* Rare: one diagonal rounded, the other sharp. Leans, with a small glint. */
+.pc-rare { --fr: linear-gradient(140deg, #7FB2FF, #2B5FC7 50%, #9CC4FF); }
+.pc-rare .pc-fr { border-radius: calc(46 * var(--k)) 0 calc(46 * var(--k)) 0; }
+.pc-rare .pc-ph { border-radius: calc(40 * var(--k)) 0 calc(40 * var(--k)) 0; }
+.pc-rare .pc-gl { opacity: calc(var(--o) * .8); }
+/* Epic: gold, the other diagonal rounded. Leans, holographic light. */
+.pc-epic { --fr: linear-gradient(140deg, #FFE48A, #C99700 50%, #FFE9A0); }
+.pc-epic .pc-fr { border-radius: 0 calc(46 * var(--k)) 0 calc(46 * var(--k)); }
+.pc-epic .pc-ph { border-radius: 0 calc(40 * var(--k)) 0 calc(40 * var(--k)); }
+.pc-epic .pc-hl { opacity: .4; background: linear-gradient(115deg, #FF4D9A, #FFD23D, #3DFFB2, #3DA5FF, #B43DFF, #FF4D9A); background-size: 250% 250%; background-position: var(--mx, 50%) var(--my, 50%); }
+.pc-epic .pc-gl { opacity: calc(var(--o) * .7); }
+/* Legendary: a small peak top and bottom, like a diamond. Swings hard, holographic, a glint runs across. */
+.pc-legendary .pc-fr, .pc-mythic .pc-fr, .pc-legendary .pc-ph, .pc-mythic .pc-ph { clip-path: polygon(0 calc(16 * var(--k)), 50% 0, 100% calc(16 * var(--k)), 100% calc(100% - 16 * var(--k)), 50% 100%, 0 calc(100% - 16 * var(--k))); }
+.pc-legendary { --fr: linear-gradient(135deg, #FFF3C4, #E8C15A 30%, #F5F0FF 50%, #E8C15A 70%, #FFF3C4); filter: drop-shadow(0 0 calc(14 * var(--k, 1px)) rgba(255,224,138,.6)); }
+.pc-legendary .pc-hl { opacity: .55; background: linear-gradient(115deg, #FF4D9A, #FFD23D, #3DFFB2, #3DA5FF, #B43DFF, #FF4D9A); background-size: 220% 220%; background-position: var(--mx, 50%) var(--my, 50%); }
+.pc-legendary .pc-gl { opacity: calc(.35 + var(--o) * .55); }
+.pc-sw { inset: -30%; background: linear-gradient(105deg, transparent 42%, rgba(255,244,190,.7) 50%, transparent 58%); mix-blend-mode: screen; animation: pc-run 3.4s var(--ease) infinite; }
+.pc-legendary .pc-sw { animation-duration: 4.4s; }
+/* Mythic: the legendary shape, but it never stops: a turning border, a running glint, sparks, a pulsing glow. */
+.pc-mythic { --fr: conic-gradient(from var(--pa), #000, #F2B705, #FFF6C8 25%, #F2B705 40%, #000 55%, #F2B705 75%, #FFF6C8 90%, #000); animation: pc-pulse 2.4s var(--ease) infinite; }
+.pc-mythic .pc-fr { animation: pc-turn 4s linear infinite; }
+.pc-mythic .pc-hl { opacity: .6; background: linear-gradient(115deg, #FF4D9A, #FFD23D, #3DFFB2, #3DA5FF, #B43DFF, #FF4D9A, #FFD23D); background-size: 300% 300%; animation: pc-holo 5s linear infinite; }
+.pc-mythic .pc-gl { opacity: calc(.45 + var(--o) * .5); }
+.pc-sparks i { position: absolute; width: calc(22 * var(--k)); height: calc(22 * var(--k)); background: #fff; clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); opacity: 0; animation: pc-twinkle 1.6s var(--ease) infinite; filter: drop-shadow(0 0 4px #fff); }
+@keyframes pc-turn { to { --pa: 360deg; } }
+@keyframes pc-pulse { 0%, 100% { filter: drop-shadow(0 0 calc(10 * var(--k, 1px)) rgba(242,183,5,.7)); } 50% { filter: drop-shadow(0 0 calc(26 * var(--k, 1px)) rgba(255,240,176,.95)) drop-shadow(0 0 calc(8 * var(--k, 1px)) #F2B705); } }
+@keyframes pc-holo { to { background-position: 300% 300%; } }
+@keyframes pc-run { 0% { transform: translateX(-70%); } 60%, 100% { transform: translateX(70%); } }
+@keyframes pc-twinkle { 0%, 100% { opacity: 0; transform: scale(0) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
 @keyframes pc-spin { to { rotate: 360deg; } }
-.pc-art { background: var(--photo, none) 50% 0 / cover no-repeat, linear-gradient(180deg, var(--c), #0A0A0A); }
-.pc-art::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,0) 22%, rgba(10,10,10,0) 48%, rgba(10,10,10,.82) 68%, rgba(10,10,10,.96) 100%), radial-gradient(70% 40% at 50% 0%, color-mix(in srgb, var(--c) 55%, transparent), transparent 70%); }
-.pc-foil { mix-blend-mode: soft-light; opacity: calc(.45 + var(--o, 0) * .4); -webkit-mask-image: linear-gradient(180deg, #000 0 58%, transparent 80%); mask-image: linear-gradient(180deg, #000 0 58%, transparent 80%);
-  background: repeating-linear-gradient(115deg, rgba(255,255,255,0) 0 6px, rgba(255,255,255,.08) 6px 7px), linear-gradient(115deg, #ff0080, #ffcc00, #00ffaa, #00a2ff, #b400ff, #ff0080);
-  background-size: 100% 100%, 300% 300%; background-position: 0 0, var(--mx, 50%) var(--my, 50%); animation: pc-drift 6s var(--ease) infinite alternate; }
-@keyframes pc-drift { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(60deg); } }
-.pc-glare { mix-blend-mode: soft-light; background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.7), rgba(255,255,255,0) 40%); opacity: calc(var(--o, 0) * .8); }
-.pc-sweep::after { content: ""; position: absolute; top: -30%; left: 0; width: 35%; height: 160%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent); animation: pc-sweep 4.2s var(--ease) 1.2s infinite; }
 @keyframes pc-sweep { 0% { transform: translateX(-160%) rotate(20deg); } 45%, 100% { transform: translateX(360%) rotate(20deg); } }
-.pc-glints i { position: absolute; z-index: 5; width: calc(18 * var(--k)); height: calc(18 * var(--k)); transform: translateZ(40px); opacity: 0;
-  background: radial-gradient(circle, #fff 0 12%, transparent 14%), linear-gradient(0deg, transparent 46%, #fff 46% 54%, transparent 54%), linear-gradient(90deg, transparent 46%, #fff 46% 54%, transparent 54%);
-  animation: pc-glint 2.6s var(--ease) infinite; }
-@keyframes pc-glint { 0%, 100% { opacity: 0; transform: translateZ(40px) scale(.3) rotate(0); } 50% { opacity: 1; transform: translateZ(40px) scale(1) rotate(45deg); } }
 
-/* Special editions */
-.pc-t-crown { --acc: #F2B705; --ink: #F2B705; }
-.pc-t-crown .pc-bg { --rim: #F2B705; --fill: linear-gradient(160deg, #3a0d12, #0A0A0A); }
-.pc-t-cup { --acc: #F2B705; --ink: #fff; }
-/* The cup card is full art: a gold rim, green felt light behind the photo and a laurel around it. */
-.pc-t-cup { --glow: rgba(242,183,5,.6); }
-.pc-t-cup .pc-bg { background: linear-gradient(160deg, #fff3b0 0%, #F2B705 22%, #8a6400 50%, #F2B705 78%, #fff3b0 100%); }
-.pc-t-cup .pc-bg::after { content: none; }
-.pc-t-cup .pc-art { background: var(--photo, none) 50% 0 / cover no-repeat, radial-gradient(80% 55% at 50% 30%, #0f5a33, #0A0A0A 75%); }
-.pc-t-cup .pc-art::before { background: linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,0) 22%, rgba(10,10,10,0) 48%, rgba(10,10,10,.82) 68%, rgba(10,10,10,.96) 100%), radial-gradient(70% 40% at 50% 0%, rgba(242,183,5,.45), transparent 70%); }
-.pc-laurel { position: absolute; left: calc(30 * var(--k)); top: calc(112 * var(--k)); width: calc(260 * var(--k)); height: calc(140 * var(--k)); transform: translateZ(6px); pointer-events: none; }
-.pc-t-season { --acc: #F2B705; --ink: #fff; }
-.pc-mini .pc-laurel { top: calc(150 * var(--k)); }
-.pc-t-crown .pc-center, .pc-t-cup .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #F2B705; }
-.pc-t-totw { --acc: #fff; --ink: #fff; }
-.pc-t-totw .pc-bg { --rim: #FFFFFF; --fill: linear-gradient(160deg, #111, #000); }
-.pc-t-totw .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #fff; }
-.pc-t-clown { --acc: #fff; --ink: #fff; --on-acc: #C8102E; }
-.pc-t-clown .pc-bg { background: repeating-conic-gradient(#C8102E 0 15deg, #F4F1E8 15deg 30deg); }
-.pc-t-clown .pc-bg::after { content: ""; position: absolute; inset: calc(8 * var(--k)); clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: #0A0A0A; }
-.pc-t-clown .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #C8102E; }
-.pc-t-moment { --acc: #fff; --ink: #fff; --on-acc: #0B7A3E; }
-.pc-t-moment .pc-bg { background: linear-gradient(160deg, #0B7A3E, #063d1f); }
-.pc-t-moment .pc-center { background: radial-gradient(circle, #F4F1E8 0 36%, #0A0A0A 37%) 50% 35% / cover no-repeat; color: #0A0A0A; font-size: calc(40 * var(--k)); }
-.pc-t-rivalry { --acc: #fff; --ink: #fff; }
-.pc-t-rivalry .pc-bg { background: linear-gradient(115deg, var(--c) 0 50%, var(--c2) 50% 100%); }
-.pc-t-rivalry .pc-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,0) 30%, rgba(10,10,10,.9) 64%); }
-.pc-t-rivalry .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) #fff; font-size: calc(40 * var(--k)); }
-
-/* Medium: for grids and the pack. The name and the corner, no stats. */
-.pc-medium .pc-flag, .pc-medium .pc-stats, .pc-medium .pc-foot, .pc-medium .pc-note, .pc-medium .pc-ball { visibility: hidden; }
-.pc-medium .pc-pos { font-size: max(7px, calc(13 * var(--k))); }
-.pc-medium .pc-bottom { top: calc(300 * var(--k)); }
-.pc-medium .pc-name { font-size: calc(40 * var(--k)); line-height: calc(46 * var(--k)); height: calc(46 * var(--k)); }
-/* Mini: an album thumbnail. OVR, the face and the rarity short. */
-.pc-mini .pc-crest, .pc-mini .pc-bottom, .pc-mini .pc-rule, .pc-mini .pc-ball, .pc-mini .pc-pos, .pc-mini .pc-glints { display: none; }
-.pc-mini .pc-corner { top: calc(34 * var(--k)); left: 0; right: 0; width: auto; }
-.pc-mini .pc-ovr { font-size: calc(72 * var(--k)); line-height: calc(60 * var(--k)); height: calc(60 * var(--k)); }
-.pc-mini .pc-center, .pc-mini .pc-center.big { top: calc(236 * var(--k)); width: calc(176 * var(--k)); height: calc(176 * var(--k)); margin: calc(-88 * var(--k)) 0 0 calc(-88 * var(--k)); font-size: calc(80 * var(--k)); }
-.pc-mini-pos { position: absolute; left: 0; right: 0; top: calc(350 * var(--k)); text-align: center; font: 800 max(6px, calc(40 * var(--k))) / 1 var(--font-sans); letter-spacing: .08em; padding-left: .08em; color: var(--acc); }
-.pc-mini .pc-art::before { background: linear-gradient(180deg, rgba(10,10,10,.5) 0%, rgba(10,10,10,0) 30%, rgba(10,10,10,0) 60%, rgba(10,10,10,.85) 82%); }
-.pc-empty { aspect-ratio: 320 / 458; clip-path: polygon(50% 0, 100% 6%, 100% 86%, 50% 100%, 0 86%, 0 6%); background: #171717; }
+/* Mini: an album thumbnail. The face, the frame, the ball, last season's place and the name. Nothing runs. */
+.pc-mini .pc-top span:not(.pc-ball), .pc-mini .pc-st, .pc-mini .pc-rk, .pc-mini .pc-flag, .pc-mini .pc-gl, .pc-mini .pc-sw, .pc-mini .pc-sparks { display: none; }
+.pc-mini .pc-bot { bottom: calc(18 * var(--k)); left: calc(18 * var(--k)); right: calc(18 * var(--k)); }
+.pc-mini .pc-name { font-size: calc(46 * var(--k)); }
+.pc-mini .pc-ball { width: calc(52 * var(--k)); height: calc(52 * var(--k)); font-size: calc(22 * var(--k)); }
+.pc-mini .pc-rank { display: block; position: absolute; right: calc(20 * var(--k)); top: calc(18 * var(--k)); font: 800 calc(44 * var(--k)) / 1 var(--font-sans); text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+.pc-mini.pc-mythic, .pc-mini.pc-mythic .pc-fr, .pc-mini .pc-hl { animation: none; }
+.pc-mini.pc-mythic { filter: drop-shadow(0 0 calc(10 * var(--k, 1px)) rgba(242,183,5,.7)); }
+.pc-empty { aspect-ratio: 320 / 458; border-radius: 6px; background: #171717; }
+@media (prefers-reduced-motion: reduce) {
+  .pc, .pc-fr, .pc-hl, .pc-sw, .pc-sparks i { animation: none !important; }
+}
 
 /* The pack */
 .pk { position: relative; border-radius: 14px; background: linear-gradient(160deg, #F2B705, #7a5c00); overflow: hidden; display: grid; place-items: center; box-shadow: 0 0 24px rgba(242,183,5,.35); }
@@ -487,19 +444,6 @@ input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: te
   .pc-in { transform: none !important; }
 }
 
-/* Themed cards: the achievement's colour as the rim, a spotlight in it, the emoji in the ring. */
-.pc-themed { --acc: var(--th); --ink: #fff; }
-.pc.pc-themed .pc-bg { --rim: var(--th); --fill: radial-gradient(80% 55% at 50% 30%, color-mix(in srgb, var(--th) 45%, #0A0A0A), #0A0A0A 75%); }
-.pc-themed .pc-center { box-shadow: inset 0 0 0 calc(4 * var(--k)) var(--th); background: #0A0A0A; }
-.pc-emoji { font-size: calc(54 * var(--k)); }
-
-/* Sponsor: the brand's colours as a diagonal band across the card, and the
-   logo on a white patch at the top, like a shirt sponsor. */
-.pc-sponsor { background: linear-gradient(135deg, transparent 0 58%, var(--sp) 58% 67%, var(--sp2) 67% 71%, transparent 71%); opacity: .85; }
-.pc-sponsor.on-art { opacity: .5; }
-.pc-sp-patch { position: absolute; left: 50%; top: calc(26 * var(--k)); transform: translateX(-50%); height: calc(22 * var(--k)); display: grid; place-items: center; z-index: 3; }
-.pc-sp-patch img { display: block; height: 100%; width: auto; max-width: calc(80 * var(--k)); object-fit: contain; }
-.pc-medium .pc-sp-patch { top: calc(30 * var(--k)); height: calc(26 * var(--k)); }
 
 /* Pack opening: a foil pack with crimped seals, a tear strip that rips off,
    a face down stack that turns one card at a time. */

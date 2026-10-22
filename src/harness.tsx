@@ -29,6 +29,7 @@ import { FightPoster } from './components/FightPoster';
 import { KioskLiveMatch } from './components/KioskLiveMatch';
 import { calculateMatchElo } from './utils/elo';
 import { Season } from './types';
+import { CardHistoryProvider } from './components/cards/CardHistory';
 import { CollectionView } from './components/cards/CollectionView';
 import { Card, CardStats, Pack, Trade, weekKeyOf } from './utils/cards';
 
@@ -646,4 +647,15 @@ const Harness: React.FC = () => {
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<Harness />);
+// Season 1 closed, so the Season 2 cards show last season's record.
+const cardsPastSeason: Season = {
+  id: 'harness-1', number: 1, name: 'Season 1', startedAt: 0, endedAt: now - 30 * 86_400_000, endsAt: null, startingElo: {}, titles: [],
+  standings: players.map((player, i) => ({ playerId: player.id, name: player.name, rank: i + 1, elo: 1000 - i * 20, wins: 14 - i * 2, losses: 4 + i * 2 })),
+};
+const cardsHarnessSeason: Season = { ...cardsPastSeason, id: 'harness', number: 2, name: 'Season 2', startedAt: now - 30 * 86_400_000, endedAt: null, standings: [] };
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <CardHistoryProvider seasons={[cardsPastSeason, cardsHarnessSeason]} matches={[]} tournaments={[]}>
+    <Harness />
+  </CardHistoryProvider>
+);

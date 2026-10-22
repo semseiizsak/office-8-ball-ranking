@@ -71,6 +71,7 @@ import { deriveChallengeCoins, deriveMatchCoins, matchCoinsFor, seasonCoinLeader
 import { BADGE, buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
 import { rewardFor } from './utils/rewards';
 import { BadgePop } from './components/BadgePop';
+import { CardHistoryProvider } from './components/cards/CardHistory';
 
 const LOCAL_PLAYER_KEY = 'office_8ball_current_player_id';
 const LEADERBOARD_SNAPSHOT_KEY = 'office_8ball_leaderboard_snapshot_v1';
@@ -1649,6 +1650,7 @@ export default function App() {
   }
 
   return (
+    <CardHistoryProvider seasons={seasons} matches={matches} tournaments={tournaments}>
     <div className="flex min-h-screen justify-center bg-bg text-white">
       <div className="relative flex min-h-screen w-full max-w-md flex-col bg-bg">
         <PullToRefresh />
@@ -2091,5 +2093,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </CardHistoryProvider>
   );
 }
