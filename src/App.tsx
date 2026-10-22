@@ -862,7 +862,8 @@ export default function App() {
         body: `${firstName(big.playerId)}, No ${big.serial}. Go and see it in Collection.`,
       });
     }
-    return opened;
+    // Fresh cards only carry a photo id; give them the picture now so the reveal shows the face, not the monogram.
+    return opened.map((card) => ({ ...card, photo: card.photo || (card.photoId ? photos.get(card.photoId) : undefined) || players.find((player) => player.id === card.playerId)?.avatarUrl || undefined }));
   };
 
   const handleBuyPack = async (tier: ShopTier, seasonId: string, subjectId?: string) => {

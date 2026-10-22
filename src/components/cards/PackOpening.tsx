@@ -16,6 +16,15 @@ const packName = (pack: Pack) =>
     ? pack.minRarity ? (pack.minRarity === 'epic' ? 'Legendary pack' : pack.minRarity === 'legendary' ? 'Ultimate pack' : `${pack.minRarity[0].toUpperCase()}${pack.minRarity.slice(1)} pack`) : 'Reward pack'
     : pack.kind === 'champion' ? 'Champion pack' : pack.kind === 'earned' ? 'Earned pack' : 'Weekly pack';
 
+/** The back of a card: the same proportions as a card, plain until it turns. */
+const CardBack: React.FC = () => (
+  <span className="po2-back">
+    <span className="po2-back-ph">
+      <span className="po2-back-ball">8</span>
+    </span>
+  </span>
+);
+
 /**
  * Opening a pack, like the real thing. A foil pack with crimped ends hangs in
  * the light and catches it as you move. Drag along the tear strip (or tap) and
@@ -187,14 +196,14 @@ export const PackOpening: React.FC<{
           <h1 className="min-h-[34px] text-[30px]">
             {showing ? (rank(showing) >= RARITIES.indexOf('legendary') ? (showing.rarity === 'mythic' ? 'Mythic!' : 'Legendary!') : rank(showing) >= RARITIES.indexOf('epic') ? 'Epic!' : ' ') : `${turned + 1} of ${cards.length}`}
           </h1>
-          <button type="button" onClick={turn} aria-label="Turn the top card" className="relative h-[330px] w-[230px]" style={{ perspective: 1200 }}>
+          <button type="button" onClick={turn} aria-label="Turn the top card" className="relative aspect-[320/458] w-[230px]" style={{ perspective: 1200 }}>
             {showing && motion && rank(showing) >= RARITIES.indexOf('rare') && (
               <span aria-hidden="true" className="po2-rays" style={{ ['--glow' as string]: glow }} />
             )}
             {/* The face down cards under the top one. */}
             {cards.slice(turned + 1).map((c, i) => (
               <span key={c.id} className="po2-under absolute inset-0" style={{ transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 6}px) rotate(${(i + 1) * 2}deg)` }}>
-                <span className="po2-back" />
+                <CardBack />
               </span>
             ))}
             <span
@@ -204,7 +213,7 @@ export const PackOpening: React.FC<{
             >
               <span className={`po2-card block h-full w-full ${turning === 'flip' ? 'is-turned' : ''}`}>
                 <span className="po2-face">
-                  <span className="po2-back" />
+                  <CardBack />
                 </span>
                 <span className="po2-face po2-front">{card(top)}</span>
               </span>
