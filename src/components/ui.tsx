@@ -160,11 +160,65 @@ export const Sheet: React.FC<{
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, closeDisabled]);
+  // Pull the sheet down to close it. Inside the scrolling body it only starts once that is at the top.
+  const sheetRef = React.useRef<HTMLDivElement>(null);
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const closeRef = React.useRef(onClose);
+  closeRef.current = onClose;
+  React.useEffect(() => {
+    const el = sheetRef.current;
+    if (!el || closeDisabled) return;
+    let startY = 0;
+    let dy = 0;
+    let last = { y: 0, t: 0, v: 0 };
+    let active = false;
+    const onStart = (event: TouchEvent) => {
+      startY = event.touches[0].clientY;
+      dy = 0;
+      active = false;
+      last = { y: startY, t: event.timeStamp, v: 0 };
+    };
+    const onMove = (event: TouchEvent) => {
+      const y = event.touches[0].clientY;
+      if (!active) {
+        const scrolled = bodyRef.current && bodyRef.current.contains(event.target as Node) && bodyRef.current.scrollTop > 0;
+        if (scrolled || y - startY < 6) return;
+        active = true;
+        el.style.transition = 'none';
+      }
+      dy = Math.max(0, y - startY);
+      const dt = event.timeStamp - last.t;
+      if (dt > 0) last = { y, t: event.timeStamp, v: (y - last.y) / dt };
+      el.style.transform = `translateY(${dy}px)`;
+      event.preventDefault();
+    };
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      el.style.transition = 'transform 260ms var(--ease)';
+      if (dy > 110 || last.v > 0.6) {
+        el.style.transform = 'translateY(100%)';
+        window.setTimeout(() => closeRef.current(), 200);
+      } else {
+        el.style.transform = '';
+      }
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, [closeDisabled]);
   // Portalled to the body: inside a tab's animated wrapper it would sit under the nav and header.
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)} className="fixed inset-0 flex items-end justify-center" style={{ zIndex: z }}>
       <button type="button" aria-label="Close" onClick={onClose} disabled={closeDisabled} className="anim-fade absolute inset-0 bg-black/60" />
-      <div className="anim-sheet relative flex max-h-[90vh] w-full max-w-md flex-col rounded-t-3xl bg-elev">
+      <div ref={sheetRef} className="anim-sheet relative flex max-h-[90vh] w-full max-w-md flex-col rounded-t-3xl bg-elev">
         <div className="flex shrink-0 flex-col gap-2.5 px-4 pt-2.5">
           <span className="mx-auto h-1 w-10 rounded-full bg-white/25" />
           <div className="flex items-center justify-between gap-3">
@@ -180,7 +234,7 @@ export const Sheet: React.FC<{
             </button>
           </div>
         </div>
-        <div className="no-scrollbar stagger grid flex-1 gap-4 overflow-y-auto px-4 pb-4 pt-4">{children}</div>
+        <div ref={bodyRef} className="no-scrollbar stagger grid flex-1 gap-4 overflow-y-auto overscroll-contain px-4 pb-4 pt-4">{children}</div>
         {footer && <div className="shrink-0 px-4 pb-[calc(var(--safe-bottom)+1.25rem)] pt-1">{footer}</div>}
         {!footer && <div className="h-[calc(var(--safe-bottom)+0.75rem)] shrink-0" />}
       </div>
