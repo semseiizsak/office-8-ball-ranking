@@ -25,6 +25,7 @@ const SOURCES: Array<{ label: string; kinds: LedgerKind[] }> = [
   { label: 'Calls', kinds: ['payout', 'call'] },
   { label: 'Jackpot', kinds: ['jackpot'] },
   { label: 'Cup and weekly', kinds: ['cup', 'task'] },
+  { label: 'Season prizes', kinds: ['season'] },
   { label: 'Pack shop', kinds: ['shop'] },
   { label: 'Cards and gifts', kinds: ['cards', 'set', 'grant'] },
 ];

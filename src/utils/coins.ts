@@ -11,7 +11,7 @@ import { mondayOf } from './tournament';
  * corrected result corrects the coins too. Matches from before this went in
  * pay nothing, so nobody gets a surprise windfall for last month.
  */
-export const MATCH_COINS = { play: 20, win: 20, upset: 25, streak: 10 };
+export const MATCH_COINS = { play: 50, win: 40, upset: 50, streak: 25 };
 /** A win pays the streak bonus from this many wins in a row. */
 export const STREAK_FROM = 3;
 /** 2026-10-05 15:15 CEST. */
@@ -54,7 +54,7 @@ export function matchCoinsFor(match: MatchRecord, matches: MatchRecord[]): { win
  * from a pool by the week. Each one done pays once. Progress is read off the
  * week's matches and calls.
  */
-export const CHALLENGE_REWARD = 75;
+export const CHALLENGE_REWARD = 100;
 
 interface WeekContext {
   mine: MatchRecord[];
@@ -144,4 +144,39 @@ export function seasonCoinLeaders(season: Season, matches: MatchRecord[], challe
   for (const [id, record] of deriveChips(settled, inSeason).records) totals.set(id, record.chips);
   for (const [id, amount] of deriveMatchCoins(matches, Math.max(season.startedAt, MATCH_COINS_FROM), until)) totals.set(id, (totals.get(id) ?? 0) + amount);
   return [...totals].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id);
+}
+
+/**
+ * Prizes for where you finished when a season closes: the top five by place,
+ * everyone else who played in it a smaller share. Read off the archived
+ * standings, so like everything else nothing is stored. The stack itself
+ * carries straight on into the next season.
+ */
+export const SEASON_PRIZES = [2000, 1500, 1000, 750, 750];
+export const SEASON_PRIZE_REST = 400;
+
+export interface SeasonPrize {
+  seasonId: string;
+  seasonName: string;
+  at: number;
+  playerId: string;
+  rank: number;
+  amount: number;
+}
+
+export function seasonPrizes(seasons: Season[]): SeasonPrize[] {
+  return seasons.flatMap((season) =>
+    season.endedAt === null
+      ? []
+      : season.standings
+          .filter((row) => row.wins + row.losses > 0)
+          .map((row) => ({
+            seasonId: season.id,
+            seasonName: season.name,
+            at: season.endedAt!,
+            playerId: row.playerId,
+            rank: row.rank,
+            amount: SEASON_PRIZES[row.rank - 1] ?? SEASON_PRIZE_REST,
+          }))
+  );
 }

@@ -1,6 +1,6 @@
-import { Challenge, MatchRecord, Player } from '../types';
+import { Challenge, MatchRecord, Player, Season } from '../types';
 import { ChipsState, GRANTS, JACKPOT_ENTRY, costOf, hasJackpotEntry } from './chips';
-import { CHALLENGE_REWARD, MATCH_COINS, MATCH_COINS_FROM, STREAK_FROM, weekProgress } from './coins';
+import { CHALLENGE_REWARD, MATCH_COINS, MATCH_COINS_FROM, STREAK_FROM, seasonPrizes, weekProgress } from './coins';
 import { Collector, Pack, SET_REWARD_COINS } from './cards';
 import { DAILY_PLAY_BONUS, DAILY_WIN_BONUS, DailyPairing, dayKeyOf } from './daily';
 import { CHAMPION_CHIPS, FINALIST_CHIPS, Tournament, mondayOf, resolveCup } from './tournament';
@@ -10,7 +10,7 @@ import { CHAMPION_CHIPS, FINALIST_CHIPS, Tournament, mondayOf, resolveCup } from
  * here is stored either. It is read off the same matches, calls, packs and
  * cups the balance is, entry by entry, so the log and the number agree.
  */
-export type LedgerKind = 'call' | 'payout' | 'jackpot' | 'match' | 'daily' | 'cup' | 'task' | 'grant' | 'shop' | 'cards' | 'set';
+export type LedgerKind = 'call' | 'payout' | 'jackpot' | 'match' | 'daily' | 'cup' | 'task' | 'grant' | 'shop' | 'cards' | 'set' | 'season';
 
 export interface LedgerEntry {
   /** Stable across renders, so a fresh entry can be told from an old one. */
@@ -41,6 +41,7 @@ export const LEDGER_EMOJI: Record<LedgerKind, string> = {
   shop: '🃏',
   cards: '♻️',
   set: '📚',
+  season: '🏅',
 };
 
 export function coinLedger(params: {
@@ -53,6 +54,7 @@ export function coinLedger(params: {
   tournaments: Tournament[];
   packs: Pack[];
   collector?: Collector;
+  seasons?: Season[];
   now: number;
 }): LedgerEntry[] {
   const { playerId: me, players, matches, challenges, chips, now } = params;
@@ -144,6 +146,12 @@ export function coinLedger(params: {
         ) ?? Math.min(end, now);
       out.push({ id: `task:${dayKeyOf(week)}:${task.id}`, at, amount: CHALLENGE_REWARD, kind: 'task', title: 'Weekly challenge', detail: task.title });
     }
+  }
+
+  // Season prizes: paid the moment a season closes, by where you finished.
+  for (const prize of seasonPrizes(params.seasons ?? [])) {
+    if (prize.playerId !== me) continue;
+    out.push({ id: `season:${prize.seasonId}`, at: prize.at, amount: prize.amount, kind: 'season', title: `Finished #${prize.rank}`, detail: prize.seasonName });
   }
 
   for (const grant of GRANTS) {

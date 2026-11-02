@@ -40,7 +40,7 @@ import {
 import { earnedNotifications } from './utils/earned';
 import { LedgerEntry, coinLedger } from './utils/ledger';
 import { ActivitySheet, ActivityToast } from './components/ActivitySheet';
-import { GRANTS, addBonus, jackpotTakers, withHeadToHead } from './utils/chips';
+import { GRANTS, addBonus, deriveChips, jackpotTakers, withHeadToHead } from './utils/chips';
 import { Card, Collector, Pack, PackKind, SET_RARITIES, SET_REWARD_COINS, ShopTier, Trade, cardStats, dailyDealPlayer, earnedPackReason, photoIdOf, specialAwards, weekKeyOf } from './utils/cards';
 import { CollectionView } from './components/cards/CollectionView';
 import { OfflineReview } from './components/OfflineReview';
@@ -67,7 +67,7 @@ import { SEASON_ALREADY_CLOSED } from './services/firebase';
 import { previewStakes } from './utils/stakes';
 import { Ball, Sheet } from './components/ui';
 import { MessageCircle } from 'lucide-react';
-import { deriveChallengeCoins, deriveMatchCoins, matchCoinsFor, seasonCoinLeaders, weekProgress } from './utils/coins';
+import { deriveChallengeCoins, deriveMatchCoins, matchCoinsFor, seasonCoinLeaders, weekProgress, seasonPrizes } from './utils/coins';
 import { BADGE, buildBadgeContext, describeUnlock, unlockKeys } from './utils/achievements';
 import { rewardFor } from './utils/rewards';
 import { BadgePop } from './components/BadgePop';
@@ -224,8 +224,11 @@ export default function App() {
     return tournaments.find((entry) => entry.week === week) ?? null;
   }, [tournaments, clock]);
   const cupState = useMemo(() => (thisCup ? resolveCup(thisCup, matches, clock) : null), [thisCup, matches, clock]);
+  // Coins outlive seasons: the calls are settled against every match, not just
+  // this season's, or closing a season would drop last month's payouts.
+  const allChips = useMemo(() => deriveChips(challenges, matches), [challenges, matches]);
   const chips = useMemo(() => {
-    const merged = { ...league.chips, records: new Map([...league.chips.records].map(([id, record]) => [id, { ...record }])) };
+    const merged = { ...allChips, records: new Map([...allChips.records].map(([id, record]) => [id, { ...record }])) };
     for (const [id, record] of dailyRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const [id, record] of cupRecords) if (record.bonus) addBonus(merged, id, record.bonus);
     for (const grant of GRANTS) for (const player of players) addBonus(merged, player.id, grant.amount);
@@ -234,8 +237,9 @@ export default function App() {
     for (const collector of collectors) if (collector.rewardChips) addBonus(merged, collector.id, collector.rewardChips);
     for (const [id, amount] of deriveMatchCoins(matches)) addBonus(merged, id, amount);
     for (const [id, amount] of deriveChallengeCoins(players.map((player) => player.id), matches, challenges, clock)) addBonus(merged, id, amount);
+    for (const prize of seasonPrizes(seasons)) addBonus(merged, prize.playerId, prize.amount);
     return merged;
-  }, [league.chips, dailyRecords, cupRecords, players, collectors, matches, challenges, clock]);
+  }, [allChips, dailyRecords, cupRecords, players, collectors, matches, challenges, seasons, clock]);
 
   // Anyone's coin log: every movement on their stack, when and why. Built on
   // demand and kept until the data moves. Only the viewer's own packs are
@@ -255,6 +259,7 @@ export default function App() {
         tournaments,
         packs: playerId === currentPlayer?.id ? packs : [],
         collector: collectors.find((entry) => entry.id === playerId),
+        seasons,
         now: clock,
       });
       const balance = chips.records.get(playerId)?.chips ?? 0;
@@ -263,7 +268,7 @@ export default function App() {
       cache.set(playerId, entries);
       return entries;
     };
-  }, [currentPlayer?.id, players, matches, challenges, chips, dailies, tournaments, packs, collectors, clock]);
+  }, [currentPlayer?.id, players, matches, challenges, chips, dailies, tournaments, packs, collectors, seasons, clock]);
   const ledger = useMemo(() => (currentPlayer ? ledgerFor(currentPlayer.id) : []), [currentPlayer, ledgerFor]);
   const balances = useMemo(() => new Map([...chips.records].map(([id, record]) => [id, record.chips])), [chips]);
 
@@ -1982,7 +1987,7 @@ export default function App() {
               challengerVoters={view.challengerVoters}
               opponentVoters={view.opponentVoters}
               chipsLeft={Math.max(0, Math.floor(chips.records.get(currentPlayer.id)?.chips ?? 0))}
-              pot={league.chips.pools.get(liveChallenge.id) ?? 0}
+              pot={allChips.pools.get(liveChallenge.id) ?? 0}
               onPredict={(predictedWinnerId, stake, ball, pocket) => void handlePredict(liveChallenge, predictedWinnerId, stake, ball, pocket)}
               onSelectPlayer={(player) => setDossierPlayer(player)}
               onPlayChallenge={() => handlePlayChallenge(liveChallenge)}
