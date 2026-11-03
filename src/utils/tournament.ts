@@ -31,6 +31,25 @@ export const CUP_MIN_PLAYERS = 3;
 
 /** From this week on everyone plays the first round; only an odd one out gets a bye. */
 export const CUP_ALL_PLAY_FROM = '2026-11-02';
+
+/** First rounds set by hand for a week, by player id; the rest of the bracket follows the usual rules. */
+export const CUP_FIRST_ROUNDS: Record<string, Array<[string, string]>> = {
+  // Gáspi v Dave, Zsig v Kristóf, Marci v Ármin.
+  '2026-11-02': [
+    ['aP63kd0OBKh0mIckvwdy', 'wlwk7BXYcmuDFwzG0lqR'],
+    ['0PUa7WoW4O2xgQLjLQRi', 'hhYjOHW0H2UfEcvy47db'],
+    ['OThDl6OLfbYJH6MzPCCP', 'BLtGsXBOAxKSOXRpNXNL'],
+  ],
+};
+
+/** A week's hand-set first round as seed pairs, if every player is in the field and nobody is in two games. */
+function fixedPairs(week: string, field: string[]): Array<[number, number]> | undefined {
+  const pairs = CUP_FIRST_ROUNDS[week];
+  if (!pairs || pairs.length !== Math.floor(field.length / 2)) return undefined;
+  const seeded = pairs.map(([x, y]) => [field.indexOf(x) + 1, field.indexOf(y) + 1].sort((a, b) => a - b) as [number, number]);
+  const all = seeded.flat();
+  return all.every((seed) => seed > 0) && new Set(all).size === all.length ? seeded : undefined;
+}
 export const CUP_MAX_PLAYERS = 16;
 
 /** Weeks whose sign-ups close later than usual: week key to closing hour. */
@@ -152,7 +171,7 @@ export function bracketShape(n: number, week?: string) {
 /** Who takes each main-bracket seat, 1 to size: a seed straight in, a play-in winner, or nobody (a bye). */
 export type Seat = { kind: 'seed'; seed: number } | { kind: 'playin'; hi: number; lo: number } | { kind: 'empty' };
 
-export function seatPlan(n: number, week?: string): Seat[] {
+export function seatPlan(n: number, week?: string, pairs?: Array<[number, number]>): Seat[] {
   const { size, playIns } = bracketShape(n, week);
   const seats: Seat[] = Array.from({ length: size + 1 }, () => ({ kind: 'empty' }));
   if (!allPlay(week) || !playIns) {
@@ -161,11 +180,18 @@ export function seatPlan(n: number, week?: string): Seat[] {
   }
   // Seed 1 sits out the play-in only when the field is odd; the rest play best against worst.
   const direct = n % 2;
-  const entries: Seat[] = [
-    ...(direct ? [{ kind: 'seed', seed: 1 } as Seat] : []),
-    ...Array.from({ length: playIns }, (_, j): Seat => ({ kind: 'playin', hi: direct + j + 1, lo: n - j })),
-  ];
+  const paired = new Set(pairs?.flat() ?? []);
+  const entries: Seat[] = pairs
+    ? [
+        ...Array.from({ length: n }, (_, i) => i + 1).filter((seed) => !paired.has(seed)).map((seed): Seat => ({ kind: 'seed', seed })),
+        ...pairs.map(([hi, lo]): Seat => ({ kind: 'playin', hi, lo })),
+      ]
+    : [
+        ...(direct ? [{ kind: 'seed', seed: 1 } as Seat] : []),
+        ...Array.from({ length: playIns }, (_, j): Seat => ({ kind: 'playin', hi: direct + j + 1, lo: n - j })),
+      ];
   const rank = (seat: Seat) => (seat.kind === 'seed' ? seat.seed : seat.kind === 'playin' ? seat.hi : Infinity);
+  entries.sort((x, y) => rank(x) - rank(y));
   // Empty seats go to the best play-in winners, so nobody gets two byes.
   const byes = size - entries.length;
   const takers: Seat[] = entries.filter((seat) => seat.kind === 'playin').slice(0, byes);
@@ -244,7 +270,7 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
   if (!field || field.length < CUP_MIN_PLAYERS || tournament.drawnAt === null) return null;
   const drawnAt = tournament.drawnAt;
   const { size, rounds: roundCount } = bracketShape(field.length, tournament.week);
-  const plan = seatPlan(field.length, tournament.week);
+  const plan = seatPlan(field.length, tournament.week, fixedPairs(tournament.week, field));
   const seeds = new Map(field.map((id, index) => [id, index + 1]));
   const idOf = (seed: number) => field[seed - 1] ?? null;
   const sorted = [...matches].sort((a, b) => a.timestamp - b.timestamp);
