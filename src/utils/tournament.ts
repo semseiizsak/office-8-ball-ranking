@@ -8,8 +8,11 @@ import { dayKeyOf } from './daily';
  * plays. At the close the field is seeded by Elo, best first. The main
  * bracket is the biggest power of two that fits (2, 4, 8 or 16) and is seeded
  * the classic way (1 v 8, 4 v 5, 2 v 7, 3 v 6), so the two best can only meet
- * in the final. Whoever does not fit plays a play-in first: the lowest seeds,
- * in pairs (with 9 players, seeds 8 and 9 play for the last spot).
+ * in the final. When the field is not a power of two, everyone plays a first
+ * round (the play-in), best against worst (with 6: 1 v 6, 2 v 5, 3 v 4). Only
+ * an odd field gives a bye, to seed 1. Seats the play-in winners do not fill
+ * are byes in the next round, taken by the best play-in winners. Weeks before
+ * CUP_ALL_PLAY_FROM keep their old shape, where only the lowest seeds played in.
  *
  * Each round has a deadline, counting back from the final on Friday 17:00. A
  * game can be played as soon as both players are known. If it is not played
@@ -25,6 +28,9 @@ export const CHAMPION_CHIPS = 300;
 export const FINALIST_CHIPS = 100;
 
 export const CUP_MIN_PLAYERS = 3;
+
+/** From this week on everyone plays the first round; only an odd one out gets a bye. */
+export const CUP_ALL_PLAY_FROM = '2026-11-02';
 export const CUP_MAX_PLAYERS = 16;
 
 /** Weeks whose sign-ups close later than usual: week key to closing hour. */
@@ -133,12 +139,46 @@ export function slotOrder(size: number): number[] {
   return order;
 }
 
-/** The shape of a cup of `n`: how many main rounds and whether there is a play-in. */
-export function bracketShape(n: number) {
+const allPlay = (week?: string) => week === undefined || week >= CUP_ALL_PLAY_FROM || !/^\d{4}-/.test(week);
+
+/** The shape of a cup of `n`: how many main rounds and how many play-in games. */
+export function bracketShape(n: number, week?: string) {
   const size = mainSize(n);
   const rounds = Math.round(Math.log2(size));
-  const playIns = n - size;
+  const playIns = size === n ? 0 : allPlay(week) ? Math.floor(n / 2) : n - size;
   return { size, rounds, playIns };
+}
+
+/** Who takes each main-bracket seat, 1 to size: a seed straight in, a play-in winner, or nobody (a bye). */
+export type Seat = { kind: 'seed'; seed: number } | { kind: 'playin'; hi: number; lo: number } | { kind: 'empty' };
+
+export function seatPlan(n: number, week?: string): Seat[] {
+  const { size, playIns } = bracketShape(n, week);
+  const seats: Seat[] = Array.from({ length: size + 1 }, () => ({ kind: 'empty' }));
+  if (!allPlay(week) || !playIns) {
+    for (let k = 1; k <= size; k++) seats[k] = k <= size - playIns ? { kind: 'seed', seed: k } : { kind: 'playin', hi: k, lo: 2 * size + 1 - k };
+    return seats;
+  }
+  // Seed 1 sits out the play-in only when the field is odd; the rest play best against worst.
+  const direct = n % 2;
+  const entries: Seat[] = [
+    ...(direct ? [{ kind: 'seed', seed: 1 } as Seat] : []),
+    ...Array.from({ length: playIns }, (_, j): Seat => ({ kind: 'playin', hi: direct + j + 1, lo: n - j })),
+  ];
+  const rank = (seat: Seat) => (seat.kind === 'seed' ? seat.seed : seat.kind === 'playin' ? seat.hi : Infinity);
+  // Empty seats go to the best play-in winners, so nobody gets two byes.
+  const byes = size - entries.length;
+  const takers: Seat[] = entries.filter((seat) => seat.kind === 'playin').slice(0, byes);
+  const rest = entries.filter((seat) => !takers.includes(seat));
+  const units: Array<[Seat, Seat]> = [
+    ...takers.map((seat): [Seat, Seat] => [seat, { kind: 'empty' }]),
+    ...rest.slice(0, rest.length / 2).map((seat, i): [Seat, Seat] => [seat, rest[rest.length - 1 - i]]),
+  ].sort((x, y) => rank(x[0]) - rank(y[0]));
+  units.forEach(([top, bottom], i) => {
+    seats[i + 1] = top;
+    seats[size - i] = bottom;
+  });
+  return seats;
 }
 
 export const roundName = (round: number, rounds: number) =>
@@ -151,7 +191,7 @@ export const roundName = (round: number, rounds: number) =>
  */
 export function gameDeadline(tournament: Tournament, key: string): number {
   const n = tournament.field?.length ?? 0;
-  const { rounds } = bracketShape(Math.max(n, 2));
+  const { rounds } = bracketShape(Math.max(n, 2), tournament.week);
   const monday = mondayOf(tournament.opensAt);
   const round = key.startsWith('p') ? -1 : Number(key.slice(1).split('-')[0]);
   const day = 4 - (rounds - 1 - round);
@@ -175,6 +215,8 @@ export interface CupGame {
   walkover: boolean;
   /** Not played and nobody (or both) ready: the higher seed went through. */
   auto: boolean;
+  /** One seat is empty: whoever takes the other goes through without a match. */
+  bye: boolean;
   /** Who of the two has said they are ready to play. */
   ready: string[];
   deadline: number;
@@ -201,7 +243,8 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
   const field = tournament.field;
   if (!field || field.length < CUP_MIN_PLAYERS || tournament.drawnAt === null) return null;
   const drawnAt = tournament.drawnAt;
-  const { size, rounds: roundCount, playIns } = bracketShape(field.length);
+  const { size, rounds: roundCount } = bracketShape(field.length, tournament.week);
+  const plan = seatPlan(field.length, tournament.week);
   const seeds = new Map(field.map((id, index) => [id, index + 1]));
   const idOf = (seed: number) => field[seed - 1] ?? null;
   const sorted = [...matches].sort((a, b) => a.timestamp - b.timestamp);
@@ -210,7 +253,7 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
   const settle = (key: string, stage: CupGame['stage'], round: number, label: string, a: string | null, b: string | null, since: number | null): CupGame => {
     const deadline = gameDeadline(tournament, key);
     const ready = [...new Set(tournament.claims.filter((claim) => claim.game === key && claim.at <= deadline && (claim.id === a || claim.id === b)).map((claim) => claim.id))];
-    const base = { key, stage, round, label, a, b, seedA: a ? seeds.get(a)! : null, seedB: b ? seeds.get(b)! : null, ready, deadline };
+    const base = { key, stage, round, label, a, b, seedA: a ? seeds.get(a)! : null, seedB: b ? seeds.get(b)! : null, ready, deadline, bye: false };
     const open = { ...base, winnerId: null, matchId: null, walkover: false, auto: false, decidedAt: null };
     if (!a || !b || since === null) return open;
     const match = sorted.find(
@@ -231,20 +274,24 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
     return { ...base, winnerId: higher, matchId: null, walkover: false, auto: true, decidedAt: deadline };
   };
 
-  // The play-in: seed k against seed 2*size+1-k, for the lowest seeds that do not fit.
+  // The play-in, keyed by the main seat its winner takes.
   const playIn: CupGame[] = [];
   const intoSlot = new Map<number, CupGame>();
-  for (let k = size - playIns + 1; k <= size; k++) {
-    const game = settle(`p${k}`, 'playin', -1, 'Play-in', idOf(k), idOf(2 * size + 1 - k), drawnAt);
+  plan.forEach((seat, k) => {
+    if (seat.kind !== 'playin') return;
+    const game = settle(`p${k}`, 'playin', -1, 'Play-in', idOf(seat.hi), idOf(seat.lo), drawnAt);
     playIn.push(game);
     intoSlot.set(k, game);
-  }
+  });
+  playIn.sort((x, y) => x.seedA! - y.seedA!);
 
-  // The main bracket in seeding order; a play-in seat is filled by its winner.
-  type Entry = { id: string | null; ready: number | null };
-  let entries: Entry[] = slotOrder(size).map((seed) => {
-    const feeder = intoSlot.get(seed);
-    return feeder ? { id: feeder.winnerId, ready: feeder.decidedAt } : { id: idOf(seed), ready: drawnAt };
+  // The main bracket in seeding order; a play-in seat is filled by its winner, an empty one is a bye.
+  type Entry = { id: string | null; ready: number | null; empty?: boolean };
+  let entries: Entry[] = slotOrder(size).map((k) => {
+    const seat = plan[k];
+    const feeder = intoSlot.get(k);
+    if (feeder) return { id: feeder.winnerId, ready: feeder.decidedAt };
+    return seat.kind === 'seed' ? { id: idOf(seat.seed), ready: drawnAt } : { id: null, ready: null, empty: true };
   });
   const rounds: CupGame[][] = [];
   for (let round = 0; round < roundCount; round++) {
@@ -252,7 +299,9 @@ export function resolveCup(tournament: Tournament, matches: MatchRecord[], now: 
     for (let i = 0; i < entries.length; i += 2) {
       const [x, y] = [entries[i], entries[i + 1]];
       const since = x.ready !== null && y.ready !== null ? Math.max(x.ready, y.ready) : null;
-      games.push(settle(`r${round}-${i / 2}`, 'main', round, roundName(round, roundCount), x.id, y.id, since));
+      const game = settle(`r${round}-${i / 2}`, 'main', round, roundName(round, roundCount), x.id, y.id, since);
+      const through = x.empty ? y : y.empty ? x : null;
+      games.push(through ? { ...game, bye: true, winnerId: through.id, decidedAt: through.id ? through.ready : null } : game);
     }
     rounds.push(games);
     entries = games.map((game) => ({ id: game.winnerId, ready: game.decidedAt }));

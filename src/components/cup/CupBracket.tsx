@@ -438,7 +438,7 @@ export const CupBracket: React.FC<{
     const fromTravel = feeder ? travelAt(feeder) : undefined;
     const result: SeatView['result'] = !game.winnerId || !id ? 'open' : game.winnerId === id ? 'won' : 'lost';
     const won = result === 'won';
-    const score = !game.winnerId || !id ? '' : game.walkover ? (won ? 'W/O' : '') : game.auto ? (won ? 'auto' : '') : won ? '1' : '0';
+    const score = !game.winnerId || !id || game.bye ? '' : game.walkover ? (won ? 'W/O' : '') : game.auto ? (won ? 'auto' : '') : won ? '1' : '0';
     const gold = !!champion && id === champion && (won || game === final);
     const tag = feed ? model.tags.get(feed.from) ?? '' : '';
     return {
@@ -446,7 +446,7 @@ export const CupBracket: React.FC<{
       player: id ? byId.get(id) ?? null : null,
       name: nameOf(id),
       seed: id ? state.seeds.get(id) ?? null : null,
-      empty: tag === 'Play-in' ? ['Winner of', 'play-in'] : ['Winner', tag],
+      empty: game.bye && !feed ? ['Bye', ''] : tag === 'Play-in' ? ['Winner of', 'play-in'] : ['Winner', tag],
       result,
       score,
       gold,
@@ -497,7 +497,9 @@ export const CupBracket: React.FC<{
     const tag = model.tags.get(game.key) ?? '';
     const a = seatView(game, 0);
     const b = seatView(game, 1);
-    const spoken = game.winnerId
+    const spoken = game.bye
+      ? `${tag}. ${game.winnerId ? `${nameOf(game.winnerId)} through on a bye` : 'A bye for the winner of the play-in'}`
+      : game.winnerId
       ? `${tag}. ${nameOf(game.winnerId)} ${game.walkover ? 'through on a walkover against' : game.auto ? 'through as the higher seed against' : 'beat'} ${nameOf(game.winnerId === game.a ? game.b : game.a)}`
       : `${tag}. ${game.a ? nameOf(game.a) : a.empty.join(' ')} against ${game.b ? nameOf(game.b) : b.empty.join(' ')}`;
     const side = col + span / 2 <= cols / 2 ? 'l' : 'r';

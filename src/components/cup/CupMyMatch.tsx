@@ -109,6 +109,7 @@ export const CupMyMatch: React.FC<{
   // How the last game went, when it was not a plain win.
   const through = (game: CupGame | null, opponent: string | null) =>
     !game ? ''
+    : game.bye ? 'You had a bye, so you went straight through.'
     : game.walkover ? `${nameOf(opponent)} could not make it, so you went through on a walkover.`
     : game.auto ? `Nobody played by ${when(game.deadline)}, so you went through as the higher seed.`
     : `You beat ${nameOf(opponent)}.`;
@@ -150,7 +151,7 @@ export const CupMyMatch: React.FC<{
 
       {play ? (
         <>
-          {before?.game && (before.game.walkover || before.game.auto) && (
+          {before?.game && (before.game.walkover || before.game.auto || before.game.bye) && (
             <p className="text-[13px] font-semibold text-white/70">{through(before.game, before.opponentId)}</p>
           )}
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">

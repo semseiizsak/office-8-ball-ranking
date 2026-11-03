@@ -15,7 +15,7 @@ import { CARDS_PER_PACK, ODDS, RARITIES, earnedPackReason, rollPack, rollRarity,
 import { rewardFor } from '../src/utils/rewards';
 import { buildBadgeContext, earnedBadges, achievementProgress } from '../src/utils/achievements';
 import { latestReleasedMonday, releaseOf, weekAwards } from '../src/utils/awards';
-import { bracketShape, deriveCups, gameDeadline, gamesOf, resolveCup, seedField, slotOrder, weekTournament, withCloseOverride } from '../src/utils/tournament';
+import { bracketShape, deriveCups, gameDeadline, gamesOf, resolveCup, seatPlan, seedField, slotOrder, weekTournament, withCloseOverride } from '../src/utils/tournament';
 
 const T0 = new Date('2026-09-01T10:00:00Z').getTime();
 let ok = 0, fail = 0;
@@ -453,7 +453,7 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   const cup = weekTournament(at);
   eq('cup: week key is the Monday', cup.week, '2026-09-28');
   eq('cup: bracket order keeps 1 and 2 apart', slotOrder(8), [1, 8, 4, 5, 2, 7, 3, 6]);
-  eq('cup: shapes for 3, 8, 9 and 12', [3, 8, 9, 12].map((n) => bracketShape(n)), [
+  eq('cup: old shapes for 3, 8, 9 and 12', [3, 8, 9, 12].map((n) => bracketShape(n, '2026-09-28')), [
     { size: 2, rounds: 1, playIns: 1 }, { size: 8, rounds: 3, playIns: 0 }, { size: 8, rounds: 3, playIns: 1 }, { size: 8, rounds: 3, playIns: 4 },
   ]);
   const entrants = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((id, i) => ({ id, at: at + i }));
@@ -493,6 +493,30 @@ eq('calls: closed on a settled match', callsOpen({ status: 'played', startedAt: 
   eq('walkover: nothing is decided before the deadline', resolveCup(t, [], h(1))!.playIn[0].winnerId, null);
   eq('walkover: not a cup win', deriveCups([{ ...t, claims: [{ game: 'p8', id: 'f', at: h(1) }] }], [], deadlinePassed).get('f')!.matchWins, 0);
   eq('cup: the final is on Friday 17:00', new Date(gameDeadline(t, 'r2-0')).toString(), new Date(t.deadline).toString());
+}
+
+{
+  // From 2026-11-02: everyone plays the first round, only an odd field gives a bye.
+  const cup = weekTournament(new Date(2026, 10, 2, 9).getTime());
+  const ids = 'abcdefghijklmnop'.split('');
+  const drawn = (n: number) => ({ ...cup, entrants: ids.slice(0, n).map((id, i) => ({ id, at: i })), field: ids.slice(0, n), drawnAt: cup.closesAt, claims: [] });
+  const six = resolveCup(drawn(6), [], cup.closesAt + 1)!;
+  eq('all play: 6 players, three play-in games', six.playIn.map((g) => [g.a, g.b]), [['a', 'f'], ['b', 'e'], ['c', 'd']]);
+  eq('all play: 6 players, nobody through without a game', six.rounds[0].filter((g) => g.winnerId).length, 0);
+  eq('all play: 6 players, one semi is a bye for the best play-in winner', six.rounds[0].map((g) => g.bye), [true, false]);
+  const seven = resolveCup(drawn(7), [], cup.closesAt + 1)!;
+  eq('all play: 7 players, seed 1 is the only bye', [seven.playIn.length, seven.rounds[0][0].a], [3, 'a']);
+  for (let n = 3; n <= 16; n++) {
+    const state = resolveCup(drawn(n), [], cup.closesAt + 1)!;
+    const firstRound = state.playIn.length ? state.playIn : state.rounds[0];
+    const playing = new Set(firstRound.flatMap((g) => [g.a, g.b]).filter(Boolean));
+    eq(`all play: ${n} players, ${n % 2} sit out the first round`, n - playing.size, n % 2);
+    const plan = seatPlan(n, cup.week);
+    const order = slotOrder(plan.length - 1);
+    const pairs = order.filter((_, i) => i % 2 === 0).map((k, i) => [plan[k].kind, plan[order[2 * i + 1]].kind]);
+    eq(`all play: ${n} players, no empty game in the main bracket`, pairs.every((p) => p.includes('seed') || p.includes('playin')), true);
+    eq(`all play: ${n} players, a bye only for someone who played`, pairs.filter((p) => p.includes('empty')).every((p) => p.includes('playin')), true);
+  }
 }
 
 {

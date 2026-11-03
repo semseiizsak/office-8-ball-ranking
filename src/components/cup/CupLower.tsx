@@ -13,7 +13,7 @@ export const CupHowItWorks: React.FC<{ now: number; delay: number }> = ({ now, d
   const items: Array<[string, string]> = [
     ['Monday morning', ` sign ups open at ${hm(week.opensAt)} and close at ${hm(week.closesAt)}. Everyone who signs up plays, ${CUP_MIN_PLAYERS} to ${CUP_MAX_PLAYERS} of you.`],
     ['At the close', ' the field is seeded by Elo. The best seed meets the lowest, so 1 and 2 can only meet in the final.'],
-    ['The play-in', ' comes first when the field does not fill the bracket. The lowest seeds play for the last places.'],
+    ['The play-in', ' comes first when the field does not fill the bracket. Everyone plays it, best against worst. Only an odd field gives a bye, to seed 1.'],
     ['Every round', ` has a deadline, a day at a time. The final is ${weekday(week.deadline)} ${hm(week.deadline)}.`],
     ['Not played?', " Say you're ready. If your opponent does not play you in time, you go through on a walkover. If nobody said so, the higher seed goes through. No match, no Elo."],
     ['The champion', ` gets 🏆 and ${CHAMPION_CHIPS} coins, the runner up ${FINALIST_CHIPS}. Every match counts for Elo as usual.`],

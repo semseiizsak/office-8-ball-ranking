@@ -77,6 +77,8 @@ export interface BracketModel {
  * lower one in a lane at the side. Later rounds span their feeders' columns,
  * so every line is a plain elbow.
  */
+const allGamesOf = (state: CupState) => [...state.playIn, ...state.rounds.flat()];
+
 export function bracketModel(state: CupState): BracketModel {
   const size = state.rounds[0].length * 2;
   const r16 = size === 16;
@@ -130,6 +132,7 @@ export function bracketModel(state: CupState): BracketModel {
 
   const seatLabel = (key: string, seat: 0 | 1) => {
     const feed = feeds.find((entry) => entry.to === key && entry.seat === seat);
+    if (!feed && allGamesOf(state).some((game) => game.key === key && game.bye)) return 'Bye';
     const tag = feed ? tags.get(feed.from) ?? '' : '';
     return tag === 'Play-in' ? 'Winner of play-in' : `Winner ${tag}`;
   };
